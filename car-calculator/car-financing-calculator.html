@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Car financing calculator · Buy outright, loan or lease</title><meta name="description" content="Compare buying outright, a standard car loan, a balloon loan and operating leasing with editable costs and resale assumptions.">
+<script>
+// Apply the saved theme before the page paints; fall back to the device preference.
+(function(){
+ let saved=null;try{saved=localStorage.getItem("car-financing-calculator.theme");}catch{}
+ const theme=saved==="dark"||saved==="light"?saved:(window.matchMedia?.("(prefers-color-scheme: dark)").matches?"dark":"light");
+ document.documentElement.dataset.theme=theme;
+})();
+</script>
+<style>
+:root{color-scheme:light;--ink:#142435;--muted:#536475;--line:#d7dfe7;--blue:#205bbb;--teal:#007e79;--bg:#f2f5f8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+header,main,footer{max-width:1280px;margin:auto;padding:24px 32px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);gap:18px}.brand{font-weight:800;font-size:22px;letter-spacing:-.5px}.brand span{font-size:12px;letter-spacing:1.6px;margin-left:12px;font-weight:600;color:var(--muted)}
+button{font:inherit;border:1px solid var(--line);border-radius:6px;background:white;padding:9px 15px;color:var(--ink);cursor:pointer;font-size:14px}button:hover{border-color:var(--blue);color:var(--blue)}
+.intro{margin:6px 0 26px}.intro h1{font-size:clamp(30px,4vw,44px);letter-spacing:-1.5px;line-height:1.15;margin:0 0 8px}.intro p{margin:0;color:var(--muted)}
+.workspace{display:grid;grid-template-columns:minmax(310px, .85fr) minmax(0,1.3fr);gap:26px;align-items:start}.panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:18px}.section-title{display:flex;align-items:center;gap:10px;margin-bottom:16px}h2{font-size:18px;letter-spacing:-.3px;margin:0;font-weight:700}.number{font:600 12px monospace;display:grid;place-items:center;width:28px;height:28px;border-radius:5px;background:#eaf0f6;color:var(--muted)}.number.easy{background:#e8efff;color:var(--blue)}.number.kinto{background:#dff3f1;color:var(--teal)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.wide{grid-column:1/-1}label{display:block;font-size:14px;font-weight:600;min-width:0}label>span{color:var(--muted);display:block;font-weight:400;font-size:12px;margin-top:1px}
+input[type=number],select{width:100%;min-width:0;padding:11px 10px;margin-top:7px;border:1px solid #bcc9d6;border-radius:5px;font:600 17px "Avenir Next",Avenir,"Segoe UI",sans-serif;color:var(--ink);background:#fbfcfe;min-height:46px}select{font-size:14px}input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:3px solid #b4d3fa;outline-offset:2px;border-color:var(--blue)}input.important{font-size:23px;border-color:var(--blue);background:#f6f9ff}input:disabled{opacity:.45}small,.hint{display:block;font-size:13px;line-height:1.55;font-weight:400;color:var(--muted)}small{margin-top:7px}.hint{margin:14px 0 0}.checks{display:grid;gap:12px;margin:22px 0}.checks label{display:flex;align-items:flex-start;gap:10px;font-weight:400;cursor:pointer}.checks label span{font-size:14px;margin:0;color:var(--ink)}input[type=checkbox]{accent-color:var(--teal);width:18px;height:18px;flex-shrink:0;margin:2px 0 0}.field-note{grid-column:1/-1;align-self:start;color:var(--teal);font-size:14px;padding:2px 0 12px}summary{font-weight:700;font-size:16px;cursor:pointer}details[open]>summary{margin-bottom:18px}
+.verdict{background:var(--ink);color:white;border-radius:10px;padding:25px 28px;margin-bottom:16px;border-top:4px solid var(--teal)}.eyebrow{font-size:12px;letter-spacing:1.2px;font-weight:700}.verdict .eyebrow{color:#bacbdd;margin-bottom:14px}.verdict h2{font-size:23px;color:#e2ecf4}.saving{font-size:clamp(35px,4vw,52px);font-weight:700;line-height:1.2;letter-spacing:-1.4px;margin:8px 0}.verdict p{margin:0;color:#cad9e8;font-size:14px}
+.totals{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}.total{background:#fff;padding:20px;border:1px solid var(--line);border-radius:8px;border-top:3px solid var(--blue)}.kinto-total{border-top-color:var(--teal)}.total .eyebrow{color:var(--muted)}.total strong{display:block;font-size:clamp(23px,2.5vw,31px);letter-spacing:-1px;margin:10px 0 3px;font-variant-numeric:tabular-nums}.total p{font-size:14px;margin:0;color:var(--muted)}.break{border-left:4px solid var(--blue)}.break h2{font-size:16px}.break strong{display:block;font-size:30px;letter-spacing:-1px;color:var(--blue);margin:6px 0}.break p{font-size:14px;color:var(--muted);margin:0}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}th{color:var(--muted);font-weight:500;font-size:12px;text-align:right;white-space:nowrap;padding:12px 8px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left;padding-left:0}td{text-align:right;padding:12px 8px;border-bottom:1px solid #edf0f3}th:last-child,td:last-child{padding-right:0}td:not(:first-child){white-space:nowrap}.sum td{font-weight:800;border-top:2px solid var(--line);border-bottom:0}.selected td{background:#eef4ff;font-weight:700}.selected td:first-child{padding-left:6px}.easy-text{color:var(--blue)}.kinto-text{color:var(--teal)}dl{display:grid;grid-template-columns:1fr auto;gap:12px;font-size:14px;margin:0}dt{color:var(--muted)}dd{text-align:right;margin:0;font-weight:600;font-variant-numeric:tabular-nums}.notes p,.notes li{font-size:14px;color:var(--muted)}a{color:var(--blue);text-underline-offset:3px}.error{padding:20px;border:1px solid #ba3a3a;color:#8e2525;background:#fff3f3;border-radius:8px;margin-bottom:18px}footer{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;border-top:1px solid var(--line);gap:15px}[hidden]{display:none!important}
+@media(max-width:850px){header,main,footer{padding:20px}.workspace{grid-template-columns:minmax(0,1fr)}.results{grid-row:1}.intro h1{font-size:34px}.brand span{display:none}.results .notes{display:none}.totals{gap:10px}.panel{padding:18px}.verdict{padding:22px}.results{display:contents}#resultContent{grid-row:1}#inputs{grid-row:2}.results .notes{display:block;grid-row:3}#error{grid-row:1}}
+@media(max-width:430px){header,main,footer{padding:16px}.total{padding:14px}.total strong{font-size:22px}.eyebrow{font-size:11px;letter-spacing:.6px}footer{flex-direction:column}.fields{gap:13px}.panel{padding:16px}}
+@media(prefers-reduced-motion:no-preference){button,input,select{transition:border-color .15s,background .15s}}
+
+:root{--normal:#845424}html{scroll-behavior:smooth}.jump{display:flex;gap:16px;margin-top:14px;font-size:14px}input[type=text]{width:100%;min-height:46px;margin-top:7px;border:1px solid #bcc9d6;border-radius:5px;padding:11px 10px;font:500 16px "Avenir Next",Avenir,"Segoe UI",sans-serif;color:var(--ink);background:#fbfcfe}.scenario-name{font-size:14px;margin-bottom:6px;color:#fff}.number.normal{color:var(--normal);background:#f7eee0}.normal-total{border-top-color:var(--normal)}.normal-text{color:var(--normal)}.totals{grid-template-columns:repeat(3,minmax(0,1fr))}.total{padding:16px 12px}.total strong{font-size:clamp(20px,2.1vw,27px)}.total .eyebrow{font-size:11px;letter-spacing:.6px}.break-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:12px}.break-grid span{font-size:13px;color:var(--muted)}.break strong{font-size:25px}.break-grid>div:nth-child(2) strong{color:var(--normal)}
+@media(max-width:850px){.workspace{display:flex;flex-direction:column}.results{display:block;width:100%}#inputs{width:100%}.results .notes{display:block}.total strong{font-size:22px}.jump{position:sticky;top:0}.intro{margin-bottom:18px}}@media(max-width:480px){.totals{grid-template-columns:1fr}.total{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 12px}.total strong{margin:0;font-size:24px}.total p{grid-column:1/-1}.break-grid{grid-template-columns:1fr}.break strong{font-size:28px}}
+
+/* One option palette is reused across setup controls and every comparison. */
+[data-option="balloon"]{--option:var(--blue);--option-bg:#edf4ff;color:var(--option)}
+[data-option="normal"]{--option:var(--normal);--option-bg:#fff4e5;color:var(--option)}
+[data-option="lease"]{--option:var(--teal);--option-bg:#e7f7f4;color:var(--option)}
+header,main,footer{max-width:1920px;width:100%;padding-left:clamp(16px,3vw,56px);padding-right:clamp(16px,3vw,56px)}
+header{flex-wrap:wrap}.header-actions{display:flex;flex-wrap:wrap;gap:8px}.storage-status{font-size:13px;color:var(--muted);min-height:20px;margin:0 0 18px}
+.option-legend{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px}.option-legend span{font-size:14px;font-weight:700;background:var(--option-bg);border-left:4px solid var(--option);padding:6px 12px;border-radius:4px}
+.workspace{display:block}.area-title{font-size:23px;margin:0 0 18px;letter-spacing:-.5px;grid-column:1/-1}
+#inputs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;align-items:start;margin-bottom:32px;scroll-margin-top:20px}
+#inputs>.panel{margin:0;grid-column:span 2;min-width:0}
+#inputs>section.panel:first-of-type{grid-column:1/-1}#inputs>section.panel:first-of-type .fields{grid-template-columns:repeat(4,minmax(0,1fr))}#inputs>section.panel:first-of-type .wide{grid-column:span 2}
+
+.option-panel{border-top:4px solid var(--option);color:var(--ink)}.option-panel h2{color:var(--option)}.option-panel input:focus,.option-panel select:focus{border-color:var(--option);outline-color:var(--option-bg)}
+.results{width:100%;scroll-margin-top:20px}.results .notes{display:block}.verdict{margin-top:0}
+#verdict[data-winner="balloon"]{border-color:var(--blue)}#verdict[data-winner="balloon"] #winner{color:#a9caff}
+#verdict[data-winner="normal"]{border-color:var(--normal)}#verdict[data-winner="normal"] #winner{color:#f4c889}
+#verdict[data-winner="lease"]{border-color:var(--teal)}#verdict[data-winner="lease"] #winner{color:#88ded3}
+#verdict[data-winner="tie"]{border-color:var(--line)}
+.total{padding:22px;background:var(--option-bg);border-color:var(--line);border-top-color:var(--option)}.total .eyebrow,.total strong,.total p{color:var(--option)}.total strong{font-size:clamp(26px,2.5vw,40px)}.total .eyebrow{font-size:14px}
+.break{border-left:1px solid var(--line)}.break-grid>div{padding:14px;border-left:4px solid var(--option);background:var(--option-bg);border-radius:4px}.break-grid span,.break-grid strong{color:var(--option)}
+.comparison-table,.sensitivity-table{table-layout:fixed}.comparison-table th:first-child,.sensitivity-table th:first-child{width:34%}
+table thead th[data-option],table td[data-option]{background:var(--option-bg);color:var(--option)}
+table thead th{font-size:14px;font-weight:700;padding:14px 16px;white-space:normal}
+table tbody th[scope="row"]{text-align:left;font-size:14px;font-weight:500;color:var(--ink);white-space:normal;padding:14px 16px 14px 0;border-bottom:1px solid #edf0f3}
+table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-child{padding-right:16px}
+.comparison-table td:not(:first-child){white-space:normal}.cell-amount{display:block;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:650}.comparison-table small{font-size:12px;color:var(--muted);margin-top:5px}
+.phase th{background:#edf1f5;color:var(--ink);text-align:left;font-size:13px;font-weight:750;padding:14px 12px;letter-spacing:.3px;white-space:normal}
+.sum td,.sum th[scope="row"]{font-weight:800;border-top:2px solid var(--line);border-bottom:0}.emphasis td,.emphasis th[scope="row"]{font-weight:800;font-size:16px}
+.selected td[data-option]{background:var(--option-bg);box-shadow:inset 0 2px var(--option),inset 0 -2px var(--option)}.selected td:not([data-option]),.selected th{background:#edf1f5}
+.formula-note{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}.formula-note summary{font-size:14px}.formula-note p{font-size:14px;color:var(--muted)}.formula-note [data-option]{font-weight:700}
+#costRows,#opportunityRows,#monthlyRows,#vatTimeline,#cashflow{font-variant-numeric:tabular-nums}
+@media(min-width:1400px){#resultContent{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}#resultContent>.panel,#resultContent>details{margin:0}#resultContent>.verdict,#resultContent>.totals,#resultContent>.panel:has(#monthlyRows),#resultContent>.break,#resultContent>.panel:has(#vatTimeline){grid-column:1/-1}.verdict,.totals{margin-bottom:0}.results>.notes{margin-top:20px}}
+@media(max-width:1100px){#inputs{grid-template-columns:repeat(2,minmax(0,1fr))}#inputs>.panel{grid-column:span 1}}
+@media(max-width:700px){header{align-items:flex-start}.header-actions button{font-size:13px;padding:8px 11px}#inputs{display:block}#inputs>.panel{margin-bottom:16px}#inputs>section.panel:first-of-type .fields{grid-template-columns:repeat(2,minmax(0,1fr))}.table-wrap{overflow-x:auto}.comparison-table,.sensitivity-table{min-width:600px}.totals{grid-template-columns:1fr}.total{display:grid;grid-template-columns:1fr auto;gap:4px 12px}.total strong{font-size:27px;margin:0}.total p{grid-column:1/-1}.total .eyebrow{font-size:12px}.break-grid{grid-template-columns:1fr}.option-legend span{font-size:12px}.intro h1{font-size:32px}}
+
+.scenario-toolbar{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end;margin:0 0 26px;padding:18px 22px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.scenario-toolbar label{flex:1 1 360px;max-width:760px}.scenario-toolbar select{font-size:16px;font-weight:650}
+.scenario-toolbar button{min-height:46px;background:var(--ink);color:#fff;border-color:var(--ink);font-weight:650}
+.scenario-toolbar button:hover{background:#253d54}.scenario-toolbar>span{align-self:center;font-size:13px;color:var(--muted)}
+.scenario-toolbar p{flex-basis:100%;font-size:13px;color:var(--muted);margin:0}
+@media(max-width:700px){.scenario-toolbar{padding:16px}.scenario-toolbar label{flex-basis:100%;max-width:none}.scenario-toolbar>span{margin-left:auto}}
+
+/* Dark colors retain the same blue, amber and teal option identities. */
+:root[data-theme="dark"]{color-scheme:dark;--ink:#f4f7fc;--muted:#b8c6d8;--line:#43536a;--blue:#a8caff;--normal:#ffd092;--teal:#85ead7;--bg:#06090e;--surface:#0d141e;--field:#080e16}
+:root[data-theme="dark"] [data-option="balloon"]{--option-bg:#10223b}
+:root[data-theme="dark"] [data-option="normal"]{--option-bg:#281d10}
+:root[data-theme="dark"] [data-option="lease"]{--option-bg:#092b25}
+:root[data-theme="dark"] .panel,:root[data-theme="dark"] .scenario-toolbar{background:var(--surface)}
+:root[data-theme="dark"] button{background:#162132;border-color:var(--line);color:var(--ink)}
+:root[data-theme="dark"] button:hover{background:#22354e;border-color:var(--blue)}
+:root[data-theme="dark"] input[type="number"],:root[data-theme="dark"] input[type="text"],:root[data-theme="dark"] select{background:var(--field);border-color:#60758f;color:var(--ink)}
+:root[data-theme="dark"] input.important{background:#10223b;border-color:var(--blue)}
+:root[data-theme="dark"] input:focus,:root[data-theme="dark"] select:focus,:root[data-theme="dark"] button:focus-visible,:root[data-theme="dark"] summary:focus-visible{outline-color:#a8caff}
+:root[data-theme="dark"] .number{background:#1b2a3d;color:var(--muted)}
+:root[data-theme="dark"] .number.easy{background:#10223b;color:var(--blue)}
+:root[data-theme="dark"] .number.normal{background:#281d10;color:var(--normal)}
+:root[data-theme="dark"] .number.kinto{background:#092b25;color:var(--teal)}
+:root[data-theme="dark"] .verdict{background:#030609;color:var(--ink)}
+:root[data-theme="dark"] .scenario-toolbar button{background:#1c304b;color:#fff;border-color:#60758f}
+:root[data-theme="dark"] .scenario-toolbar button:hover{background:#2a4668}
+:root[data-theme="dark"] td,:root[data-theme="dark"] table tbody th[scope="row"]{border-bottom-color:var(--line)}
+:root[data-theme="dark"] .phase th,:root[data-theme="dark"] .selected td:not([data-option]),:root[data-theme="dark"] .selected th{background:#1a293c}
+:root[data-theme="dark"] .error{background:#290f1a;border-color:#d77b91;color:#ffe2e8}
+#themeToggle[aria-pressed="true"]{background:#10223b;border-color:#a8caff;color:#dceaff}
+
+.sensitivity-table th:first-child{width:27%}.sensitivity-table th:last-child{width:22%}
+.sensitivity-table td{white-space:normal}.sensitivity-table td[data-option]{white-space:nowrap}
+.breakpoint-note{font-size:12px;margin-top:7px;line-height:1.7}.option-label{font-weight:650}
+.breakpoint th[scope="row"]{border-left:3px solid var(--muted);padding-left:10px}
+
+
+@media(min-width:1400px){#resultContent>.resale-panel{grid-column:1/-1}}
+@media(max-width:700px){.sensitivity-table{min-width:760px}}
+
+
+/* Outright purchase keeps its own color throughout the four-option comparison. */
+:root{--cash:#a13962}
+[data-option="cash"]{--option:var(--cash);--option-bg:#fcecf2;color:var(--option)}
+.option-panel[data-option="cash"]{color:var(--ink)}
+.number.cash{background:#fcecf2;color:var(--cash)}
+:root[data-theme="dark"]{--cash:#ffb5d3}
+:root[data-theme="dark"] [data-option="cash"]{--option-bg:#2a1220}
+:root[data-theme="dark"] .number.cash{background:#2a1220;color:var(--cash)}
+#verdict[data-winner="cash"]{border-color:var(--cash)}
+#verdict[data-winner="cash"] #winner{color:#f3a3c4}
+.totals{grid-template-columns:repeat(4,minmax(0,1fr))}
+.break-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.comparison-table th:first-child{width:28%}
+.sensitivity-table th:first-child{width:25%}
+.sensitivity-table th:last-child{width:19%}
+@media(min-width:1101px){
+ #inputs{grid-template-columns:repeat(8,minmax(0,1fr))}
+
+}
+@media(min-width:1400px){#resultContent>.panel:has(#costRows),#resultContent>.panel:has(#opportunityRows),#resultContent>details:has(#cashflow){grid-column:1/-1}}
+@media(max-width:1000px){.totals{grid-template-columns:repeat(2,minmax(0,1fr))}.comparison-table{min-width:820px}.sensitivity-table{min-width:940px}}
+@media(max-width:700px){.totals,.break-grid{grid-template-columns:1fr}}
+
+
+/* Shared grid rows keep each label, unit and input aligned with its neighbors. */
+.field{position:relative;display:grid;grid-template-rows:auto 46px auto;align-content:start;min-width:0;padding-bottom:12px}
+.field-label{padding-right:30px;min-height:58px}
+.field-label .field-title{display:block;color:var(--ink);font-size:14px;font-weight:600;line-height:1.4;margin:0}
+.field-label .field-unit{display:block;min-height:1.5em;color:var(--muted);font-size:12px;font-weight:400;line-height:1.5;margin-top:2px}
+.field>input,.field>select{margin-top:0;height:46px}
+.field>small{margin-top:0}
+.fields{row-gap:8px;align-items:start}
+@supports(grid-template-rows:subgrid){
+ .field{grid-template-rows:subgrid;grid-row:span 3;row-gap:6px}
+ .field-label{min-height:0}
+}
+.panel{position:relative;min-width:0}
+#inputs{grid-template-columns:repeat(12,minmax(0,1fr));align-items:stretch}
+#inputs>.panel{grid-column:span 6;align-self:stretch}
+#inputs>.panel:first-of-type{grid-column:1/-1}
+#inputs>.option-panel{margin-bottom:0}
+#inputs>.assumptions-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+.assumptions-grid>.panel{margin:0;height:100%}
+#resultContent{align-items:stretch}
+#resultContent>.panel,#resultContent>details{grid-column:1/-1}
+.check-field{position:relative;padding-right:32px}
+.check-field .help-wrap{top:0}
+.checks .check-field label{margin:0}
+.help-intro{font-size:12px;color:var(--muted);margin:0 0 8px}
+.help-wrap{position:absolute;top:0;right:0;z-index:2}
+.help-button{display:grid;place-items:center;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;font-size:13px;font-weight:700;line-height:1;color:var(--muted);background:var(--bg)}
+.help-text{display:none;position:absolute;z-index:20;top:31px;right:0;width:280px;max-width:calc(100vw - 48px);padding:12px 14px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);box-shadow:0 8px 28px #0003;font-size:13px;font-weight:400;line-height:1.55;letter-spacing:0;text-align:left;white-space:normal}
+.field>.help-wrap{position:absolute;inset:0;pointer-events:none}
+.field>.help-wrap>.help-button{position:absolute;right:0;top:0;pointer-events:auto}
+.field>.help-wrap>.help-text{pointer-events:auto;left:0;right:0;top:31px;width:auto;max-width:none}
+.help-wrap:focus-within{z-index:21}
+.help-wrap:focus-within>.help-text{display:block}
+@media(hover:hover){.help-wrap:hover{z-index:21}.help-wrap:hover>.help-text{display:block}}
+.help-heading{position:relative;padding-right:36px}
+.help-heading .help-wrap{top:0}
+:root[data-theme="dark"] .help-text{background:#142133;border-color:#60758f;box-shadow:0 10px 30px #0009}
+.versus-table{table-layout:fixed;min-width:640px}
+.versus-table th:first-child{width:24%}.versus-table th:not(:first-child){width:19%}
+.versus-table td:not(:first-child){white-space:normal}
+.versus-table td>span{display:block;white-space:nowrap;font-weight:700}
+.versus-table small{color:inherit;font-size:12px;margin-top:2px}
+.table-wrap{max-width:100%;overscroll-behavior-x:contain}
+.table-wrap:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+@media(min-width:1600px){#inputs>.option-panel{grid-column:span 3}}
+@media(max-width:1100px){
+ #inputs>.assumptions-grid{grid-template-columns:1fr}
+ .assumptions-grid .fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ header,main,footer{padding:14px 10px}
+ header{gap:12px}.brand{font-size:20px}
+ .header-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:100%}
+ .header-actions button{min-height:42px;padding:8px;font-size:13px}
+ .intro{margin:0 0 16px}.intro h1{font-size:29px;letter-spacing:-1px}
+ .jump{position:static;gap:16px;margin-top:10px}
+ .option-legend{gap:6px}.option-legend span{padding:5px 8px}
+ .scenario-toolbar{padding:12px;margin-bottom:16px;gap:10px}
+ .scenario-toolbar label{flex-basis:100%;min-width:0}
+ .scenario-toolbar p{font-size:12px}
+ .storage-status{margin-bottom:14px}
+ #inputs{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:22px}
+ #inputs>.panel,#inputs>.panel:first-of-type,#inputs>.option-panel{grid-column:1/-1;margin:0}
+ #inputs>.assumptions-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+ .panel{padding:14px 12px;border-radius:8px}
+ .fields,.assumptions-grid .fields{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px;row-gap:6px}
+ #inputs>section.panel:first-of-type .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #inputs>section.panel:first-of-type .wide{grid-column:1/-1}
+ .field-label .field-title{font-size:13px}
+ input[type=number],input[type=text],select{font-size:16px;padding:9px 8px}
+ .help-button{width:28px;height:28px;min-height:28px}
+ .field-label{padding-right:30px}
+ .field>.help-wrap>.help-text{font-size:12px;padding:10px}
+ .section-title{gap:8px;margin-bottom:12px}
+ h2{font-size:17px}.area-title{font-size:21px;margin-bottom:0}
+ .results>.area-title{margin-bottom:12px}
+ .checks{margin:16px 0;gap:12px}
+ .verdict{padding:18px 14px}.verdict h2{font-size:21px}
+ .totals{gap:10px}.total{padding:14px 12px}
+ .total strong{font-size:25px}
+ .hint{font-size:12px;margin-top:10px}
+ .comparison-table{min-width:710px}
+ .sensitivity-table{min-width:830px}
+
+ .versus-table{min-width:640px}
+ table thead th,table td{padding:10px;font-size:13px}
+ table tbody th[scope="row"]{padding:10px 10px 10px 0;font-size:13px}
+ table td:last-child,table th:last-child{padding-right:10px}
+ .break-grid{gap:10px}.break-grid>div{padding:10px}
+ footer{gap:6px}
+}
+@media(max-width:359px){
+ .fields,.assumptions-grid .fields,#inputs>section.panel:first-of-type .fields{grid-template-columns:minmax(0,1fr)}
+ .wide{grid-column:1/-1}
+ .total{display:block}.total strong{margin:6px 0}
+}
+
+/* Collapsed cards shrink to their headings while open cards still align by row. */
+.card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;min-width:0}
+.card-heading>.section-title{margin:0;flex:1;min-width:0}
+.card-heading>h2,.card-heading>.eyebrow{flex:1;min-width:0;margin:0}
+.card-heading .help-heading{flex:1}
+.card-body{min-width:0}
+.card-toggle,.scenario-toolbar .card-toggle{flex:none;display:grid;place-items:center;width:30px;height:30px;min-height:30px;padding:0;font-size:22px;line-height:1;font-weight:500;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.collapsible-card[data-collapsed="true"]{align-self:start!important;height:auto!important}
+.collapsible-card[data-collapsed="true"]>.card-heading{margin-bottom:0}
+.total.collapsible-card,.scenario-toolbar.collapsible-card{display:block}
+.total .card-heading{align-items:center;margin-bottom:8px}
+.total .card-body strong{margin-top:0}
+.total .card-body p{margin:0}
+.scenario-toolbar .card-body{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end}
+.scenario-toolbar .card-body>span{align-self:center;font-size:13px;color:var(--muted)}
+.verdict .card-toggle{background:#162132;color:#f4f7fc;border-color:#60758f}
+.verdict>.card-heading>h2{font-size:15px;color:#cad9e8}
+#inputs>.panel:first-of-type .card-body>.fields{grid-template-columns:repeat(4,minmax(0,1fr))}
+#inputs>.panel:first-of-type .card-body .wide{grid-column:span 2}
+.prefill-status{font-size:13px;color:var(--muted);margin:0 0 8px}
+@media(max-width:700px){
+ .card-heading{gap:8px;margin-bottom:12px}
+ .card-toggle,.scenario-toolbar .card-toggle{width:32px;height:32px;min-height:32px}
+ #inputs>.panel:first-of-type .card-body>.fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #inputs>.panel:first-of-type .card-body .wide{grid-column:1/-1}
+ .scenario-toolbar .card-body{gap:10px}
+ .scenario-toolbar .card-body>span{margin-left:auto}
+ .prefill-status{font-size:12px}
+}
+@media(max-width:359px){#inputs>.panel:first-of-type .card-body>.fields{grid-template-columns:minmax(0,1fr)}}
+
+.results-vat-note{grid-column:1/-1;font-size:13px;line-height:1.55;color:var(--muted);margin:0 0 14px}
+.total .result-basis{font-size:12px;margin:0 0 4px}
+.total .annual-cost{font-size:16px;font-weight:700;margin:0 0 4px}
+.gross-comparison{border-top:1px solid var(--option);margin-top:14px;padding-top:10px}
+.gross-comparison>small{margin:0 0 5px}
+.gross-comparison .gross-total{font-size:16px;font-weight:650;display:block}
+.gross-comparison small{font-size:12px;color:var(--option);margin-top:4px}
+@media(min-width:1001px) and (max-width:1399px){.totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.results-vat-note{font-size:12px}.total .annual-cost{font-size:15px}}
+
+.field-label{padding-right:0}
+.field-label .field-title{padding-right:30px}
+.field-label .field-unit{white-space:nowrap}
+
+.versus-table tbody th[scope="row"][data-option]{background:var(--option-bg);padding-left:12px}
+.versus-table .versus-less{color:#126246;background:#eef8f2}
+.versus-table .versus-more{color:var(--muted)}
+.versus-table .versus-diagonal,.versus-table .versus-tie{color:var(--muted);font-size:13px}
+:root[data-theme="dark"] .versus-table .versus-less{color:#98edc0;background:#0c281d}
+</style></head><body>
+<header><div class="brand">AUTO <span>/ FINANCE CALCULATOR</span></div><div class="header-actions"><button id="themeToggle" type="button" aria-label="Dark mode" aria-pressed="false">Dark mode: off</button><button id="exportSettings" type="button">Export current JSON</button><button id="exportAllSettings" type="button">Export all JSON</button><button id="importSettings" type="button">Import JSON</button><button id="clearAll" type="button" title="Clear the current scenario’s numeric fields. Other saved scenarios are kept.">Clear all</button><button id="reset" type="button">Reset current</button><input id="importFile" type="file" accept=".json,application/json" hidden></div></header>
+<main>
+<section class="scenario-toolbar" aria-label="Saved scenarios"><label for="scenarioSelect">Choose a scenario<select id="scenarioSelect"></select></label><button id="duplicateScenario" type="button">Duplicate</button><span id="scenarioCount"></span><p>Pick a scenario, or duplicate it to try a variation. Rename it using “Car or scenario name” below.</p></section>
+<div class="intro"><h1>Buy outright, loan or lease?</h1><p>Compare the full cost of any car. All amounts in Kč.</p><nav class="jump"><a href="#inputs">Edit inputs</a><a href="#comparison">View comparison</a></nav></div>
+<div class="option-legend" aria-label="Financing option colors"><span data-option="balloon">Balloon loan</span><span data-option="normal">Standard loan</span><span data-option="lease">Operating lease</span><span data-option="cash">Buy outright</span></div>
+<p class="help-intro">Hover or tap a ? for an explanation. Keyboard users can focus it and press Escape to close.</p>
+<p id="prefillStatus" class="prefill-status" role="status" aria-live="polite">Related empty fields are suggested after you finish a field, moving forward through the form. Existing values are kept.</p>
+<p id="storageStatus" class="storage-status" role="status" aria-live="polite"></p>
+<div class="workspace">
+<form id="inputs" novalidate><h2 class="area-title">Set up your comparison</h2>
+<section class="panel"><div class="section-title"><span class="number">01</span><h2>Your comparison</h2></div><div class="fields">
+<div class="field wide"><label for="carName" class="field-label"><span class="field-title">Car or scenario name</span><span class="field-unit">&#160;</span></label><input id="carName" type="text" maxlength="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain carName" aria-describedby="help-carName">?</button><span class="help-text" role="tooltip" id="help-carName">Names this saved scenario. Duplicate it to compare a different quote without overwriting the original.</span></span></div>
+<div class="field wide"><label for="price" class="field-label"><span class="field-title">Purchase price</span><span class="field-unit">Kč incl. VAT</span></label><input id="price" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain price" aria-describedby="help-price">?</button><span class="help-text" role="tooltip" id="help-price">The full invoice price including VAT. All three purchase options use this price, even if the VAT is refunded later.</span></span></div>
+<div class="field"><label for="months" class="field-label"><span class="field-title">Comparison period</span><span class="field-unit">months</span></label><input id="months" type="number" min="1" max="120" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain months" aria-describedby="help-months">?</button><span class="help-text" role="tooltip" id="help-months">The shared comparison period for all four options. Loan payments, mileage, servicing and opportunity cost use this period. Enter a lease quote that matches it.</span></span></div>
+<div class="field"><label for="ownershipYears" class="field-label"><span class="field-title">Sell outright purchase after</span><span class="field-unit">years</span></label><input id="ownershipYears" type="number" min="0.08333333333333333" max="10" step="any"><small>Sets the same term for both loans and the lease. Use whole months.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain ownershipYears" aria-describedby="help-ownershipYears">?</button><span class="help-text" role="tooltip" id="help-ownershipYears">Changes the same comparison period as the months field. Buying outright means paying now and selling at this date. For example, 3 years is 36 months.</span></span></div>
+<div class="field"><label for="annualKm" class="field-label"><span class="field-title">Annual mileage</span><span class="field-unit">km</span></label><input id="annualKm" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain annualKm" aria-describedby="help-annualKm">?</button><span class="help-text" role="tooltip" id="help-annualKm">Used to calculate total mileage and when distance-based servicing is due. The calculator does not automatically reprice a lease quote.</span></span></div>
+<div class="field wide"><label for="loanEnd" class="field-label"><span class="field-title">End of term for both loans</span><span class="field-unit">&#160;</span></label><select id="loanEnd"><option value="sell">Sell the car</option><option value="keep">Keep the car</option></select><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain loanEnd" aria-describedby="help-loanEnd">?</button><span class="help-text" role="tooltip" id="help-loanEnd">Sell counts the proceeds as cash received at the end. Keep credits a retained car asset after estimated sale VAT, rather than cash. Buying outright always ends with a sale.</span></span></div>
+<div class="field wide"><label for="resale" class="field-label"><span class="field-title">Expected car resale</span><span class="field-unit">Kč incl. VAT</span></label><input id="resale" class="important" type="number" min="0" step="10000"><small>Market value incl. VAT, after selling costs and before settling the balloon. If kept, this becomes retained asset value. Tyres are separate below.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain resale" aria-describedby="help-resale">?</button><span class="help-text" role="tooltip" id="help-resale">Your expected selling price including VAT, after selling fees. This reduces ownership cost. If the car is kept, it is its estimated retained value. Winter tyres are counted separately.</span></span></div>
+</div></section>
+<section class="panel option-panel" data-option="balloon"><div class="section-title"><span class="number easy">02</span><h2>Balloon loan</h2></div><div class="fields">
+<div class="field"><label for="downPct" class="field-label"><span class="field-title">Deposit</span><span class="field-unit">% of price</span></label><input id="downPct" type="number" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain downPct" aria-describedby="help-downPct">?</button><span class="help-text" role="tooltip" id="help-downPct">Part of the price paid immediately. A larger deposit lowers borrowing and monthly payments, but ties up more of your own cash.</span></span></div>
+<div class="field"><label for="balloonPct" class="field-label"><span class="field-title">Final balloon</span><span class="field-unit">% of price</span></label><input id="balloonPct" type="number" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain balloonPct" aria-describedby="help-balloonPct">?</button><span class="help-text" role="tooltip" id="help-balloonPct">Part of the purchase price left for the final payment. A larger balloon lowers monthly payments but leaves more principal outstanding, increasing interest.</span></span></div>
+<div class="field"><label for="rate" class="field-label"><span class="field-title">Interest rate</span><span class="field-unit">% p.a.</span></label><input id="rate" type="number" min="0" max="100" step=".01"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain rate" aria-describedby="help-rate">?</button><span class="help-text" role="tooltip" id="help-rate">Fixed annual interest for the balloon loan only. It can differ from the standard loan rate. Enter the nominal rate, not an APR that bundles insurance and fees.</span></span></div>
+<div class="field"><label for="easyInsurance" class="field-label"><span class="field-title">Insurance incl. GAP</span><span class="field-unit">Kč / month</span></label><input id="easyInsurance" type="number" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain easyInsurance" aria-describedby="help-easyInsurance">?</button><span class="help-text" role="tooltip" id="help-easyInsurance">Monthly insurance paid in addition to the balloon loan. Include any required GAP cover, which addresses a covered shortfall after theft or total loss.</span></span></div>
+<div class="field wide"><label for="easyExtra" class="field-label"><span class="field-title">Other balloon loan costs</span><span class="field-unit">Kč over full term</span></label><input id="easyExtra" type="number" min="0" step="1000"><small>Fees, additional tyre replacement or repairs outside the shared budgets.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain easyExtra" aria-describedby="help-easyExtra">?</button><span class="help-text" role="tooltip" id="help-easyExtra">Additional costs over the whole term, such as fees or repairs. The model pays this budget at the end and does not apply an extra VAT deduction.</span></span></div>
+</div><p class="hint">A loan with a larger final payment, such as Toyota Easy. Enter the nominal interest rate, not insurance-inclusive RPSN. Set the balloon to zero for full repayment.</p></section>
+<section class="panel option-panel" data-option="normal"><div class="section-title"><span class="number normal">03</span><h2>Standard loan</h2></div><div class="fields">
+<div class="field"><label for="normalDownPct" class="field-label"><span class="field-title">Deposit</span><span class="field-unit">% of price</span></label><input id="normalDownPct" type="number" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalDownPct" aria-describedby="help-normalDownPct">?</button><span class="help-text" role="tooltip" id="help-normalDownPct">The standard loan deposit, independent of the balloon-loan deposit. The remaining principal is repaid by the end.</span></span></div>
+<div class="field"><label for="normalRate" class="field-label"><span class="field-title">Interest rate</span><span class="field-unit">% p.a.</span></label><input id="normalRate" type="number" min="0" max="100" step=".01"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalRate" aria-describedby="help-normalRate">?</button><span class="help-text" role="tooltip" id="help-normalRate">Fixed annual interest for the standard loan only. Changing it does not change the balloon-loan rate.</span></span></div>
+<div class="field"><label for="normalInsurance" class="field-label"><span class="field-title">Insurance incl. GAP</span><span class="field-unit">Kč / month</span></label><input id="normalInsurance" type="number" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalInsurance" aria-describedby="help-normalInsurance">?</button><span class="help-text" role="tooltip" id="help-normalInsurance">Monthly insurance paid separately for the standard loan. Include required GAP cover in the quoted amount.</span></span></div>
+<div class="field"><label for="normalExtra" class="field-label"><span class="field-title">Other loan costs</span><span class="field-unit">Kč over full term</span></label><input id="normalExtra" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalExtra" aria-describedby="help-normalExtra">?</button><span class="help-text" role="tooltip" id="help-normalExtra">Additional standard-loan costs over the whole term. Modelled at the end, with no extra VAT deduction.</span></span></div>
+</div><p class="hint">The loan is fully repaid over the selected term. Both loans use the same purchase price and expected resale value.</p></section>
+<section class="panel option-panel" data-option="lease"><div class="section-title"><span class="number kinto">04</span><h2>Operating lease</h2></div><div class="fields">
+<div class="field"><label for="kintoMonthly" class="field-label"><span class="field-title">Monthly quote</span><span class="field-unit">Kč</span></label><input id="kintoMonthly" type="number" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoMonthly" aria-describedby="help-kintoMonthly">?</button><span class="help-text" role="tooltip" id="help-kintoMonthly">The regular lease invoice in the VAT basis selected beside it. Use a quote for the chosen term and mileage.</span></span></div>
+<div class="field"><label for="kintoVatMode" class="field-label"><span class="field-title">Quote VAT basis</span><span class="field-unit">&#160;</span></label><select id="kintoVatMode"><option value="gross">Including VAT</option><option value="net">Excluding VAT</option></select><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoVatMode" aria-describedby="help-kintoVatMode">?</button><span class="help-text" role="tooltip" id="help-kintoVatMode">Choose whether the quote includes VAT. An excluding-VAT quote is first converted to a gross invoice, then eligible VAT is deducted using the recovery settings.</span></span></div>
+<div class="field"><label for="vatPct" class="field-label"><span class="field-title">VAT rate</span><span class="field-unit">%</span></label><input id="vatPct" type="number" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain vatPct" aria-describedby="help-vatPct">?</button><span class="help-text" role="tooltip" id="help-vatPct">VAT percentage used throughout the model for the purchase, resale, taxable lease invoices, maintenance and tyres.</span></span></div>
+<div class="field"><label for="kintoInitial" class="field-label"><span class="field-title">Initial payment</span><span class="field-unit">Kč incl. VAT</span></label><input id="kintoInitial" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInitial" aria-describedby="help-kintoInitial">?</button><span class="help-text" role="tooltip" id="help-kintoInitial">An initial lease payment in addition to the monthly invoices. Paid at month zero; eligible VAT follows the lease deduction delay.</span></span></div>
+</div><div class="checks">
+<div class="check-field"><label><input id="kintoInsuranceIncluded" type="checkbox"><span>Insurance incl. GAP is included</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInsuranceIncluded" aria-describedby="help-kintoInsuranceIncluded">?</button><span class="help-text" role="tooltip" id="help-kintoInsuranceIncluded">When checked, no separate insurance cost is added to the lease. Confirm which cover, including GAP, is included in the quote.</span></span></div>
+<div class="check-field"><label><input id="kintoMaintenance" type="checkbox"><span>Maintenance is included</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoMaintenance" aria-describedby="help-kintoMaintenance">?</button><span class="help-text" role="tooltip" id="help-kintoMaintenance">When checked, no shared maintenance costs are added to the lease. Otherwise the same servicing schedule and budget apply.</span></span></div>
+<div class="check-field"><label><input id="kintoTyres" type="checkbox"><span>Tyres, seasonal changes and storage are included</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoTyres" aria-describedby="help-kintoTyres">?</button><span class="help-text" role="tooltip" id="help-kintoTyres">When checked, no separate tyre purchase, swaps or storage are added to the lease, and it receives no tyre resale credit.</span></span></div>
+</div><div class="fields">
+<div class="field wide" id="kInsuranceField"><label for="kintoInsurance" class="field-label"><span class="field-title">Additional insurance incl. GAP</span><span class="field-unit">Kč / month</span></label><input id="kintoInsurance" type="number" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInsurance" aria-describedby="help-kintoInsurance">?</button><span class="help-text" role="tooltip" id="help-kintoInsurance">Monthly insurance added to the lease when insurance is not included in its invoice.</span></span></div>
+<div class="field wide"><label for="leaseEnd" class="field-label"><span class="field-title">End of lease</span><span class="field-unit">&#160;</span></label><select id="leaseEnd"><option value="return">Return the car</option><option value="buySell">Buy out, then resell</option><option value="buyKeep">Buy out and keep</option></select><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseEnd" aria-describedby="help-leaseEnd">?</button><span class="help-text" role="tooltip" id="help-leaseEnd">Return ends with no car resale proceeds. Buy out then resell adds the buyout and sale at the end. Buy out and keep credits a retained asset instead of cash.</span></span></div>
+<div class="field wide" id="buyoutField"><label for="leaseBuyout" class="field-label"><span class="field-title">Agreed buyout price</span><span class="field-unit">Kč incl. VAT</span></label><input id="leaseBuyout" type="number" min="0" step="1000"><small>A buyout is only available if the lessor offers it. This is separate from the balloon loan.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseBuyout" aria-describedby="help-leaseBuyout">?</button><span class="help-text" role="tooltip" id="help-leaseBuyout">An agreed purchase price at the end of the lease. This is a separate purchase with its own eligible VAT refund. Do not assume the lessor will offer it.</span></span></div>
+<div class="field wide"><label for="kintoExtra" class="field-label"><span class="field-title">Return, mileage and other charges</span><span class="field-unit">Kč over full term</span></label><input id="kintoExtra" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoExtra" aria-describedby="help-kintoExtra">?</button><span class="help-text" role="tooltip" id="help-kintoExtra">Total expected lease return, excess mileage, damage or other charges. Modelled at the end with no extra VAT deduction.</span></span></div>
+</div><p class="hint">Use a quote for the selected term and mileage. Changing these inputs does not reprice a dealer’s lease offer. Coverage switches are assumptions to match your contract.</p></section>
+<section class="panel option-panel" data-option="cash"><div class="section-title"><span class="number cash">05</span><h2>Buy outright</h2></div><div class="fields">
+<div class="field"><label for="cashInsurance" class="field-label"><span class="field-title">Insurance</span><span class="field-unit">Kč / month</span></label><input id="cashInsurance" type="number" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain cashInsurance" aria-describedby="help-cashInsurance">?</button><span class="help-text" role="tooltip" id="help-cashInsurance">Monthly insurance for the outright purchase. There is no loan payment, so this is its only regular monthly bill before separately budgeted running costs.</span></span></div>
+<div class="field"><label for="cashExtra" class="field-label"><span class="field-title">Other purchase costs</span><span class="field-unit">Kč over full term</span></label><input id="cashExtra" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain cashExtra" aria-describedby="help-cashExtra">?</button><span class="help-text" role="tooltip" id="help-cashExtra">Extra outright-purchase costs over the comparison period. Modelled at the end with no extra VAT deduction.</span></span></div>
+</div><p class="hint">Pay the full purchase price immediately and sell after the chosen number of years above. Uses the shared resale estimate, maintenance and tyres. No loan or interest. Purchase VAT is refunded after the selected delay, and opportunity cost includes the cash paid upfront.</p></section>
+<div class="assumptions-grid"><section class="panel"><div class="section-title"><h2>VAT</h2></div>
+<div class="checks"><div class="check-field"><label><input id="vatEnabled" type="checkbox"><span>VAT-registered business</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain vatEnabled" aria-describedby="help-vatEnabled">?</button><span class="help-text" role="tooltip" id="help-vatEnabled">Enables eligible VAT recovery and VAT payable on the eventual sale. Turn off to compare as a purchaser without VAT recovery.</span></span></div><div class="check-field"><label><input id="purchaseVatEligible" type="checkbox"><span>Purchase invoice allows VAT recovery</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatEligible" aria-describedby="help-purchaseVatEligible">?</button><span class="help-text" role="tooltip" id="help-purchaseVatEligible">Whether the vehicle purchase invoice allows VAT deduction. Some used-car invoices do not. This applies to both loans and the outright purchase.</span></span></div><div class="check-field"><label id="buyoutVatField"><input id="buyoutVatEligible" type="checkbox"><span>Buyout invoice allows VAT recovery</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain buyoutVatEligible" aria-describedby="help-buyoutVatEligible">?</button><span class="help-text" role="tooltip" id="help-buyoutVatEligible">Whether the separate lease buyout invoice allows VAT deduction. It does not control the VAT deduction on regular lease payments.</span></span></div></div>
+<div class="fields">
+<div class="field"><label for="recoveryPct" class="field-label"><span class="field-title">VAT recovery</span><span class="field-unit">% of eligible VAT</span></label><input id="recoveryPct" type="number" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain recoveryPct" aria-describedby="help-recoveryPct">?</button><span class="help-text" role="tooltip" id="help-recoveryPct">The percentage of eligible input VAT recovered. 100% models full recovery. Partial recovery is a simplified planning assumption; sale VAT is still included.</span></span></div>
+<div class="field"><label for="purchaseVatDelay" class="field-label"><span class="field-title">Purchase / buyout refund</span><span class="field-unit">months delay</span></label><input id="purchaseVatDelay" type="number" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatDelay" aria-describedby="help-purchaseVatDelay">?</button><span class="help-text" role="tooltip" id="help-purchaseVatDelay">Delay from the purchase to receiving its VAT refund. Applies at the start for loans and outright purchase, and after the end-of-lease buyout. Default: 3 months.</span></span></div>
+<div class="field"><label for="leaseVatDelay" class="field-label"><span class="field-title">Lease payment VAT deduction</span><span class="field-unit">months delay</span></label><input id="leaseVatDelay" type="number" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseVatDelay" aria-describedby="help-leaseVatDelay">?</button><span class="help-text" role="tooltip" id="help-leaseVatDelay">Delay after each lease invoice before its VAT deduction. Zero models deduction with every payment. This is separate from the purchase refund delay.</span></span></div>
+<div class="field"><label for="purchaseVatCap" class="field-label"><span class="field-title">Car VAT deduction cap</span><span class="field-unit">Kč · 0 = no cap</span></label><input id="purchaseVatCap" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatCap" aria-describedby="help-purchaseVatCap">?</button><span class="help-text" role="tooltip" id="help-purchaseVatCap">Maximum eligible capital VAT before the recovery percentage is applied. The default is 420,000 Kč for the Czech passenger-car planning example. Zero removes the cap. Running costs and lease invoices are not capped here.</span></span></div>
+<div class="field"><label for="leaseTaxablePct" class="field-label"><span class="field-title">Taxable share of lease</span><span class="field-unit">% of invoice</span></label><input id="leaseTaxablePct" type="number" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseTaxablePct" aria-describedby="help-leaseTaxablePct">?</button><span class="help-text" role="tooltip" id="help-leaseTaxablePct">The part of a bundled lease invoice subject to VAT. Adjust this to the invoice when items such as insurance are not taxable.</span></span></div>
+
+</div><p class="hint">Maintenance and tyre VAT is netted against each expense, treating next-month deductibility as settled with no outstanding VAT. Insurance and loan interest have no VAT deduction in this model. Adjust the taxable share of a bundled lease to its invoice. Lease VAT is deducted from each payment by default. The 420,000 Kč capital VAT cap is for a typical Czech M1 passenger car.</p></section>
+<section class="panel"><div class="section-title"><h2>Opportunity cost</h2></div><div class="fields">
+<div class="field"><label for="opportunityRate" class="field-label"><span class="field-title">Alternative annual return</span><span class="field-unit">% after tax</span></label><input id="opportunityRate" type="number" min="0" max="100" step=".1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain opportunityRate" aria-describedby="help-opportunityRate">?</button><span class="help-text" role="tooltip" id="help-opportunityRate">Expected annual after-tax return on money you could otherwise invest. The model carries payments and refunds to the comparison end. This is an assumption, not guaranteed income; use zero to ignore it.</span></span></div></div><p class="hint">What the money paid for the car could earn elsewhere after tax. Earlier payments tie up cash for longer; VAT refunds release it.</p><p class="hint">All options are compared at the same end date. A 0% return removes opportunity cost. The results below show its contribution separately.</p></section>
+<section class="panel"><div class="section-title"><h2>Maintenance and tyres</h2></div><div class="fields">
+<div class="field"><label for="serviceCost" class="field-label"><span class="field-title">Each service</span><span class="field-unit">Kč</span></label><input id="serviceCost" type="number" min="0" step="500"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain serviceCost" aria-describedby="help-serviceCost">?</button><span class="help-text" role="tooltip" id="help-serviceCost">Gross cost per mandatory service. The model deducts eligible VAT immediately and includes a service due exactly at the end of the term.</span></span></div>
+<div class="field"><label for="serviceKm" class="field-label"><span class="field-title">Distance interval</span><span class="field-unit">km</span></label><input id="serviceKm" type="number" min="1" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain serviceKm" aria-describedby="help-serviceKm">?</button><span class="help-text" role="tooltip" id="help-serviceKm">Distance between services. Servicing occurs at whichever comes first: this distance or the time interval, assuming steady mileage.</span></span></div>
+<div class="field"><label for="serviceMonths" class="field-label"><span class="field-title">Time interval</span><span class="field-unit">months</span></label><input id="serviceMonths" type="number" min="1" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain serviceMonths" aria-describedby="help-serviceMonths">?</button><span class="help-text" role="tooltip" id="help-serviceMonths">Maximum months between services. The earlier of this time interval and the distance interval determines the service count.</span></span></div>
+<div class="field-note" id="serviceNote"></div>
+<div class="field"><label for="tyrePurchase" class="field-label"><span class="field-title">Winter tyre purchase</span><span class="field-unit">Kč</span></label><input id="tyrePurchase" type="number" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain tyrePurchase" aria-describedby="help-tyrePurchase">?</button><span class="help-text" role="tooltip" id="help-tyrePurchase">Gross winter tyre or wheel-set budget paid at the start. Eligible VAT is netted immediately. Applies to purchase options and leases without included tyres.</span></span></div>
+<div class="field"><label for="tyreResale" class="field-label"><span class="field-title">Winter tyre resale</span><span class="field-unit">Kč</span></label><input id="tyreResale" type="number" min="0" step="500"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain tyreResale" aria-describedby="help-tyreResale">?</button><span class="help-text" role="tooltip" id="help-tyreResale">Expected gross value of the separately purchased winter tyres at the end. Deducted from costs, with sale VAT when enabled. Do not also include it in the car resale estimate.</span></span></div>
+<div class="field"><label for="tyreVisits" class="field-label"><span class="field-title">Seasonal visits</span><span class="field-unit">over full term</span></label><input id="tyreVisits" type="number" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain tyreVisits" aria-describedby="help-tyreVisits">?</button><span class="help-text" role="tooltip" id="help-tyreVisits">Total seasonal visits over the whole term, spread evenly from the start. Change this count when you change the comparison period.</span></span></div>
+<div class="field"><label for="tyreVisitCost" class="field-label"><span class="field-title">Each change / swap</span><span class="field-unit">Kč</span></label><input id="tyreVisitCost" type="number" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain tyreVisitCost" aria-describedby="help-tyreVisitCost">?</button><span class="help-text" role="tooltip" id="help-tyreVisitCost">Gross cost of each seasonal tyre change or wheel swap. Multiplied by the visit count; eligible VAT is netted immediately.</span></span></div>
+<div class="field"><label for="tyreStorage" class="field-label"><span class="field-title">Storage per season</span><span class="field-unit">Kč</span></label><input id="tyreStorage" type="number" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain tyreStorage" aria-describedby="help-tyreStorage">?</button><span class="help-text" role="tooltip" id="help-tyreStorage">Gross storage cost per season, charged with each seasonal visit. Enter zero if you store the tyres yourself.</span></span></div>
+</div><p class="hint">Shared budgets apply to outright purchase, both loans and any service excluded from the lease. Default tyres use existing rims. Adjust seasonal visits when changing the term. Lease-owned tyres have no resale credit.</p></section></div>
+</form>
+<div class="results" id="comparison"><h2 class="area-title">Your results</h2>
+<div id="error" class="error" role="alert" hidden></div>
+<div id="resultContent">
+<p id="resultsVatNote" class="results-vat-note"></p>
+<section id="verdict" class="verdict" aria-live="polite" aria-atomic="true"><div class="scenario-name" id="scenarioName"></div><div class="eyebrow" id="termLabel"></div><h2 id="winner"></h2><div class="saving" id="saving"></div><p id="savingNote"></p></section>
+<div class="totals"><section class="total easy-total" data-option="balloon"><div class="eyebrow">BALLOON LOAN</div><small id="easyVatBasis" class="result-basis"></small><strong id="easyTotal"></strong><p id="easyAnnual" class="annual-cost"></p><p id="easyMonthly"></p><div class="gross-comparison"><small>Before VAT settlement</small><div id="easyGross"></div></div></section><section class="total normal-total" data-option="normal"><div class="eyebrow">STANDARD LOAN</div><small id="normalVatBasis" class="result-basis"></small><strong id="normalTotal"></strong><p id="normalAnnual" class="annual-cost"></p><p id="normalMonthly"></p><div class="gross-comparison"><small>Before VAT settlement</small><div id="normalGross"></div></div></section><section class="total kinto-total" data-option="lease"><div class="eyebrow">OPERATING LEASE</div><small id="kintoVatBasis" class="result-basis"></small><strong id="kintoTotal"></strong><p id="kintoAnnual" class="annual-cost"></p><p id="kintoEffective"></p><div class="gross-comparison"><small>Before VAT settlement</small><div id="kintoGross"></div></div></section><section class="total" data-option="cash"><div class="eyebrow">BUY OUTRIGHT</div><small id="cashVatBasis" class="result-basis"></small><strong id="cashTotal"></strong><p id="cashAnnual" class="annual-cost"></p><p id="cashMonthly"></p><div class="gross-comparison"><small>Before VAT settlement</small><div id="cashGross"></div></div></section></div>
+<section class="panel versus-panel"><h2 class="help-heading">Versus: including opportunity cost<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain comparison grid" aria-describedby="help-versus">?</button><span class="help-text" role="tooltip" id="help-versus">Choose an option on the left and compare it with an option across the top. Each cell shows how much less or more the row option costs over the full term, including your VAT settings and opportunity cost.</span></span></h2>
+<p class="hint">Read across a row: how much <strong>less or more</strong> it costs than each column. Full-term costs, including VAT treatment and opportunity cost.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Cost difference grid, compare each row option with each column"><table class="versus-table"><thead><tr><th scope="col">Compare row with →</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="versusRows"></tbody></table></div></section>
+<section class="panel"><h2 class="help-heading">Monthly payment comparison<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain result-0" aria-describedby="help-result-0">?</button><span class="help-text" role="tooltip" id="help-result-0">Shows actual recurring bills alongside the average total ownership cost. Deposits, VAT refunds, final payments, running costs and resale are reflected in total cost rather than all appearing in the regular bill.</span></span></h2><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="comparison-table"><thead><tr><th scope="col">Monthly amount</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="monthlyRows"></tbody></table></div><p class="hint">The monthly bill is the actual loan or lease payment plus separately paid insurance. The outright option has only insurance in its monthly bill. Purchase price, VAT refunds, deposits, balloon payments and buyouts are separate. The effective monthly cost spreads the full ownership cost over the term.</p></section>
+<section class="panel break"><h2 class="help-heading">Resale needed to beat the lease<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain result-5" aria-describedby="help-result-5">?</button><span class="help-text" role="tooltip" id="help-result-5">Minimum estimated resale for a purchase option to match a returning lease after VAT and opportunity cost. If both options have equal exposure to resale, there may be no crossover.</span></span></h2><div class="break-grid"><div data-option="balloon"><span>Balloon loan</span><strong id="breakEven"></strong></div><div data-option="normal"><span>Standard loan</span><strong id="normalBreakEven"></strong></div><div data-option="cash"><span>Buy outright</span><strong id="cashBreakEven"></strong></div></div><p id="breakNote"></p></section>
+<section class="panel"><div class="section-title"><h2 class="help-heading">Cost breakdown<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain result-1" aria-describedby="help-result-1">?</button><span class="help-text" role="tooltip" id="help-result-1">Reconciles depreciation or lease costs, interest, insurance, running costs and net VAT, then adds opportunity cost. Purchase principal is already included in depreciation and is not counted twice.</span></span></h2></div><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="comparison-table"><thead><tr><th scope="col">Full-term cost</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="costRows"></tbody></table></div></section>
+<section class="panel"><h2 class="help-heading">Opportunity cost breakdown<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain result-2" aria-describedby="help-result-2">?</button><span class="help-text" role="tooltip" id="help-result-2">Shows how the timing of each cash flow changes the result. Positive amounts add foregone return; refunds can reduce it. The groups sum to total opportunity cost.</span></span></h2><p id="opportunityIntro" class="hint"></p><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="comparison-table"><thead><tr><th scope="col">Foregone return by cash flow</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="opportunityRows"></tbody></table></div><p class="hint">Positive amounts add cost. Negative amounts show the return you can earn on refunded cash. These are timing costs, not the underlying payments. End-of-term payments and sale proceeds have no time left to accumulate a return within this comparison.</p><details class="formula-note"><summary>How the timing calculation works</summary><p>For each payment or receipt: amount × [(1 + annual return)<sup>months remaining / 12</sup> − 1]. Receipts use negative amounts. Refunds after the comparison end are discounted back to that date.</p><p id="opportunityExample"></p></details></section>
+<section class="panel"><h2 class="help-heading">VAT refunds and sale tax<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain result-3" aria-describedby="help-result-3">?</button><span class="help-text" role="tooltip" id="help-result-3">Separates incoming VAT deductions from VAT received from a buyer and paid to the tax authority. Sale VAT is not an extra refund.</span></span></h2><p class="hint">Refunds reduce cost. Sale VAT is collected within the buyer’s payment and then paid to the tax authority.</p><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="comparison-table"><thead><tr><th scope="col">Cash-flow stage</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="vatTimeline"></tbody></table></div><p class="hint">Maintenance and tyre VAT is treated as settled with the expense. A loan’s purchase VAT refund is separate from its monthly repayments. Repaying the balloon creates no new VAT deduction. A lease buyout is a new purchase. Outstanding refunds are already included in the cost comparison.</p></section>
+<section class="panel resale-panel"><h2 class="help-heading">What if resale changes?<span class="help-wrap"><button type="button" class="help-button" aria-label="Explain result-4" aria-describedby="help-result-4">?</button><span class="help-text" role="tooltip" id="help-result-4">Recalculates each option at several resale values. Exact crossings show where a pair has equal total economic cost, including opportunity cost.</span></span></h2><p class="hint">All four total costs include VAT treatment and opportunity cost. Extra break-even rows show the exact resale prices and each option’s cost at those prices.</p><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="sensitivity-table"><thead><tr><th scope="col">Car resale</th><th scope="col" data-option="balloon">Balloon cost</th><th scope="col" data-option="normal">Standard cost</th><th scope="col" data-option="lease">Lease cost</th><th scope="col" data-option="cash">Outright cost</th><th scope="col">Lowest cost</th></tr></thead><tbody id="sensitivity"></tbody></table></div><p class="hint">When two options have the same exposure to resale value, changing resale cannot reverse their ranking. For kept cars, resale represents their estimated retained value.</p></section>
+<details class="panel" open><summary>Payments and end-of-term cash</summary><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="comparison-table"><thead><tr><th scope="col">Payment / asset</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="cashflow"></tbody></table></div><p class="hint">Monthly bills exclude separately budgeted maintenance and tyres. Lease payments start at month zero. Loan payments start at month one. Each loan’s total cost includes its deposit and repayments, then deducts the sale proceeds. They are not added again to depreciation.</p></details>
+</div>
+<details class="panel notes"><summary>Assumptions and sources</summary><p>Each scenario saves automatically in this browser when local storage is available, including incomplete scenarios. Card expansion is remembered separately in this browser. Clear all empties the current scenario’s numbers; Reset current restores the example values. Duplicate creates an independent variation. Export the current scenario or all scenarios as JSON, then import them on another device. Import adds scenarios without replacing existing ones. The HTML file itself contains the original defaults. To share your saved scenarios, send their JSON file with the HTML.</p><p>Enter prices including VAT, except a lease explicitly marked excluding VAT. Results subtract eligible VAT refunds and include disposal VAT when VAT registration is enabled. Income tax, private-use adjustments and fuel or charging are excluded. Partial VAT recovery is a planning approximation.</p><p>The balloon loan assumes equal monthly payments with the balloon due alongside the final regular payment. The standard loan has no final outstanding balance. Each loan has its own fixed interest rate. Buying outright pays the shared purchase price at month zero and sells at the comparison end. The years and months controls set the same period for all options. Resale is your estimate, not a guaranteed future value. A kept car is credited as an asset at estimated resale value net of disposal VAT, so it is not treated as cash received.</p><p>Opportunity cost carries each cash outflow and inflow to the comparison end at your annual after-tax return. A refund three months after buyout is included and discounted back to the end date. This return is an assumption, not a guaranteed investment. Maintenance assumes steady mileage, using whichever interval comes first. A service due exactly at the end is included. Default seasonal costs cover six evenly spaced changes and storage periods, starting at purchase. VAT on eligible maintenance and tyres is netted against the expense immediately in this comparison, treating next-month deductibility as settled. It creates no outstanding VAT at the end. Lease VAT follows its separate delay, defaulting to deduction with each payment. The buyer pays the VAT-inclusive resale price at the end of the term. Its VAT component is then paid to the tax authority at that same modelled date, leaving the VAT-exclusive proceeds. This tax payment is shown separately and is not a refund. The capital VAT cap applies separately to a outright or loan-funded purchase, or lease buyout.</p><p>The starting example is a Toyota RAV4 Executive PHEV AWD. The 1,334,000 Kč price, 5.99% interest, 46% balloon and 3,700 Kč insurance are the supplied planning assumptions. Tyre resale of 3,000 Kč is an estimate. Confirm GAP coverage and deductibles in each quote.</p><p>The operating lease starts with the rounded VAT-inclusive KINTO quote, with tyres included and maintenance excluded for this example. The listing also mentions maintenance, so test that switch against the final contract.</p><ul><li><a href="https://financnisprava.gov.cz/cs/dane/dane/dan-z-pridane-hodnoty/informace-stanoviska-a-sdeleni/narok-na-odpocet-dph/informace-gfr-k-uplatnovani-dph-u" target="_blank" rel="noopener noreferrer">Czech Financial Administration: passenger-car VAT cap</a></li><li><a href="https://proverenevozy.toyota.cz/nabidka/toyota-rav4/404816" target="_blank" rel="noopener noreferrer">Lease Executive PHEV offer</a></li><li><a href="https://www.kinto-mobility.eu/content/dam/kinto/nmsc/czech-republic/pro-zakazniky/documents/podminky-kinto.pdf" target="_blank" rel="noopener noreferrer">Lease service terms</a></li><li><a href="https://www.ckauto.cz/detail-vozu/19052" target="_blank" rel="noopener noreferrer">2025 Executive PHEV asking price</a></li></ul><p class="hint">Starting assumptions researched 15 September 2026. This calculator does not fetch live offers.</p></details>
+</div></div></main><footer>Car financing comparison · Standalone, no server needed <span>Amounts rounded to the nearest Kč</span></footer>
+<script type="module">
+
+const defaults = {
+ cashInsurance:3700, cashExtra:0, vatEnabled:true, recoveryPct:100, purchaseVatEligible:true, purchaseVatDelay:3, leaseVatDelay:0, purchaseVatCap:420000, opportunityRate:6, loanEnd:"sell", leaseEnd:"return", leaseBuyout:0, buyoutVatEligible:true, leaseTaxablePct:100, carName:"Toyota RAV4 Executive PHEV AWD", normalDownPct:20, normalRate:5.99, normalInsurance:3700, normalExtra:0, months:36, annualKm:20000, price:1334000, downPct:20, balloonPct:46, rate:5.99, easyInsurance:3700,
+ resale:1000000, easyExtra:0, kintoMonthly:16788, kintoVatMode:"gross", vatPct:21, kintoInitial:0,
+ kintoInsuranceIncluded:true, kintoInsurance:3700, kintoMaintenance:false, kintoTyres:true, kintoExtra:0,
+ serviceCost:12000, serviceKm:15000, serviceMonths:12, tyrePurchase:22000, tyreResale:3000,
+ tyreVisits:6, tyreVisitCost:1880, tyreStorage:1100
+};
+
+function validate(s){
+ for(const [key,fallback] of Object.entries(defaults)){
+  if(typeof fallback==="number"&&(!Number.isFinite(s[key])||s[key]<0))throw new Error("Enter a valid, non-negative number in every numeric field.");
+  if(typeof fallback==="boolean"&&typeof s[key]!=="boolean")throw new Error("Choose an option for each checkbox.");
+ }
+ if(typeof s.carName!=="string"||s.carName.length>100)throw new Error("Keep the car name under 100 characters.");
+ if(!["sell","keep"].includes(s.loanEnd)||!["return","buySell","buyKeep"].includes(s.leaseEnd))throw new Error("Choose a valid end-of-term option.");
+ if(!["gross","net"].includes(s.kintoVatMode))throw new Error("Choose the lease quote’s VAT basis.");
+ if(!Number.isInteger(s.months)||s.months<1||s.months>120)throw new Error("Use a term of 1 to 120 whole months.");
+ if(s.serviceKm<=0||s.serviceMonths<=0)throw new Error("Service intervals must be greater than zero.");
+ if(s.downPct+s.balloonPct>100||s.normalDownPct>100)throw new Error("Deposit plus balloon cannot exceed 100% of the price.");
+ for(const k of ["rate","normalRate","vatPct","recoveryPct","leaseTaxablePct","opportunityRate"])if(s[k]>100)throw new Error("Rates and percentages must be between 0 and 100.");
+ for(const k of ["tyreVisits","purchaseVatDelay","leaseVatDelay"])if(!Number.isInteger(s[k]))throw new Error("Visits and refund delays must be whole numbers.");
+ if(s.tyreResale>s.tyrePurchase)throw new Error("Tyre resale cannot exceed the tyre purchase budget.");
+ if(s.leaseEnd!=="return"&&s.leaseBuyout<=0)throw new Error("Enter a positive, agreed lease buyout price.");
+}
+function monthlyPayment(principal,balloon,annualRate,months){
+ const r=annualRate/1200;
+ return r===0?(principal-balloon)/months:(principal-balloon/(1+r)**months)*r/(1-(1+r)**(-months));
+}
+function calculate(s){
+ validate(s);
+ const n=s.months,km=s.annualKm*n/12,down=s.price*s.downPct/100,balloon=s.price*s.balloonPct/100;
+ const payment=monthlyPayment(s.price-down,balloon,s.rate,n),interest=payment*n+balloon-(s.price-down);
+ const normalDown=s.price*s.normalDownPct/100,normalPayment=monthlyPayment(s.price-normalDown,0,s.normalRate,n);
+ const normalInterest=normalPayment*n-(s.price-normalDown);
+ const servicePeriod=Math.min(s.serviceMonths,s.annualKm===0?Infinity:s.serviceKm*12/s.annualKm);
+ const serviceCount=Math.floor(n/servicePeriod+1e-10),maintenance=serviceCount*s.serviceCost;
+ const tyres=s.tyrePurchase+s.tyreVisits*(s.tyreVisitCost+s.tyreStorage)-s.tyreResale;
+ const kRent=s.kintoMonthly*(s.kintoVatMode==="net"?1+s.vatPct/100:1),kInsurance=s.kintoInsuranceIncluded?0:s.kintoInsurance;
+ const vf=s.vatPct/(100+s.vatPct),recovery=s.vatEnabled?s.recoveryPct/100:0;
+ const inputVat=(gross,capital=false)=>Math.min(gross*vf,capital&&s.purchaseVatCap>0?s.purchaseVatCap:Infinity)*recovery;
+ const saleVat=gross=>s.vatEnabled?gross*vf:0;
+ const purchaseRefund=s.purchaseVatEligible?inputVat(s.price,true):0;
+ function option(kind){
+  const isLease=kind==="lease",isNormal=kind==="normal",isCash=kind==="cash",events=[];
+  const add=(month,amount,category,type="cash")=>events.push({month,amount,category,type});
+  // Treat next-month maintenance and tyre deductions as settled with the expense for this comparison.
+  const refund=(month,amount,capital=false,delay=capital?s.purchaseVatDelay:0)=>{if(amount)add(month+delay,-amount,"vat");};
+  const insured=isLease?kInsurance:isCash?s.cashInsurance:isNormal?s.normalInsurance:s.easyInsurance;
+  if(isLease){add(0,s.kintoInitial,"initial");refund(0,inputVat(s.kintoInitial*s.leaseTaxablePct/100),false,s.leaseVatDelay);}
+  else{add(0,isCash?s.price:isNormal?normalDown:down,"capital");refund(0,purchaseRefund,true);}
+  for(let m=1;m<=n;m++){
+   if(isLease){add(m-1,kRent,"lease");refund(m-1,inputVat(kRent*s.leaseTaxablePct/100),false,s.leaseVatDelay);}
+   else if(!isCash)add(m,isNormal?normalPayment:payment,"repayment");
+   add(isLease?m-1:m,insured,"insurance");
+  }
+  // Loan principal already includes purchase VAT. Its refund does not reduce the loan balance.
+  if(!isLease&&!isNormal&&!isCash)add(n,balloon,"capital");
+  if(!isLease||!s.kintoMaintenance){
+   for(let i=1;i<=serviceCount;i++){add(i*servicePeriod,s.serviceCost,"maintenance");refund(i*servicePeriod,inputVat(s.serviceCost));}
+  }
+  if(!isLease||!s.kintoTyres){
+   add(0,s.tyrePurchase,"tyres");refund(0,inputVat(s.tyrePurchase));
+   for(let i=0;i<s.tyreVisits;i++){
+    const m=i*n/s.tyreVisits,amount=s.tyreVisitCost+s.tyreStorage;
+    add(m,amount,"tyres");refund(m,inputVat(amount));
+   }
+   const keep=isLease?s.leaseEnd==="buyKeep":!isCash&&s.loanEnd==="keep";
+   add(n,-s.tyreResale,"tyres",keep?"asset":"cash");add(n,saleVat(s.tyreResale),"vat",keep?"asset":"cash");
+  }
+  const buyout=isLease&&s.leaseEnd!=="return";
+  if(buyout){add(n,s.leaseBuyout,"buyout");refund(n,s.buyoutVatEligible?inputVat(s.leaseBuyout,true):0,true);}
+  if(!isLease||buyout){
+   const keep=isLease?s.leaseEnd==="buyKeep":!isCash&&s.loanEnd==="keep";
+   // Kept cars receive a non-cash terminal asset credit, net of estimated disposal VAT.
+   add(n,-s.resale,"resale",keep?"asset":"cash");add(n,saleVat(s.resale),"vat",keep?"asset":"cash");
+  }
+  add(n,isLease?s.kintoExtra:isCash?s.cashExtra:isNormal?s.normalExtra:s.easyExtra,"other");
+  const nominal=events.reduce((t,e)=>t+e.amount,0);
+  // Carry every cash flow to the comparison end, including discounting later VAT refunds back.
+  const opportunityBreakdown={upfront:0,payments:0,insurance:0,maintenance:0,tyres:0,vatDuring:0,vatAfter:0,settlement:0,other:0};
+  for(const e of events){
+   // Refunds before the end offset foregone return; later refunds incur a timing cost.
+   const group=e.category==="vat"?(e.amount<0?(e.month>n?"vatAfter":"vatDuring"):"settlement")
+    :e.category==="initial"||e.category==="capital"&&e.month===0?"upfront"
+    :e.category==="repayment"||e.category==="lease"?"payments"
+    :["capital","buyout","resale"].includes(e.category)?"settlement":e.category;
+   opportunityBreakdown[group]+=e.amount*((1+s.opportunityRate/100)**((n-e.month)/12)-1);
+  }
+  const opportunity=Object.values(opportunityBreakdown).reduce((t,v)=>t+v,0);
+  const adjusted=nominal+opportunity;
+  const vat=events.filter(e=>e.category==="vat").reduce((t,e)=>t+e.amount,0);
+  const futureRefund=-events.filter(e=>e.month>n&&e.category==="vat").reduce((t,e)=>t+e.amount,0);
+  const cashToEnd=events.filter(e=>e.month<=n&&e.type==="cash").reduce((t,e)=>t+e.amount,0);
+  const retainedValue=-events.filter(e=>e.type==="asset").reduce((t,e)=>t+e.amount,0);
+  return {nominal,adjusted,opportunity,opportunityBreakdown,vat,futureRefund,cashToEnd,retainedValue,events};
+ }
+ const balloonLoan=option("balloon"),standardLoan=option("normal"),lease=option("lease"),cashPurchase=option("cash");
+ const buyoutRefund=s.leaseEnd!=="return"&&s.buyoutVatEligible?inputVat(s.leaseBuyout,true):0;
+ return {km,down,balloon,payment,interest,normalDown,normalPayment,normalInterest,serviceCount,maintenance,tyres,kRent,kInsurance,
+ depreciation:s.price-s.resale,insuredPayment:payment+s.easyInsurance,equity:s.resale-saleVat(s.resale)-balloon,purchaseRefund,buyoutRefund,
+ leaseVatPerPayment:inputVat(kRent*s.leaseTaxablePct/100),leaseInitialVat:inputVat(s.kintoInitial*s.leaseTaxablePct/100),carSaleVat:saleVat(s.resale),
+ balloonLoan,standardLoan,lease,cashPurchase};
+}
+function resaleThresholds(s){
+ const zero=calculate({...s,resale:0}),high=calculate({...s,resale:1000000});
+ return ["balloonLoan","standardLoan","cashPurchase"].map(key=>{
+  const base=zero[key].adjusted-zero.lease.adjusted;
+  const slope=(high[key].adjusted-high.lease.adjusted-base)/1000000;
+  if(Math.abs(slope)<1e-10)return {value:null,relation:Math.abs(base)<.5?"Same cost at any resale":base<0?"Always below lease":"Always above lease"};
+  const threshold=-base/slope;
+  return {value:threshold,relation:threshold<=0?"Already below lease at zero resale":"Cheaper above this resale"};
+ });
+}
+
+function resaleComparisons(s){
+ const zero=calculate({...s,resale:0}),high=calculate({...s,resale:1000000});
+ const pairs=[["balloonLoan","lease"],["standardLoan","lease"],["balloonLoan","standardLoan"],["cashPurchase","balloonLoan"],["cashPurchase","standardLoan"],["cashPurchase","lease"]];
+ return pairs.map(([left,right])=>{
+  const difference=zero[left].adjusted-zero[right].adjusted;
+  const slope=(high[left].adjusted-high[right].adjusted-difference)/1000000;
+  // Equal resale exposure cancels out, so a crossover may not exist.
+  if(Math.abs(slope)<1e-10)return {left,right,resale:null,cost:null,tied:Math.abs(difference)<.5,cheaper:difference<0?left:right,gap:Math.abs(difference)};
+  const resale=-difference/slope;
+  if(resale<0)return {left,right,resale:null,cost:null,tied:false,cheaper:difference<0?left:right,gap:null};
+  const atBreakEven=calculate({...s,resale});
+  return {left,right,resale,cost:atBreakEven[left].adjusted,tied:false,cheaperAbove:slope<0?left:right};
+ });
+}
+const $=id=>document.getElementById(id);
+const absValue=n=>Math.abs(n)<.5?0:n;
+const money=n=>new Intl.NumberFormat("cs-CZ",{maximumFractionDigits:0}).format(absValue(n))+" Kč";
+const num=n=>new Intl.NumberFormat("cs-CZ",{maximumFractionDigits:0}).format(n);
+function read(){
+ const state=Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,typeof v==="boolean"?$(k).checked:typeof v==="number"?($(k).value.trim()===""?NaN:Number($(k).value)):$(k).value]));
+ // Hidden, unused charges are zero for calculation, but stay blank in saved drafts.
+ if(state.leaseEnd==="return"&&$("leaseBuyout").value.trim()==="")state.leaseBuyout=0;
+ if(state.kintoInsuranceIncluded&&$("kintoInsurance").value.trim()==="")state.kintoInsurance=0;
+ return state;
+}
+function write(s){$("ownershipYears").value=s.months===null?"":Number((s.months/12).toFixed(6));for(const [k,v] of Object.entries(s)){if(typeof v==="boolean")$(k).checked=v;else $(k).value=v===null?"":v;}}
+function row(label,b,n,l,c,cls=""){return '<tr class="'+cls+'"><th scope="row">'+label+'</th><td data-option="balloon">'+b+'</td><td data-option="normal">'+n+'</td><td data-option="lease">'+l+'</td><td data-option="cash">'+c+'</td></tr>';}
+const detail=(amount,note)=>'<span class="cell-amount">'+money(amount)+'</span><small>'+note+'</small>';
+const phase=label=>'<tr class="phase"><th colspan="5" scope="rowgroup">'+label+'</th></tr>';
+function ranked(c){return [{name:"Balloon loan",value:c.balloonLoan.adjusted,style:"easy-text",key:"balloon"},{name:"Standard loan",value:c.standardLoan.adjusted,style:"normal-text",key:"normal"},{name:"Operating lease",value:c.lease.adjusted,style:"kinto-text",key:"lease"},{name:"Buy outright",value:c.cashPurchase.adjusted,key:"cash"}].sort((a,b)=>a.value-b.value);}
+function update(){
+ const s=read();$("kInsuranceField").hidden=s.kintoInsuranceIncluded;
+ $("buyoutField").hidden=s.leaseEnd==="return";$("buyoutVatField").hidden=s.leaseEnd==="return";
+ const missing=Object.entries(defaults).filter(([key,value])=>typeof value==="number"&&!Number.isFinite(s[key])&&$(key).value.trim()==="");
+ if(missing.length){
+  $("error").textContent="Fill in the remaining "+missing.length+" numeric fields to compare costs. Enter 0 when a cost does not apply.";
+  $("error").hidden=false;$("resultContent").hidden=true;$("serviceNote").textContent="Complete the term and service inputs.";
+  return null;
+ }
+ let c;try{c=calculate(s);}catch(e){$("error").textContent=e.message;$("error").hidden=false;$("resultContent").hidden=true;return null;}
+ $("error").hidden=true;$("resultContent").hidden=false;
+ const b=c.balloonLoan,n=c.standardLoan,l=c.lease,cash=c.cashPurchase;
+ $("scenarioName").textContent=s.carName||"Your car";
+ $("termLabel").textContent=s.months+" MONTHS / "+num(c.km)+" KM / "+(s.vatEnabled?"AFTER VAT RECOVERY":"NO VAT RECOVERY");
+ const sorted=ranked(c),gap=sorted[1].value-sorted[0].value,tie=gap<.5;
+ $("verdict").dataset.winner=tie?"tie":sorted[0].key;
+ $("winner").textContent=tie?"The lowest-cost options tie":sorted[0].name+" costs least";
+ $("saving").textContent=money(sorted[0].value);
+ $("savingNote").textContent=(tie?"Lowest cost over the full term.":money(gap)+" less than "+sorted[1].name.toLowerCase()+".")+" Includes opportunity cost at "+s.opportunityRate+"% p.a.";
+ $("easyTotal").textContent=money(b.adjusted);$("easyMonthly").textContent=money(b.adjusted/s.months)+" / month effective";
+ $("normalTotal").textContent=money(n.adjusted);$("normalMonthly").textContent=money(n.adjusted/s.months)+" / month effective";
+ $("kintoTotal").textContent=money(l.adjusted);$("kintoEffective").textContent=money(l.adjusted/s.months)+" / month effective";
+ $("cashTotal").textContent=money(cash.adjusted);$("cashMonthly").textContent=money(cash.adjusted/s.months)+" / month effective";
+ // Compare the same cash flows before VAT settlement, without dividing VAT-free costs by the VAT rate.
+ const beforeVat=s.vatEnabled?calculate({...s,vatEnabled:false}):c;
+ for(const [prefix,key] of [["easy","balloonLoan"],["normal","standardLoan"],["kinto","lease"],["cash","cashPurchase"]]){
+  $(prefix+"VatBasis").textContent=s.vatEnabled?"Total, net after VAT settlement":"Total including VAT · recovery off";
+  $(prefix+"Annual").textContent=money(c[key].adjusted*12/s.months)+" / year effective";
+  const gross=beforeVat[key].adjusted;
+  $(prefix+"Gross").innerHTML='<span class="gross-total">'+money(gross)+' total</span><small>'+money(gross*12/s.months)+' / year<br>'+money(gross/s.months)+' / month</small>';
+ }
+ $("resultsVatNote").textContent="All figures include opportunity cost. Annual and monthly amounts spread the full cost over the selected term. "+
+  (s.vatEnabled?"Net after VAT includes eligible deductions and sale VAT; any non-recoverable VAT remains in the cost. The comparison below each total excludes VAT refunds and sale-tax payments.":"VAT recovery is off, so both views include VAT without refunds or sale-tax payments.");
+ const thresholds=resaleThresholds(s);
+ thresholds.forEach((t,i)=>$(["breakEven","normalBreakEven","cashBreakEven"][i]).textContent=t.value===null?t.relation:money(Math.max(0,t.value)));
+ $("breakNote").textContent=s.leaseEnd==="return"?"Break-even includes VAT and opportunity cost. Each purchase option is cheaper above its threshold. Your resale estimate is "+money(s.resale)+".":"All options end with the same car value, so changing resale alone generally does not change their ranking.";
+ $("monthlyRows").innerHTML=[
+ row("Loan payment / lease invoice",money(c.payment),money(c.normalPayment),money(c.kRent),"0 Kč"),
+ row("Insurance paid separately",money(s.easyInsurance),money(s.normalInsurance),s.kintoInsuranceIncluded?"Included in invoice":money(c.kInsurance),money(s.cashInsurance)),
+ row("Monthly bill incl. insurance",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),money(c.kRent+c.kInsurance),money(s.cashInsurance),"emphasis"),
+ row("VAT deduction per regular payment","0 Kč","0 Kč",money(c.leaseVatPerPayment),"0 Kč"),
+ row("Monthly bill after regular VAT credit",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,s.leaseVatDelay?"VAT credit arrives "+s.leaseVatDelay+" months later":"VAT deducted with each payment"),money(s.cashInsurance)),
+ row("Effective monthly ownership cost",money(b.adjusted/s.months),money(n.adjusted/s.months),money(l.adjusted/s.months),money(cash.adjusted/s.months),"sum")
+ ].join("");
+ $("opportunityIntro").textContent="At "+s.opportunityRate+"% annual return, measured at month "+s.months+". Each payment is weighted by how long that cash could have stayed invested.";
+ const opportunityGroups=[
+ ["upfront","Deposit / initial payment / outright purchase"],["payments","Regular loan / lease payments"],["insurance","Separately paid insurance"],
+ ["maintenance","Maintenance payments"],["tyres","Tyre purchase and seasonal service"],
+ ["vatDuring","VAT refunds during the term"],["vatAfter","VAT refunds after the term"],
+ ["settlement","Final balloon, buyout, sale and sale tax"],["other","Other payments"]
+ ];
+ $("opportunityRows").innerHTML=opportunityGroups.map(([key,label])=>row(label,money(b.opportunityBreakdown[key]),money(n.opportunityBreakdown[key]),money(l.opportunityBreakdown[key]),money(cash.opportunityBreakdown[key]))).join("")+
+ row("Total opportunity cost",money(b.opportunity),money(n.opportunity),money(l.opportunity),money(cash.opportunity),"sum");
+ $("opportunityExample").innerHTML='<span data-option="balloon">Balloon loan example</span>: the '+money(c.down)+' deposit is paid at month zero. At '+s.opportunityRate+'% over '+s.months+' months, its foregone return is '+money(b.opportunityBreakdown.upfront)+'.';
+ $("serviceNote").textContent=c.serviceCount+" services · "+money(c.maintenance);
+ const leaseResale=s.leaseEnd==="return"?0:-s.resale;
+ $("costRows").innerHTML=[
+ row("Depreciation / car value credit",money(c.depreciation),money(c.depreciation),s.leaseEnd==="return"?"In lease":money(leaseResale),money(c.depreciation)),
+ row("Financing interest",money(c.interest),money(c.normalInterest),"In lease","0 Kč"),
+ row("Lease payments + initial","—","—",money(c.kRent*s.months+s.kintoInitial),"—"),
+ row("Lease buyout","—","—",s.leaseEnd==="return"?"—":money(s.leaseBuyout),"—"),
+ row("Insurance incl. GAP",money(s.easyInsurance*s.months),money(s.normalInsurance*s.months),s.kintoInsuranceIncluded?"In lease":money(c.kInsurance*s.months),money(s.cashInsurance*s.months)),
+ row("Maintenance",money(c.maintenance),money(c.maintenance),s.kintoMaintenance?"In lease":money(c.maintenance),money(c.maintenance)),
+ row("Tyres & service, less resale",money(c.tyres),money(c.tyres),s.kintoTyres?"In lease":money(c.tyres),money(c.tyres)),
+ row("Other costs",money(s.easyExtra),money(s.normalExtra),money(s.kintoExtra),money(s.cashExtra)),
+ row("Net VAT adjustment",money(b.vat),money(n.vat),money(l.vat),money(cash.vat)),
+ row("Cost before opportunity",money(b.nominal),money(n.nominal),money(l.nominal),money(cash.nominal)),
+ row("Opportunity cost",money(b.opportunity),money(n.opportunity),money(l.opportunity),money(cash.opportunity)),
+ row("Total economic cost",money(b.adjusted),money(n.adjusted),money(l.adjusted),money(cash.adjusted),"sum")].join("");
+
+ const comparisonNames={balloonLoan:{name:"Balloon loan",color:"balloon"},standardLoan:{name:"Standard loan",color:"normal"},lease:{name:"Operating lease",color:"lease"},cashPurchase:{name:"Buy outright",color:"cash"}};
+ const label=key=>'<span class="option-label" data-option="'+comparisonNames[key].color+'">'+comparisonNames[key].name+'</span>';
+ const pairs=resaleComparisons(s);
+ const optionKeys=Object.keys(comparisonNames);
+ $("versusRows").innerHTML=optionKeys.map(left=>{
+  const cells=optionKeys.map(right=>{
+   if(left===right)return '<td class="versus-diagonal" aria-label="Same option">—</td>';
+   const difference=c[left].adjusted-c[right].adjusted;
+   if(Math.abs(difference)<.5)return '<td class="versus-tie">Same cost</td>';
+   const direction=difference<0?"less":"more";
+   return '<td class="versus-'+direction+'"><span>'+money(Math.abs(difference))+'</span><small>'+direction+'</small></td>';
+  }).join("");
+  return '<tr><th scope="row" data-option="'+comparisonNames[left].color+'">'+label(left)+'</th>'+cells+'</tr>';
+ }).join("");
+ // Show crossovers explicitly alongside the five resale estimates.
+ const resalePoints=[...new Set([...[-100000,-50000,0,50000,100000].map(offset=>Math.max(0,s.resale+offset)),...pairs.filter(p=>p.resale!==null).map(p=>p.resale)])].sort((a,b)=>a-b);
+ $("sensitivity").innerHTML=resalePoints.map(resale=>{
+  const next=calculate({...s,resale}),r=ranked(next);
+  const matching=pairs.filter(p=>p.resale!==null&&Math.abs(p.resale-resale)<.01);
+  const note=matching.map(p=>label(p.left)+" = "+label(p.right)).join("<br>");
+  const tiedOptions=r.filter(item=>Math.abs(item.value-r[0].value)<.5);
+  const winner=tiedOptions.length>1?tiedOptions.map(item=>'<span data-option="'+item.key+'">'+item.name+'</span>').join(" + ")+" tie":'<span data-option="'+r[0].key+'">'+r[0].name+'</span>';
+  return '<tr class="'+(Math.abs(resale-s.resale)<.01?"selected ":"")+(matching.length?"breakpoint":"")+'"><th scope="row">'+money(resale)+(note?'<small class="breakpoint-note">Break-even<br>'+note+'</small>':"")+'</th><td data-option="balloon">'+money(next.balloonLoan.adjusted)+'</td><td data-option="normal">'+money(next.standardLoan.adjusted)+'</td><td data-option="lease">'+money(next.lease.adjusted)+'</td><td data-option="cash">'+money(next.cashPurchase.adjusted)+'</td><td>'+winner+'</td></tr>';
+ }).join("");
+ const loanSold=s.loanEnd==="sell",leaseSold=s.leaseEnd==="buySell",leaseBought=s.leaseEnd!=="return";
+ const endNote="Month "+s.months;
+ const refundNote=amount=>amount?"Month "+s.purchaseVatDelay:"No eligible deduction";
+ const saleCell=(sold,amount,description)=>sold?detail(amount,description):"No sale";
+ const otherInvoiceRefund=(o,capital,leaseVat)=>Math.max(0,-o.events.filter(e=>e.category==="vat"&&e.amount<0).reduce((sum,e)=>sum+e.amount,0)-capital-leaseVat);
+ $("vatTimeline").innerHTML=[
+ phase("01 · Purchase and lease start"),
+ row("Purchase VAT refund",detail(c.purchaseRefund,refundNote(c.purchaseRefund)),detail(c.purchaseRefund,refundNote(c.purchaseRefund)),"Not a purchase",detail(c.purchaseRefund,refundNote(c.purchaseRefund))),
+ row("Initial lease payment VAT","—","—",detail(c.leaseInitialVat,c.leaseInitialVat?"Month "+s.leaseVatDelay:"No initial VAT deduction"),"—"),
+ phase("02 · During the agreement"),
+ row("VAT on regular lease invoices","No VAT on loan repayments","No VAT on loan repayments",detail(c.leaseVatPerPayment,s.vatEnabled?"Per payment · months "+s.leaseVatDelay+"–"+(s.months-1+s.leaseVatDelay):"VAT recovery off"),"No regular purchase payments"),
+ row("Maintenance / tyre VAT refunds",detail(otherInvoiceRefund(b,c.purchaseRefund,0),"Netted against the expense"),detail(otherInvoiceRefund(n,c.purchaseRefund,0),"Netted against the expense"),detail(otherInvoiceRefund(l,c.buyoutRefund,c.leaseInitialVat+c.leaseVatPerPayment*s.months),"Netted against the expense"),detail(otherInvoiceRefund(cash,c.purchaseRefund,0),"Netted against the expense")),
+ phase("03 · End of term, month "+s.months),
+ row("Gross car sale proceeds",loanSold?detail(s.resale,"Received from buyer"):"Car kept",loanSold?detail(s.resale,"Received from buyer"):"Car kept",leaseSold?detail(s.resale,"Received from buyer"):leaseBought?"Car kept":"Car returned",detail(s.resale,"Received from buyer")),
+ row("VAT collected within sale price",saleCell(loanSold,c.carSaleVat,"Already part of gross proceeds"),saleCell(loanSold,c.carSaleVat,"Already part of gross proceeds"),saleCell(leaseSold,c.carSaleVat,"Already part of gross proceeds"),detail(c.carSaleVat,"Already part of gross proceeds")),
+ row("Sale VAT paid to tax authority",saleCell(loanSold,c.carSaleVat,endNote),saleCell(loanSold,c.carSaleVat,endNote),saleCell(leaseSold,c.carSaleVat,endNote),detail(c.carSaleVat,endNote)),
+ row("Car sale proceeds after VAT",saleCell(loanSold,s.resale-c.carSaleVat,"Before loan settlement"),saleCell(loanSold,s.resale-c.carSaleVat,"Loan fully repaid"),saleCell(leaseSold,s.resale-c.carSaleVat,"Before deducting buyout price"),detail(s.resale-c.carSaleVat,"No loan to settle")),
+ row("Lease buyout VAT refund","No new VAT on balloon repayment","—",leaseBought?detail(c.buyoutRefund,c.buyoutRefund?"Month "+(s.months+s.purchaseVatDelay):"No eligible deduction"):"No buyout","—"),
+ phase("04 · Refunds outstanding at end of term"),
+ row("Total VAT still to be received",detail(b.futureRefund,"Already included in total cost"),detail(n.futureRefund,"Already included in total cost"),detail(l.futureRefund,"Already included in total cost"),detail(cash.futureRefund,"Already included in total cost"))
+ ].join("");
+ $("cashflow").innerHTML=[
+ row("Deposit / initial payment / outright purchase",money(c.down),money(c.normalDown),money(s.kintoInitial),money(s.price)),
+ row("Final balloon / lease buyout",money(c.balloon),"0 Kč",leaseBought?money(s.leaseBuyout):"No buyout","0 Kč"),
+ row("Net cash spent through month "+s.months,money(b.cashToEnd),money(n.cashToEnd),money(l.cashToEnd),money(cash.cashToEnd)),
+ row("Retained asset value, net of sale VAT",money(b.retainedValue),money(n.retainedValue),money(l.retainedValue),money(cash.retainedValue)),
+ row("VAT refunds due after month "+s.months,money(b.futureRefund),money(n.futureRefund),money(l.futureRefund),money(cash.futureRefund)),
+ row("Economic cost before opportunity",money(b.nominal),money(n.nominal),money(l.nominal),money(cash.nominal),"sum")
+ ].join("");
+ return c;
+}
+
+
+
+function updateThemeButton(){
+ const dark=document.documentElement.dataset.theme==="dark";
+ $("themeToggle").setAttribute("aria-pressed",String(dark));
+ $("themeToggle").textContent=dark?"Dark mode: on":"Dark mode: off";
+}
+updateThemeButton();
+$("themeToggle").addEventListener("click",()=>{
+ const theme=document.documentElement.dataset.theme==="dark"?"light":"dark";
+ document.documentElement.dataset.theme=theme;updateThemeButton();
+ try{localStorage.setItem("car-financing-calculator.theme",theme);$("themeToggle").title="Theme choice saved in this browser.";}
+ catch{$("themeToggle").title="Theme applies for this session. Browser storage is unavailable.";}
+});
+
+const STORAGE_KEY="car-financing-calculator.scenarios.v2";
+const LEGACY_STORAGE_KEY="car-financing-calculator.settings.v1";
+let scenarios=[],activeScenarioId="";
+const newScenarioId=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);
+function validateSettings(state){
+ for(const [key,fallback] of Object.entries(defaults)){
+  const value=state[key];
+  if(typeof fallback==="number"){
+   if(value===null)continue;
+   if(!Number.isFinite(value)||value<0)throw new Error("Enter a non-negative number or leave the field empty.");
+  }else if(typeof value!==typeof fallback)throw new Error("Invalid setting: "+key);
+ }
+ if(state.carName.length>100)throw new Error("Keep the scenario name under 100 characters.");
+ if(!["sell","keep"].includes(state.loanEnd)||!["return","buySell","buyKeep"].includes(state.leaseEnd)||!["gross","net"].includes(state.kintoVatMode))throw new Error("Choose a valid option.");
+ const effective={...state};
+ if(effective.leaseEnd==="return"&&effective.leaseBuyout===null)effective.leaseBuyout=0;
+ if(effective.kintoInsuranceIncluded&&effective.kintoInsurance===null)effective.kintoInsurance=0;
+ if(!Object.values(effective).includes(null))validate(effective);
+}
+function readSettings(){
+ return Object.fromEntries(Object.entries(read()).map(([key,value])=>[key,typeof defaults[key]==="number"&&$(key).value.trim()===""?null:value]));
+}
+function decodeSettings(text){
+ const data=JSON.parse(text);
+ if(!data||data.format!=="car-financing-calculator"||data.version!==1||!data.inputs||typeof data.inputs!=="object"||Array.isArray(data.inputs))throw new Error("Choose a calculator settings JSON file.");
+ // Older saved scenarios and JSON exports may contain the retired running-cost VAT delay.
+ const inputs={...data.inputs};delete inputs.invoiceVatDelay;
+ for(const key of Object.keys(inputs))if(!Object.hasOwn(defaults,key))throw new Error("Unknown setting: "+key);
+ const state={...defaults,...inputs};validateSettings(state);return state;
+}
+function encodeSettings(state){
+ validateSettings(state);return JSON.stringify({format:"car-financing-calculator",version:1,inputs:state},null,2);
+}
+function decodeCollection(text){
+ const data=JSON.parse(text);
+ if(!data||data.format!=="car-financing-calculator"||data.version!==2||!Array.isArray(data.scenarios)||!data.scenarios.length)throw new Error("Choose a valid calculator scenario collection.");
+ const ids=new Set();
+ const items=data.scenarios.map(item=>{
+  if(!item||typeof item.id!=="string"||!item.id||ids.has(item.id))throw new Error("The scenario collection contains invalid or duplicate IDs.");
+  ids.add(item.id);
+  return {id:item.id,inputs:decodeSettings(JSON.stringify({format:data.format,version:1,inputs:item.inputs}))};
+ });
+ if(!ids.has(data.activeId))throw new Error("The collection’s selected scenario is missing.");
+ return {scenarios:items,activeId:data.activeId};
+}
+function encodeCollection(){
+ return JSON.stringify({format:"car-financing-calculator",version:2,activeId:activeScenarioId,scenarios},null,2);
+}
+function renderScenarioSelector(){
+ const select=$("scenarioSelect");select.replaceChildren();
+ for(const scenario of scenarios){
+  const option=document.createElement("option");option.value=scenario.id;option.textContent=scenario.inputs.carName.trim()||"Untitled scenario";
+  select.appendChild(option);
+ }
+ select.value=activeScenarioId;
+ $("scenarioCount").textContent=scenarios.length+" saved scenario"+(scenarios.length===1?"":"s");
+}
+function persistCollection(){
+ try{localStorage.setItem(STORAGE_KEY,encodeCollection());$("storageStatus").textContent="All scenarios saved in this browser. Export all JSON to back them up.";return true;}
+ catch{$("storageStatus").textContent="Local saving is unavailable. These scenarios last for this session; use Export all JSON to keep them.";return false;}
+}
+function saveSettings(state){
+ validateSettings(state);
+ const active=scenarios.find(item=>item.id===activeScenarioId);
+ active.inputs={...state};renderScenarioSelector();return persistCollection();
+}
+function restoreSettings(){
+ let message="Changes save automatically to the selected scenario.";
+ try{
+  const stored=localStorage.getItem(STORAGE_KEY);
+  if(stored){const restored=decodeCollection(stored);scenarios=restored.scenarios;activeScenarioId=restored.activeId;message="Saved scenarios restored from this browser.";}
+  else{
+   const legacy=localStorage.getItem(LEGACY_STORAGE_KEY);
+   const inputs=legacy?decodeSettings(legacy):{...defaults};
+   scenarios=[{id:newScenarioId(),inputs}];activeScenarioId=scenarios[0].id;
+   message=legacy?"Your previously saved settings are now the first scenario.":"Changes save automatically to the selected scenario.";
+  }
+ }catch{message="Saved scenarios could not be loaded. Defaults shown; JSON import and export are available.";}
+ if(!scenarios.length){scenarios=[{id:newScenarioId(),inputs:{...defaults}}];activeScenarioId=scenarios[0].id;}
+ renderScenarioSelector();write(scenarios.find(item=>item.id===activeScenarioId).inputs);update();
+ // Keep the old single-scenario record untouched while migrating to the collection.
+ if(persistCollection())$("storageStatus").textContent=message;
+}
+function currentValidSettings(){
+ const state=readSettings();validateSettings(state);return state;
+}
+function uniqueScenarioName(base,suffix){
+ let index=1,name;
+ do{const tail=" · "+suffix+(index===1?"":" "+index);name=base.slice(0,100-tail.length)+tail;index++;}
+ while(scenarios.some(item=>item.inputs.carName===name));
+ return name;
+}
+restoreSettings();
+function prefillRelated(source){
+ const controls=[...$("inputs").querySelectorAll("input[id],select[id]")];
+ const sourceIndex=controls.findIndex(control=>control.id===source);
+ const sourceValue=Number($(source)?.value);
+ if(sourceIndex<0||$(source).value.trim()===""||!Number.isFinite(sourceValue)||sourceValue<0)return;
+ const groups=[["downPct","normalDownPct"],["rate","normalRate"],["easyInsurance","normalInsurance","kintoInsurance","cashInsurance"]];
+ const suggestions=[];
+ for(const group of groups)if(group.includes(source)){
+  if(["downPct","rate","normalRate"].includes(source)&&sourceValue>100)return;
+  for(const target of group)suggestions.push([target,sourceValue]);
+ }
+ if((source==="months"||source==="ownershipYears")&&Number.isInteger(Number($("months").value))&&Number($("months").value)>0&&Number($("months").value)<=120){
+  suggestions.push(["tyreVisits",Math.ceil(Number($("months").value)/6)]);
+ }
+ const filled=[];
+ // DOM order follows the setup cards from top to bottom and left to right.
+ for(const [target,value] of suggestions){
+  const targetIndex=controls.findIndex(control=>control.id===target);
+  if(targetIndex<=sourceIndex||$(target).value.trim()!=="")continue;
+  $(target).value=value;
+  const label=document.querySelector('label[for="'+target+'"] .field-title');
+  filled.push((label?.textContent||target)+": "+value);
+ }
+ if(filled.length)$("prefillStatus").textContent="Suggested "+filled.join("; ")+". You can edit these values.";
+}
+function handleInput(event){
+ if(event?.target.id==="ownershipYears"){
+  const years=$("ownershipYears").value,months=Number(years)*12;
+  // A whole-month term may display as rounded fractional years.
+  $("months").value=years.trim()===""?"":Math.abs(months-Math.round(months))<.00001?Math.round(months):months;
+ }else if(event?.target.id==="months"){
+  $("ownershipYears").value=$("months").value.trim()===""?"":Number((Number($("months").value)/12).toFixed(6));
+ }
+ // Wait for a committed change so typing "5.99" does not copy its first digit.
+ if(event?.type==="change")prefillRelated(event.target.id);
+ const complete=update();
+ try{
+  if(saveSettings(currentValidSettings())&&!complete)$("storageStatus").textContent="Incomplete scenario saved. Continue filling fields, or switch scenarios and return later.";
+ }catch{$("storageStatus").textContent="Fix the invalid value to save these changes.";}
+}
+$("inputs").addEventListener("input",handleInput);
+$("inputs").addEventListener("change",handleInput);
+$("inputs").addEventListener("submit",e=>e.preventDefault());
+$("scenarioSelect").addEventListener("change",()=>{
+ const target=$("scenarioSelect").value;
+ try{
+  const current=currentValidSettings();
+  const next=scenarios.find(item=>item.id===target);if(!next)throw new Error("Select an existing scenario.");
+  scenarios.find(item=>item.id===activeScenarioId).inputs={...current};
+  activeScenarioId=target;write(next.inputs);update();renderScenarioSelector();persistCollection();
+ }catch(e){$("scenarioSelect").value=activeScenarioId;$("storageStatus").textContent="Cannot switch yet: "+e.message;}
+});
+$("duplicateScenario").addEventListener("click",()=>{
+ try{
+  const state=currentValidSettings();
+  scenarios.find(item=>item.id===activeScenarioId).inputs={...state};
+  const copy={id:newScenarioId(),inputs:{...state,carName:uniqueScenarioName(state.carName.trim()||"Scenario","copy")}};
+  scenarios.push(copy);activeScenarioId=copy.id;write(copy.inputs);update();renderScenarioSelector();
+  if(persistCollection())$("storageStatus").textContent="Variation created. Edit its name and inputs; the original stays unchanged.";
+  $("carName").focus();$("carName").select();
+ }catch(e){$("storageStatus").textContent="Cannot duplicate yet: "+e.message;}
+});
+$("clearAll").addEventListener("click",()=>{
+ const active=scenarios.find(item=>item.id===activeScenarioId);
+ const state=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,typeof value==="number"?null:typeof value==="boolean"?false:value]));
+ state.carName=$("carName").value||active.inputs.carName;
+ write(state);update();saveSettings(state);
+ $("prefillStatus").textContent="Numeric fields cleared. Select your VAT and coverage choices, then fill the form from the top. Related empty fields are suggested when you finish editing.";
+ $("storageStatus").textContent="Cleared current scenario saved. Other scenarios are kept. Reset current restores the example values.";
+});
+$("reset").addEventListener("click",()=>{
+ const name=scenarios.find(item=>item.id===activeScenarioId).inputs.carName;
+ const state={...defaults,carName:name};write(state);update();
+ if(saveSettings(state))$("storageStatus").textContent="Selected scenario reset to default assumptions. Other scenarios were kept.";
+});
+function downloadSettings(json,filename){
+ const url=URL.createObjectURL(new Blob([json],{type:"application/json"}));
+ const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$("exportSettings").addEventListener("click",()=>{
+ try{downloadSettings(encodeSettings(currentValidSettings()),"car-financing-settings.json");$("storageStatus").textContent="Selected scenario exported. Share its JSON together with the HTML calculator.";}
+ catch(e){$("storageStatus").textContent="Export failed: "+e.message;}
+});
+$("exportAllSettings").addEventListener("click",()=>{
+ try{
+  const state=currentValidSettings();scenarios.find(item=>item.id===activeScenarioId).inputs={...state};
+  downloadSettings(encodeCollection(),"car-financing-all-scenarios.json");$("storageStatus").textContent="All scenarios exported, including the current selection.";
+ }catch(e){$("storageStatus").textContent="Export failed: "+e.message;}
+});
+$("importSettings").addEventListener("click",()=>$("importFile").click());
+$("importFile").addEventListener("change",async()=>{
+ const file=$("importFile").files?.[0];if(!file)return;
+ try{
+  if(file.size>1000000)throw new Error("The settings file is too large.");
+  const text=await file.text(),data=JSON.parse(text);
+  // Validate the whole import and current inputs before adding anything to the collection.
+  const imported=data.version===2?decodeCollection(text):{scenarios:[{id:"imported",inputs:decodeSettings(text)}],activeId:"imported"};
+  const current=currentValidSettings();
+  const additions=imported.scenarios.map(item=>({id:newScenarioId(),inputs:{...item.inputs},wasActive:item.id===imported.activeId}));
+  scenarios.find(item=>item.id===activeScenarioId).inputs={...current};
+  for(const item of additions){
+   if(scenarios.some(existing=>existing.inputs.carName===item.inputs.carName))item.inputs.carName=uniqueScenarioName(item.inputs.carName||"Scenario","imported");
+   scenarios.push({id:item.id,inputs:item.inputs});
+  }
+  activeScenarioId=additions.find(item=>item.wasActive).id;write(scenarios.find(item=>item.id===activeScenarioId).inputs);update();renderScenarioSelector();
+  if(persistCollection())$("storageStatus").textContent="Imported "+additions.length+" scenario"+(additions.length===1?"":"s")+". Existing scenarios were kept.";
+ }catch(e){$("storageStatus").textContent="Import failed: "+e.message+" Current scenarios were kept.";}
+ finally{$("importFile").value="";}
+});
+if(document.modelContext?.registerTool){
+ const lifecycle=new AbortController();
+ // Agent input uses the same validation and rendering path as the visible controls.
+ try{Promise.resolve(document.modelContext.registerTool({
+ name:"compare_car_financing",title:"Compare car financing",description:"Update assumptions and compare a balloon loan, standard loan, operating lease and outright purchase, including VAT timing, end choices and opportunity cost.",
+ inputSchema:{type:"object",properties:Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,{type:typeof v==="number"?"number":typeof v==="boolean"?"boolean":"string"}])),additionalProperties:false},
+ annotations:{readOnlyHint:false,untrustedContentHint:false},
+ execute(input){if(!input||typeof input!=="object"||Array.isArray(input))throw new Error("Provide an object of calculator inputs.");for(const key of Object.keys(input))if(!Object.hasOwn(defaults,key))throw new Error("Unknown input: "+key);const s={...read(),...input};validate(s);write(s);const c=update();saveSettings(s);return {balloonLoanTotal:c.balloonLoan.adjusted,standardLoanTotal:c.standardLoan.adjusted,operatingLeaseTotal:c.lease.adjusted,outrightPurchaseTotal:c.cashPurchase.adjusted,resaleBreakEven:resaleThresholds(s)};}
+ },{signal:lifecycle.signal})).catch(()=>{});}catch{}
+ window.addEventListener("pagehide",()=>lifecycle.abort(),{once:true});
+}
+
+
+// Escape dismisses a keyboard-focused explanation without changing any inputs.
+document.addEventListener("keydown",event=>{
+ if(event.key==="Escape"&&document.activeElement?.classList.contains("help-button"))document.activeElement.blur();
+});
+
+
+// UI expansion belongs to this browser, independently of financial scenarios.
+const CARD_STATE_KEY="car-financing-calculator.cards.v1";
+function initializeCards(){
+ let saved={};
+ try{const value=JSON.parse(localStorage.getItem(CARD_STATE_KEY)||"{}");if(value&&typeof value==="object"&&!Array.isArray(value))saved=value;}catch{}
+ const states={};
+ function remember(key,expanded){
+  states[key]=expanded;
+  try{localStorage.setItem(CARD_STATE_KEY,JSON.stringify(states));}
+  catch{$("storageStatus").textContent="Card state applies for this session. Browser storage is unavailable.";}
+ }
+ for(const card of document.querySelectorAll("section.panel,section.total,section.verdict,section.scenario-toolbar")){
+  const original=card.querySelector(":scope > .section-title")||card.querySelector(":scope > h2")||card.querySelector(":scope > .eyebrow");
+  const title=card.id==="verdict"?"Overall result":card.classList.contains("scenario-toolbar")?"Saved scenarios":
+   original?.querySelector("h2")?.firstChild.textContent.trim()||original?.firstChild.textContent.trim()||"Card";
+  const key=card.id||card.querySelector("input[id],select[id],tbody[id]")?.id||(card.dataset.option?"total-"+card.dataset.option:title.toLowerCase().replace(/[^a-z0-9]+/g,"-"));
+  const header=document.createElement("div");header.className="card-heading";
+  const heading=card.id==="verdict"||card.classList.contains("scenario-toolbar")?null:original;
+  if(heading)header.appendChild(heading);
+  else{const label=document.createElement("h2");label.textContent=title;header.appendChild(label);}
+  const body=document.createElement("div");body.className="card-body";body.id="card-body-"+key;
+  while(card.firstChild)body.appendChild(card.firstChild);
+  const button=document.createElement("button");button.type="button";button.className="card-toggle";
+  button.setAttribute("aria-controls",body.id);header.appendChild(button);
+  card.append(header,body);card.classList.add("collapsible-card");card.dataset.card=key;
+  function expand(open){
+   body.hidden=!open;card.dataset.collapsed=String(!open);button.setAttribute("aria-expanded",String(open));
+   button.textContent=open?"−":"+";button.setAttribute("aria-label",(open?"Collapse ":"Expand ")+title);
+   states[key]=open;
+  }
+  expand(typeof saved[key]==="boolean"?saved[key]:true);
+  button.addEventListener("click",()=>{expand(body.hidden);remember(key,!body.hidden);});
+ }
+ for(const card of document.querySelectorAll("details")){
+  const summary=card.querySelector(":scope > summary");
+  const key="details-"+summary.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-");
+  card.dataset.card=key;card.open=typeof saved[key]==="boolean"?saved[key]:true;states[key]=card.open;
+  card.addEventListener("toggle",()=>remember(key,card.open));
+ }
+}
+initializeCards();
+
+</script></body></html>
