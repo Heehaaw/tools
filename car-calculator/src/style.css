@@ -6,7 +6,7 @@ button{font:inherit;border:1px solid var(--line);border-radius:6px;background:wh
 .intro{margin:6px 0 26px}.intro h1{font-size:clamp(30px,4vw,44px);letter-spacing:-1.5px;line-height:1.15;margin:0 0 8px}.intro p{margin:0;color:var(--muted)}
 .workspace{display:grid;grid-template-columns:minmax(310px, .85fr) minmax(0,1.3fr);gap:26px;align-items:start}.panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:18px}.section-title{display:flex;align-items:center;gap:10px;margin-bottom:16px}h2{font-size:18px;letter-spacing:-.3px;margin:0;font-weight:700}.number{font:600 12px monospace;display:grid;place-items:center;width:28px;height:28px;border-radius:5px;background:#eaf0f6;color:var(--muted)}.number.easy{background:#e8efff;color:var(--blue)}.number.kinto{background:#dff3f1;color:var(--teal)}
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.wide{grid-column:1/-1}label{display:block;font-size:14px;font-weight:600;min-width:0}label>span{color:var(--muted);display:block;font-weight:400;font-size:12px;margin-top:1px}
-input[type=number],select{width:100%;min-width:0;padding:11px 10px;margin-top:7px;border:1px solid #bcc9d6;border-radius:5px;font:600 17px "Avenir Next",Avenir,"Segoe UI",sans-serif;color:var(--ink);background:#fbfcfe;min-height:46px}select{font-size:14px}input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:3px solid #b4d3fa;outline-offset:2px;border-color:var(--blue)}input.important{font-size:23px;border-color:var(--blue);background:#f6f9ff}input:disabled{opacity:.45}small,.hint{display:block;font-size:13px;line-height:1.55;font-weight:400;color:var(--muted)}small{margin-top:7px}.hint{margin:14px 0 0}.checks{display:grid;gap:12px;margin:22px 0}.checks label{display:flex;align-items:flex-start;gap:10px;font-weight:400;cursor:pointer}.checks label span{font-size:14px;margin:0;color:var(--ink)}input[type=checkbox]{accent-color:var(--teal);width:18px;height:18px;flex-shrink:0;margin:2px 0 0}.field-note{grid-column:1/-1;align-self:start;color:var(--teal);font-size:14px;padding:2px 0 12px}summary{font-weight:700;font-size:16px;cursor:pointer}details[open]>summary{margin-bottom:18px}
+input[type=number],select{width:100%;min-width:0;padding:11px 10px;margin-top:7px;border:1px solid #bcc9d6;border-radius:5px;font:600 17px "Avenir Next",Avenir,"Segoe UI",sans-serif;color:var(--ink);background:#fbfcfe;min-height:46px}select{font-size:14px}input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:3px solid #b4d3fa;outline-offset:2px;border-color:var(--blue)}input:disabled{opacity:.45}small,.hint{display:block;font-size:13px;line-height:1.55;font-weight:400;color:var(--muted)}small{margin-top:7px}.hint{margin:14px 0 0}.checks{display:grid;gap:12px;margin:22px 0}.checks label{display:flex;align-items:flex-start;gap:10px;font-weight:400;cursor:pointer}.checks label span{font-size:14px;margin:0;color:var(--ink)}input[type=checkbox]{accent-color:var(--teal);width:18px;height:18px;flex-shrink:0;margin:2px 0 0}.field-note{grid-column:1/-1;align-self:start;color:var(--teal);font-size:14px;padding:2px 0 12px}summary{font-weight:700;font-size:16px;cursor:pointer}details[open]>summary{margin-bottom:18px}
 .verdict{background:var(--ink);color:white;border-radius:10px;padding:25px 28px;margin-bottom:16px;border-top:4px solid var(--teal)}.eyebrow{font-size:12px;letter-spacing:1.2px;font-weight:700}.verdict .eyebrow{color:#bacbdd;margin-bottom:14px}.verdict h2{font-size:23px;color:#e2ecf4}.saving{font-size:clamp(35px,4vw,52px);font-weight:700;line-height:1.2;letter-spacing:-1.4px;margin:8px 0}.verdict p{margin:0;color:#cad9e8;font-size:14px}
 .totals{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}.total{background:#fff;padding:20px;border:1px solid var(--line);border-radius:8px;border-top:3px solid var(--blue)}.kinto-total{border-top-color:var(--teal)}.total .eyebrow{color:var(--muted)}.total strong{display:block;font-size:clamp(23px,2.5vw,31px);letter-spacing:-1px;margin:10px 0 3px;font-variant-numeric:tabular-nums}.total p{font-size:14px;margin:0;color:var(--muted)}.break{border-left:4px solid var(--blue)}.break h2{font-size:16px}.break strong{display:block;font-size:30px;letter-spacing:-1px;color:var(--blue);margin:6px 0}.break p{font-size:14px;color:var(--muted);margin:0}
 .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}th{color:var(--muted);font-weight:500;font-size:12px;text-align:right;white-space:nowrap;padding:12px 8px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left;padding-left:0}td{text-align:right;padding:12px 8px;border-bottom:1px solid #edf0f3}th:last-child,td:last-child{padding-right:0}td:not(:first-child){white-space:nowrap}.sum td{font-weight:800;border-top:2px solid var(--line);border-bottom:0}.selected td{background:#eef4ff;font-weight:700}.selected td:first-child{padding-left:6px}.easy-text{color:var(--blue)}.kinto-text{color:var(--teal)}dl{display:grid;grid-template-columns:1fr auto;gap:12px;font-size:14px;margin:0}dt{color:var(--muted)}dd{text-align:right;margin:0;font-weight:600;font-variant-numeric:tabular-nums}.notes p,.notes li{font-size:14px;color:var(--muted)}a{color:var(--blue);text-underline-offset:3px}.error{padding:20px;border:1px solid #ba3a3a;color:#8e2525;background:#fff3f3;border-radius:8px;margin-bottom:18px}footer{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;border-top:1px solid var(--line);gap:15px}[hidden]{display:none!important}
@@ -22,7 +22,8 @@ input[type=number],select{width:100%;min-width:0;padding:11px 10px;margin-top:7p
 [data-option="normal"]{--option:var(--normal);--option-bg:#fff4e5;color:var(--option)}
 [data-option="lease"]{--option:var(--teal);--option-bg:#e7f7f4;color:var(--option)}
 header,main,footer{max-width:1920px;width:100%;padding-left:clamp(16px,3vw,56px);padding-right:clamp(16px,3vw,56px)}
-header{flex-wrap:wrap}.header-actions{display:flex;flex-wrap:wrap;gap:8px}.storage-status{font-size:13px;color:var(--muted);min-height:20px;margin:0 0 18px}
+header{flex-wrap:wrap}.header-actions{display:flex;flex-wrap:wrap;gap:8px}.storage-status{font-size:13px;color:var(--muted)}
+.storage-status:empty,.prefill-status:empty{display:none}
 .option-legend{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px}.option-legend span{font-size:14px;font-weight:700;background:var(--option-bg);border-left:4px solid var(--option);padding:6px 12px;border-radius:4px}
 .workspace{display:block}.area-title{font-size:23px;margin:0 0 18px;letter-spacing:-.5px;grid-column:1/-1}
 #inputs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;align-items:start;margin-bottom:32px;scroll-margin-top:20px}
@@ -68,7 +69,6 @@ table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-
 :root[data-theme="dark"] button{background:#162132;border-color:var(--line);color:var(--ink)}
 :root[data-theme="dark"] button:hover{background:#22354e;border-color:var(--blue)}
 :root[data-theme="dark"] input[type="number"],:root[data-theme="dark"] input[type="text"],:root[data-theme="dark"] select{background:var(--field);border-color:#60758f;color:var(--ink)}
-:root[data-theme="dark"] input.important{background:#10223b;border-color:var(--blue)}
 :root[data-theme="dark"] input:focus,:root[data-theme="dark"] select:focus,:root[data-theme="dark"] button:focus-visible,:root[data-theme="dark"] summary:focus-visible{outline-color:#a8caff}
 :root[data-theme="dark"] .number{background:#1b2a3d;color:var(--muted)}
 :root[data-theme="dark"] .number.easy{background:#10223b;color:var(--blue)}
@@ -140,7 +140,6 @@ table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-
 .check-field{position:relative;padding-right:32px}
 .check-field .help-wrap{top:0}
 .checks .check-field label{margin:0}
-.help-intro{font-size:12px;color:var(--muted);margin:0 0 8px}
 .help-wrap{position:absolute;top:0;right:0;z-index:2}
 .help-button{display:grid;place-items:center;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;font-size:13px;font-weight:700;line-height:1;color:var(--muted);background:var(--bg)}
 .help-text{display:none;position:absolute;z-index:20;top:31px;right:0;width:280px;max-width:calc(100vw - 48px);padding:12px 14px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);box-shadow:0 8px 28px #0003;font-size:13px;font-weight:400;line-height:1.55;letter-spacing:0;text-align:left;white-space:normal}
@@ -176,7 +175,6 @@ table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-
  .scenario-toolbar{padding:12px;margin-bottom:16px;gap:10px}
  .scenario-toolbar label{flex-basis:100%;min-width:0}
  .scenario-toolbar p{font-size:12px}
- .storage-status{margin-bottom:14px}
  #inputs{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:22px}
  #inputs>.panel,#inputs>.panel:first-of-type,#inputs>.option-panel{grid-column:1/-1;margin:0}
  #inputs>.assumptions-grid{grid-template-columns:minmax(0,1fr);gap:12px}
@@ -232,7 +230,7 @@ table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-
 .verdict>.card-heading>h2{font-size:15px;color:#cad9e8}
 #inputs>.panel:first-of-type .card-body>.fields{grid-template-columns:repeat(4,minmax(0,1fr))}
 #inputs>.panel:first-of-type .card-body .wide{grid-column:span 2}
-.prefill-status{font-size:13px;color:var(--muted);margin:0 0 8px}
+.prefill-status{grid-column:1/-1;font-size:13px;color:var(--muted);margin:0 0 8px}
 @media(max-width:700px){
  .card-heading{gap:8px;margin-bottom:12px}
  .card-toggle,.scenario-toolbar .card-toggle{width:32px;height:32px;min-height:32px}
@@ -263,3 +261,93 @@ table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-
 .versus-table .versus-more{color:var(--muted)}
 .versus-table .versus-diagonal,.versus-table .versus-tie{color:var(--muted);font-size:13px}
 :root[data-theme="dark"] .versus-table .versus-less{color:#98edc0;background:#0c281d}
+
+/* Views share one scenario; changing tabs never resets the form. */
+.view-tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:20px 0 24px;padding-bottom:8px}
+.view-tabs button{min-height:44px;min-width:110px;font-weight:700;border-color:transparent;background:transparent}
+.view-tabs [aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.variant-toggle{display:flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer;white-space:nowrap}
+.variant-toggle span{color:var(--option);font-size:12px;font-weight:700;margin:0}
+.variant-toggle input{accent-color:var(--option)}
+.option-panel .section-title{flex-wrap:wrap}
+.option-panel[data-excluded="true"]{border-top-color:var(--line)}
+.option-panel[data-excluded="true"] .card-body{opacity:.55}
+#inputs .individual-term[hidden]{display:none!important}
+.totals{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.interest-table{min-width:620px}.interest-table td{white-space:normal;text-align:left}.interest-table th{text-align:left}
+.chart{overflow-x:auto;overscroll-behavior-x:contain;margin-top:20px}
+.chart svg{display:block;width:100%;min-width:580px;max-height:470px}
+.chart-grid{stroke:var(--line);stroke-width:1;fill:none}.chart-axis{fill:var(--muted);font-size:13px}
+.chart-label{fill:currentColor;font-size:17px;font-weight:600}
+.chart circle:focus,.chart rect:focus{outline:2px solid var(--ink);outline-offset:3px}
+.chart-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;font-weight:650;margin-bottom:8px}
+.chart-legend span::before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;vertical-align:middle;margin-right:6px}
+#graphContent{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}#graphContent>.panel{margin:0}
+@media(max-width:700px){.view-tabs{margin:12px 0 18px}.view-tabs button{flex:1;min-width:0;padding:8px}.totals{grid-template-columns:minmax(0,1fr)}.chart{margin-top:14px}.variant-toggle{gap:8px;min-height:32px}}
+
+:root[data-theme="dark"] .view-tabs [aria-selected="true"]{background:var(--blue);color:var(--bg);border-color:var(--blue)}
+.period-match{margin-bottom:0}
+@media(max-width:700px){.chart-axis{font-size:18px}.chart-label{font-size:20px}}
+
+/* Name occupies its own row; purchase and resale stay together below it. */
+#inputs>.panel:first-of-type .fields>.scenario-name-field{grid-column:1/-1}
+@media(max-width:700px){
+ #inputs>.panel:first-of-type .card-body>.fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #inputs>.panel:first-of-type .fields>.purchase-price-field,#inputs>.panel:first-of-type .fields>.resale-price-field{grid-column:span 1}
+}
+
+input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-nums}
+@media(max-width:700px){input.numeric-input{font-size:16px}}
+
+.chart-key{display:flex;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:13px;margin:0 0 12px}
+.chart-key>span{display:inline-flex;align-items:center;gap:8px;margin-right:12px}
+.chart-key i{display:inline-block;width:22px;height:12px;border:2px solid currentColor;border-radius:2px;flex:none}
+.chart-key .key-solid{background:currentColor}
+.chart-insights{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.chart-insights p{font-size:13px;color:var(--muted);margin:0}.chart-insights strong{color:var(--ink);margin-right:5px}
+.chart-insights [data-option]{font-weight:650}
+
+.chart-subtitle{fill:var(--muted);font-size:13px}
+
+@media(max-width:700px){.chart-subtitle{font-size:18px}}
+
+.graph-tooltip{position:fixed;z-index:1000;width:340px;max-width:calc(100vw - 16px);padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);box-shadow:0 8px 28px #0003;pointer-events:none;font-size:13px;line-height:1.4}
+.graph-tooltip>strong{display:block;font-size:15px}.graph-tooltip>small{margin:3px 0 12px}
+.graph-tooltip dl{display:block;margin:0}.graph-tooltip dl>div{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:7px 0;border-top:1px solid var(--line)}
+.graph-tooltip dt{font-size:13px;font-weight:650}.graph-tooltip dt small{font-size:11px;margin:2px 0 0;color:var(--muted)}
+.graph-tooltip dd{font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+:root[data-theme="dark"] .graph-tooltip{background:#142133;border-color:#60758f;box-shadow:0 10px 30px #0009}
+.chart-cursor{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4;pointer-events:none}
+.chart svg:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+
+.opportunity-control{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:12px 0 16px}
+.opportunity-control label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;min-height:32px}
+.opportunity-control input[type=checkbox]{margin:0}.opportunity-control small{margin:0;font-size:12px}
+
+.results-help-note{font-size:12px;color:var(--muted);margin:0 0 10px}
+#comparison .explained{cursor:help}#comparison th.explained,#comparison h2.explained{text-decoration:underline dotted;text-decoration-color:transparent;text-decoration-thickness:1px;text-underline-offset:4px}
+#comparison .help-heading{padding-right:0}
+#comparison .explained:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.result-tooltip{white-space:pre-line;width:380px;max-height:calc(100vh - 16px);overflow-y:auto;pointer-events:auto}
+
+/* The overall summary carries the winner's accent; individual totals keep their option colours. */
+.panel.results-overview{--summary-accent:var(--muted);grid-column:1/-1;padding:clamp(16px,2.2vw,30px);border-color:var(--summary-accent);border-top-width:5px}
+.results-overview[data-winner="balloon"]{--summary-accent:var(--blue)}
+.results-overview[data-winner="normal"]{--summary-accent:var(--normal)}
+.results-overview[data-winner="lease"]{--summary-accent:var(--teal)}
+.results-overview[data-winner="cash"]{--summary-accent:var(--cash)}
+.results-overview .overview-kicker{display:block;color:var(--summary-accent);font-size:11px;font-weight:750;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.results-overview>.card-heading .area-title{margin:0;font-size:26px;color:var(--summary-accent)}
+.results-overview>.card-heading .section-title{margin:0}
+.results-overview .verdict{margin-bottom:16px}
+.results-overview .totals{margin-bottom:0}
+.results-help-note{grid-column:1/-1}
+@media(max-width:700px){.panel.results-overview{padding:14px 10px}.results-overview>.card-heading .area-title{font-size:23px}.results-overview .verdict{padding:16px 12px}}
+
+#comparison th.explained:hover,#comparison h2.explained:hover,#comparison .explained:focus-visible{text-decoration-color:var(--muted)}
+:root[data-theme="dark"] #comparison th.explained:hover,:root[data-theme="dark"] #comparison h2.explained:hover,:root[data-theme="dark"] #comparison .explained:focus-visible{text-decoration-color:#b8c6d880}
+@media(min-width:701px) and (max-width:1399px){.results-overview .totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+#scenarioSelect option{color:var(--ink);font-style:normal}
+#scenarioSelect .example-option{color:var(--muted);font-style:italic}
+#scenarioSelect[data-example="true"]{color:var(--muted);font-style:italic;background:var(--bg)}

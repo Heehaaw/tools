@@ -1,5 +1,14 @@
 
+export const variants = [
+ {key:"balloonLoan",kind:"balloon",name:"Balloon loan",enabled:"balloonEnabled",months:"balloonMonths",resale:"balloonResale",fields:["downPct","balloonPct","rate","easyInsurance","easyExtra"]},
+ {key:"standardLoan",kind:"normal",name:"Standard loan",enabled:"normalEnabled",months:"normalMonths",resale:"normalResale",fields:["normalDownPct","normalRate","normalInsurance","normalExtra"]},
+ {key:"lease",kind:"lease",name:"Operating lease",enabled:"leaseEnabled",months:"leaseMonths",resale:"leaseResale",fields:["kintoMonthly","kintoInitial","kintoInsurance","kintoExtra","leaseBuyout"]},
+ {key:"cashPurchase",kind:"cash",name:"Buy outright",enabled:"cashEnabled",months:"cashMonths",resale:"cashResale",fields:["cashInsurance","cashExtra"]}
+];
 export const defaults = {
+ balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,
+ balloonMonths:36,normalMonths:36,leaseMonths:36,cashMonths:36,
+ balloonResale:1000000,normalResale:1000000,leaseResale:1000000,cashResale:1000000,
  cashInsurance:3700, cashExtra:0, vatEnabled:true, recoveryPct:100, purchaseVatEligible:true, purchaseVatDelay:3, leaseVatDelay:0, purchaseVatCap:420000, opportunityRate:6, loanEnd:"sell", leaseEnd:"return", leaseBuyout:0, buyoutVatEligible:true, leaseTaxablePct:100, carName:"Toyota RAV4 Executive PHEV AWD", normalDownPct:20, normalRate:5.99, normalInsurance:3700, normalExtra:0, months:36, annualKm:20000, price:1334000, downPct:20, balloonPct:46, rate:5.99, easyInsurance:3700,
  resale:1000000, easyExtra:0, kintoMonthly:16788, kintoVatMode:"gross", vatPct:21, kintoInitial:0,
  kintoInsuranceIncluded:true, kintoInsurance:3700, kintoMaintenance:false, kintoTyres:true, kintoExtra:0,
@@ -7,7 +16,31 @@ export const defaults = {
  tyreVisits:6, tyreVisitCost:1880, tyreStorage:1100
 };
 
+// New fields inherit the original shared term and resale when reading older scenarios.
+export function migrateInputs(inputs){
+ const state={...defaults,...inputs};
+ for(const v of variants){
+  if(!Object.hasOwn(inputs,v.months))state[v.months]=state.months;
+  if(!Object.hasOwn(inputs,v.resale))state[v.resale]=state.resale;
+ }
+ return state;
+}
+export function effectiveInputs(inputs){
+ const s=migrateInputs(inputs);
+ for(const v of variants){
+  if(!s[v.enabled])for(const key of v.fields)s[key]=defaults[key];
+  if(s.matchPeriods||!s[v.enabled]){s[v.months]=s.months;s[v.resale]=s.resale;}
+ }
+ if(!s.leaseEnabled)s.leaseEnd="return";
+ if(s.leaseEnd==="return")s.leaseResale=s.resale;
+ if(!s.balloonEnabled&&!s.normalEnabled&&!s.cashEnabled)s.purchaseVatEligible=false;
+ return s;
+}
+export function comparisonValue(result,split=false){return result.adjusted/(split?result.months:1);}
+export function hasDifferentPeriods(s){return new Set(variants.filter(v=>s[v.enabled]).map(v=>s.matchPeriods?s.months:s[v.months])).size>1;}
+
 export function validate(s){
+ s=effectiveInputs(s);
  for(const [key,fallback] of Object.entries(defaults)){
   if(typeof fallback==="number"&&(!Number.isFinite(s[key])||s[key]<0))throw new Error("Enter a valid, non-negative number in every numeric field.");
   if(typeof fallback==="boolean"&&typeof s[key]!=="boolean")throw new Error("Choose an option for each checkbox.");
@@ -16,6 +49,7 @@ export function validate(s){
  if(!["sell","keep"].includes(s.loanEnd)||!["return","buySell","buyKeep"].includes(s.leaseEnd))throw new Error("Choose a valid end-of-term option.");
  if(!["gross","net"].includes(s.kintoVatMode))throw new Error("Choose the lease quote’s VAT basis.");
  if(!Number.isInteger(s.months)||s.months<1||s.months>120)throw new Error("Use a term of 1 to 120 whole months.");
+ for(const v of variants)if(!Number.isInteger(s[v.months])||s[v.months]<1||s[v.months]>120)throw new Error("Use terms of 1 to 120 whole months.");
  if(s.serviceKm<=0||s.serviceMonths<=0)throw new Error("Service intervals must be greater than zero.");
  if(s.downPct+s.balloonPct>100||s.normalDownPct>100)throw new Error("Deposit plus balloon cannot exceed 100% of the price.");
  for(const k of ["rate","normalRate","vatPct","recoveryPct","leaseTaxablePct","opportunityRate"])if(s[k]>100)throw new Error("Rates and percentages must be between 0 and 100.");
@@ -25,14 +59,15 @@ export function validate(s){
 }
 function monthlyPayment(principal,balloon,annualRate,months){
  const r=annualRate/1200;
- return r===0?(principal-balloon)/months:(principal-balloon/(1+r)**months)*r/(1-(1+r)**(-months));
+ // log1p/expm1 keep the break-even search stable for interest rates close to zero.
+ return r===0?(principal-balloon)/months:(principal-balloon*Math.exp(-months*Math.log1p(r)))*r/-Math.expm1(-months*Math.log1p(r));
 }
 export function calculate(s){
- validate(s);
+ s=effectiveInputs(s);validate(s);
  const n=s.months,km=s.annualKm*n/12,down=s.price*s.downPct/100,balloon=s.price*s.balloonPct/100;
- const payment=monthlyPayment(s.price-down,balloon,s.rate,n),interest=payment*n+balloon-(s.price-down);
- const normalDown=s.price*s.normalDownPct/100,normalPayment=monthlyPayment(s.price-normalDown,0,s.normalRate,n);
- const normalInterest=normalPayment*n-(s.price-normalDown);
+ const payment=monthlyPayment(s.price-down,balloon,s.rate,s.balloonMonths),interest=payment*s.balloonMonths+balloon-(s.price-down);
+ const normalDown=s.price*s.normalDownPct/100,normalPayment=monthlyPayment(s.price-normalDown,0,s.normalRate,s.normalMonths);
+ const normalInterest=normalPayment*s.normalMonths-(s.price-normalDown);
  const servicePeriod=Math.min(s.serviceMonths,s.annualKm===0?Infinity:s.serviceKm*12/s.annualKm);
  const serviceCount=Math.floor(n/servicePeriod+1e-10),maintenance=serviceCount*s.serviceCost;
  const tyres=s.tyrePurchase+s.tyreVisits*(s.tyreVisitCost+s.tyreStorage)-s.tyreResale;
@@ -42,6 +77,11 @@ export function calculate(s){
  const saleVat=gross=>s.vatEnabled?gross*vf:0;
  const purchaseRefund=s.purchaseVatEligible?inputVat(s.price,true):0;
  function option(kind){
+  // loanEnd retains its saved JSON key and now governs every non-lease purchase.
+  const variant=variants.find(v=>v.kind===kind),n=s[variant.months],resale=s[variant.resale];
+  const serviceCount=Math.floor(n/servicePeriod+1e-10),maintenance=serviceCount*s.serviceCost;
+  // Preserve the shared seasonal frequency when an option uses a different term.
+  const tyreVisits=Math.ceil(s.tyreVisits*n/s.months),tyres=s.tyrePurchase+tyreVisits*(s.tyreVisitCost+s.tyreStorage)-s.tyreResale;
   const isLease=kind==="lease",isNormal=kind==="normal",isCash=kind==="cash",events=[];
   const add=(month,amount,category,type="cash")=>events.push({month,amount,category,type});
   // Treat next-month maintenance and tyre deductions as settled with the expense for this comparison.
@@ -61,19 +101,19 @@ export function calculate(s){
   }
   if(!isLease||!s.kintoTyres){
    add(0,s.tyrePurchase,"tyres");refund(0,inputVat(s.tyrePurchase));
-   for(let i=0;i<s.tyreVisits;i++){
-    const m=i*n/s.tyreVisits,amount=s.tyreVisitCost+s.tyreStorage;
+   for(let i=0;i<tyreVisits;i++){
+    const m=i*n/tyreVisits,amount=s.tyreVisitCost+s.tyreStorage;
     add(m,amount,"tyres");refund(m,inputVat(amount));
    }
-   const keep=isLease?s.leaseEnd==="buyKeep":!isCash&&s.loanEnd==="keep";
+   const keep=isLease?s.leaseEnd==="buyKeep":s.loanEnd==="keep";
    add(n,-s.tyreResale,"tyres",keep?"asset":"cash");add(n,saleVat(s.tyreResale),"vat",keep?"asset":"cash");
   }
   const buyout=isLease&&s.leaseEnd!=="return";
   if(buyout){add(n,s.leaseBuyout,"buyout");refund(n,s.buyoutVatEligible?inputVat(s.leaseBuyout,true):0,true);}
   if(!isLease||buyout){
-   const keep=isLease?s.leaseEnd==="buyKeep":!isCash&&s.loanEnd==="keep";
+   const keep=isLease?s.leaseEnd==="buyKeep":s.loanEnd==="keep";
    // Kept cars receive a non-cash terminal asset credit, net of estimated disposal VAT.
-   add(n,-s.resale,"resale",keep?"asset":"cash");add(n,saleVat(s.resale),"vat",keep?"asset":"cash");
+   add(n,-resale,"resale",keep?"asset":"cash");add(n,saleVat(resale),"vat",keep?"asset":"cash");
   }
   add(n,isLease?s.kintoExtra:isCash?s.cashExtra:isNormal?s.normalExtra:s.easyExtra,"other");
   const nominal=events.reduce((t,e)=>t+e.amount,0);
@@ -93,7 +133,7 @@ export function calculate(s){
   const futureRefund=-events.filter(e=>e.month>n&&e.category==="vat").reduce((t,e)=>t+e.amount,0);
   const cashToEnd=events.filter(e=>e.month<=n&&e.type==="cash").reduce((t,e)=>t+e.amount,0);
   const retainedValue=-events.filter(e=>e.type==="asset").reduce((t,e)=>t+e.amount,0);
-  return {nominal,adjusted,opportunity,opportunityBreakdown,vat,futureRefund,cashToEnd,retainedValue,events};
+  return {months:n,km:s.annualKm*n/12,resale,carSaleVat:saleVat(resale),depreciation:s.price-resale,serviceCount,maintenance,tyreVisits,tyres,enabled:s[variant.enabled],nominal,adjusted,opportunity,opportunityBreakdown,vat,futureRefund,cashToEnd,retainedValue,events};
  }
  const balloonLoan=option("balloon"),standardLoan=option("normal"),lease=option("lease"),cashPurchase=option("cash");
  const buyoutRefund=s.leaseEnd!=="return"&&s.buyoutVatEligible?inputVat(s.leaseBuyout,true):0;
@@ -102,28 +142,50 @@ export function calculate(s){
  leaseVatPerPayment:inputVat(kRent*s.leaseTaxablePct/100),leaseInitialVat:inputVat(s.kintoInitial*s.leaseTaxablePct/100),carSaleVat:saleVat(s.resale),
  balloonLoan,standardLoan,lease,cashPurchase};
 }
-export function resaleThresholds(s){
- const zero=calculate({...s,resale:0}),high=calculate({...s,resale:1000000});
- return ["balloonLoan","standardLoan","cashPurchase"].map(key=>{
-  const base=zero[key].adjusted-zero.lease.adjusted;
-  const slope=(high[key].adjusted-high.lease.adjusted-base)/1000000;
-  if(Math.abs(slope)<1e-10)return {value:null,relation:Math.abs(base)<.5?"Same cost at any resale":base<0?"Always below lease":"Always above lease"};
-  const threshold=-base/slope;
-  return {value:threshold,relation:threshold<=0?"Already below lease at zero resale":"Cheaper above this resale"};
- });
+// For split periods, vary each option's resale by the same amount from its own estimate.
+export function withResale(s,resale){
+ const next={...s,resale};
+ if(!s.matchPeriods)for(const v of variants)next[v.resale]=s[v.resale]+resale-s.resale;
+ return next;
+}
+export function resaleComparisons(s){
+ s=effectiveInputs(s);
+ const split=hasDifferentPeriods(s),value=c=>comparisonValue(c,split);
+ const origin=s.matchPeriods?0:Math.max(0,s.resale-Math.min(...variants.filter(v=>s[v.enabled]).map(v=>s[v.resale])));
+ const zero=calculate(withResale(s,origin)),high=calculate(withResale(s,origin+1000000));
+ const active=variants.filter(v=>s[v.enabled]),pairs=[];
+ for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){
+  const left=active[i].key,right=active[j].key,difference=value(zero[left])-value(zero[right]);
+  const slope=(value(high[left])-value(high[right])-difference)/1000000;
+  if(Math.abs(slope)<1e-10){pairs.push({left,right,resale:null,tied:Math.abs(difference)<.5,cheaper:difference<0?left:right});continue;}
+  const resale=origin-difference/slope;
+  if(resale<origin){pairs.push({left,right,resale:null,tied:false,cheaper:difference<0?left:right});continue;}
+  pairs.push({left,right,resale,cost:value(calculate(withResale(s,resale))[left]),cheaperAbove:slope<0?left:right});
+ }
+ return pairs;
 }
 
-export function resaleComparisons(s){
- const zero=calculate({...s,resale:0}),high=calculate({...s,resale:1000000});
- const pairs=[["balloonLoan","lease"],["standardLoan","lease"],["balloonLoan","standardLoan"],["cashPurchase","balloonLoan"],["cashPurchase","standardLoan"],["cashPurchase","lease"]];
- return pairs.map(([left,right])=>{
-  const difference=zero[left].adjusted-zero[right].adjusted;
-  const slope=(high[left].adjusted-high[right].adjusted-difference)/1000000;
-  // Equal resale exposure cancels out, so a crossover may not exist.
-  if(Math.abs(slope)<1e-10)return {left,right,resale:null,cost:null,tied:Math.abs(difference)<.5,cheaper:difference<0?left:right,gap:Math.abs(difference)};
-  const resale=-difference/slope;
-  if(resale<0)return {left,right,resale:null,cost:null,tied:false,cheaper:difference<0?left:right,gap:null};
-  const atBreakEven=calculate({...s,resale});
-  return {left,right,resale,cost:atBreakEven[left].adjusted,tied:false,cheaperAbove:slope<0?left:right};
- });
+/** Find the non-negative nominal loan rate matching a selected benchmark, including opportunity cost. */
+export function interestComparisons(s){
+ s=effectiveInputs(s);
+ const split=hasDifferentPeriods(s),base=calculate(s),rows=[];
+ for(const loan of variants.slice(0,2).filter(v=>s[v.enabled]))for(const target of variants.slice(2).filter(v=>s[v.enabled])){
+  const rateKey=loan.kind==="balloon"?"rate":"normalRate";
+  const targetCost=comparisonValue(base[target.key],split);
+  const difference=rate=>comparisonValue(calculate({...s,[rateKey]:rate})[loan.key],split)-targetCost;
+  const low=difference(0),high=difference(100);
+  let rate=null,status;
+  if(Math.abs(high-low)<1e-7)status=Math.abs(low)<.005?"equal":"unaffected";
+  else if(low>.005)status="below-zero";
+  else if(high<-.005)status="above-range";
+  else if(Math.abs(low)<1e-7){rate=0;status="match";}
+  else if(Math.abs(high)<1e-7){rate=100;status="match";}
+  else{
+   let left=0,right=100;
+   for(let i=0;i<50;i++){const mid=(left+right)/2;if(difference(mid)>0)right=mid;else left=mid;}
+   rate=(left+right)/2;status="match";
+  }
+  rows.push({loan:loan.key,target:target.key,rate,status,currentRate:s[rateKey],targetCost});
+ }
+ return rows;
 }
