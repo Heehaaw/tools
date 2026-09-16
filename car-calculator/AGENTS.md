@@ -35,5 +35,13 @@ The scripts resolve their files relative to themselves, so they also work from a
 - Keep the distributed HTML self-contained and usable offline.
 - Keep the Pages links at the top of this project's README and the root README in sync when published pages change.
 - Consult the README for financial assumptions and data formats.
-- Preserve compatibility with saved browser scenarios and exported JSON when changing state handling.
 - Tests use a minimal DOM mock. Check layout and browser interactions in the generated HTML when changing them, including a narrow mobile view.
+
+## Backward compatibility
+
+- Evolve the calculator model so newer releases can still load and calculate scenarios saved or exported by older releases. Treat browser storage and JSON exports as persistent user data.
+- Preserve existing field meanings, units and explicit values, including zero and null for blank inputs. Give newly added fields documented defaults that preserve the intent of older scenarios.
+- Version incompatible schema changes and migrate older formats explicitly. Keep readers for previously supported formats; do not silently drop or reinterpret renamed or removed fields.
+- Validate migrations before saving. If loading or migration fails, preserve the original stored data and report the problem instead of overwriting it with defaults. Reject unsupported future versions without modifying their data.
+- When changing the model or persistence format, add regression coverage using representative older saved scenarios and JSON exports. Check migration, calculation and export/reimport, including incomplete drafts.
+- Calculation corrections may change results. Document material changes to assumptions or formulas in the project README so users can understand differences when reopening an older scenario.
