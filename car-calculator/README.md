@@ -27,32 +27,9 @@ Browser storage can depend on the file location and browser. Export scenarios be
 - Dark mode and collapsible cards with browser-persisted state.
 - Responsive layout and hover, focus or tap explanations.
 
-## Build and check
+## Development
 
-Requires Node.js 20 or later for development. No dependencies to install.
-
-From the repository root:
-
-```sh
-node car-calculator/build.mjs
-node car-calculator/test.mjs
-```
-
-Both scripts resolve files relative to their own location, so they also work from another current directory.
-
-### Files
-
-| File | Purpose |
-| --- | --- |
-| `src/model.mjs` | Financial model and validation |
-| `src/app.mjs` | Rendering, scenarios, persistence and interactions |
-| `src/index.html` | Source markup and help text |
-| `src/style.css` | Responsive layout and themes |
-| `build.mjs` | Inlines the source into the distributable HTML |
-| `test.mjs` | Calculation and lightweight UI regression checks |
-| `car-financing-calculator.html` | Generated, shareable application |
-
-The checks cover cash purchase and sale, VAT timing, opportunity calculations, independent loan rates, break-even values, result rendering, scenario duplication, draft JSON compatibility and annual/monthly figures. They use a minimal DOM mock; browser layout and full interactions require a browser check.
+See [AGENTS.md](AGENTS.md) for the source layout, build commands and verification workflow.
 
 ## Model conventions
 

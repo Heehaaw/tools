@@ -12,13 +12,4 @@ Open `car-calculator/car-financing-calculator.html` directly in a browser. The H
 
 ## Development
 
-Node.js 20 or later is needed to build and run the checks. No package installation is required.
-
-From this repository:
-
-```sh
-node car-calculator/build.mjs
-node car-calculator/test.mjs
-```
-
-Each tool lives in its own directory. See [AGENTS.md](AGENTS.md) before editing.
+Each tool has its own README and AGENTS.md with its source layout, build commands and verification steps. Start with the [repository guide](AGENTS.md), then the [calculator instructions](car-calculator/AGENTS.md).
