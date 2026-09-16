@@ -33,6 +33,7 @@ The scripts resolve their files relative to themselves, so they also work from a
 
 - Edit `src/`, then rebuild the generated HTML. Keep both source and generated output in the change.
 - Keep the distributed HTML self-contained and usable offline.
+- Keep the Pages links at the top of this project's README and the root README in sync when published pages change.
 - Consult the README for financial assumptions and data formats.
 - Preserve compatibility with saved browser scenarios and exported JSON when changing state handling.
 - Tests use a minimal DOM mock. Check layout and browser interactions in the generated HTML when changing them, including a narrow mobile view.

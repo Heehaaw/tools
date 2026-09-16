@@ -1,5 +1,9 @@
 # Car financing calculator
 
+## Pages
+
+- [Car financing calculator](https://heehaaw.github.io/tools/car-calculator/car-financing-calculator.html)
+
 A standalone calculator for comparing:
 
 - Balloon loan, including its final payment.

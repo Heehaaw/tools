@@ -1,5 +1,9 @@
 # Personal tools
 
+## Pages
+
+- [Car financing calculator](https://heehaaw.github.io/tools/car-calculator/car-financing-calculator.html)
+
 Small tools that can run locally.
 
 ## Car calculator
