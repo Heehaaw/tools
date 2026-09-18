@@ -19,9 +19,9 @@ export function createResults({document,window,views,onShowTooltip}){
   const vatFraction=s.vatEnabled?s.vatPct/(100+s.vatPct)*s.recoveryPct/100:0;
   return Object.fromEntries(variants.map(v=>{
    const o=c[v.key],lease=v.kind==='lease';
-   const regular=lease?Array.from({length:o.months},(_,month)=>value(c.leaseVatPerPayment,month+s.leaseVatDelay)).reduce((a,b)=>a+b,0)/o.months:0;
+   const regular=lease?Array.from({length:o.months},(_,month)=>value(c.leaseVatPerPayment,month)).reduce((a,b)=>a+b,0)/o.months:0;
    const maintenance=o.events.filter(e=>['maintenance','tyres','additional'].includes(e.category)&&e.amount>0).reduce((sum,e)=>sum+value(e.amount*vatFraction,e.month),0);
-   return [v.key,{purchase:lease?0:value(c.purchaseRefund,s.purchaseVatDelay),initial:lease?value(c.leaseInitialVat,s.leaseVatDelay):0,regular,maintenance,
+   return [v.key,{purchase:lease?0:value(c.purchaseRefund,s.purchaseVatDelay),initial:lease?value(c.leaseInitialVat,0):0,regular,maintenance,
     grossSale:value(o.resale,o.months),saleVat:value(o.carSaleVat,o.months),netSale:value(o.resale-o.carSaleVat,o.months),
     tyreVat:value(s.vatEnabled?s.tyreResale*s.vatPct/(100+s.vatPct):0,o.months),buyout:lease?value(c.buyoutRefund,o.months+s.purchaseVatDelay):0,
     outstanding:-o.events.filter(e=>e.category==='vat'&&e.amount<0&&e.month>o.months).reduce((sum,e)=>sum+value(e.amount,e.month),0)}];
@@ -92,7 +92,7 @@ export function createResults({document,window,views,onShowTooltip}){
   row("Monthly bill incl. insurance",detail(c.insuredPayment,"During "+b.paidMonths+" repayment months"),detail(c.normalPayment+s.normalInsurance,"During "+n.paidMonths+" repayment months"),money(c.kRent+c.kInsurance),money(s.cashInsurance),"emphasis"),
   (s.balloonEnabled&&b.loanMonths<b.months||s.normalEnabled&&n.loanMonths<n.months)?row("Monthly bill after loan ends",b.loanMonths<b.months?detail(s.easyInsurance,"Months "+(b.loanMonths+1)+"–"+b.months):"Outside ownership period",n.loanMonths<n.months?detail(s.normalInsurance,"Months "+(n.loanMonths+1)+"–"+n.months):"Outside ownership period","—",money(s.cashInsurance)):"",
   s.leaseEnabled&&c.leaseVatPerPayment?row("VAT refund per lease invoice","—","—",money(c.leaseVatPerPayment),"—"):"",
-  s.leaseEnabled&&c.leaseVatPerPayment?row("Monthly bill less eventual VAT refund",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,s.leaseVatDelay?"Refund "+s.leaseVatDelay+" months after invoice":"VAT deducted with each payment"),money(s.cashInsurance)):"",
+  s.leaseEnabled&&c.leaseVatPerPayment?row("Monthly bill after VAT deduction",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,"VAT deducted with each payment"),money(s.cashInsurance)):"",
   row("Effective monthly ownership cost",...variants.map(v=>money(monthly[v.key].adjusted/monthly[v.key].months)),"sum")
   ].join("");
   const conversion=s.opportunityRateBasis==="real"?returnSummary(s)+" with "+ratePercent(s.inflationRate)+" inflation gives "+ratePercent(c.nominalReturn)+" p.a. after tax, before inflation.":returnSummary(s)+" is used directly. The inflation estimate also powers each today’s-money toggle.";
@@ -170,9 +170,9 @@ export function createResults({document,window,views,onShowTooltip}){
   $("vatTimeline").innerHTML=[
   (s.balloonEnabled||s.normalEnabled||s.cashEnabled||(s.leaseEnabled&&c.leaseInitialVat))?phase("01 · Purchase and lease start"):"",
   (s.balloonEnabled||s.normalEnabled||s.cashEnabled)?row("Purchase VAT refund",detail(vat.balloonLoan.purchase,refundNote(c.purchaseRefund)),detail(vat.standardLoan.purchase,refundNote(c.purchaseRefund)),"Not a purchase",detail(vat.cashPurchase.purchase,refundNote(c.purchaseRefund))):"",
-  s.leaseEnabled&&c.leaseInitialVat?row("Initial lease payment VAT","—","—",detail(vat.lease.initial,"Month "+s.leaseVatDelay),"—"):"",
+  s.leaseEnabled&&c.leaseInitialVat?row("Initial lease payment VAT","—","—",detail(vat.lease.initial,"Month 0"),"—"):"",
   phase("02 · During the agreement"),
-  s.leaseEnabled?row("VAT on regular lease invoices","No VAT on loan repayments","No VAT on loan repayments",detail(vat.lease.regular,(inflationViews.vat?"Average per invoice":"Per invoice")+" · months "+s.leaseVatDelay+"–"+(l.months-1+s.leaseVatDelay)),"No regular purchase payments"):"",
+  s.leaseEnabled?row("VAT on regular lease invoices","No VAT on loan repayments","No VAT on loan repayments",detail(vat.lease.regular,(inflationViews.vat?"Average per invoice":"Per invoice")+" · months 0–"+(l.months-1)),"No regular purchase payments"):"",
   row(runningVatLabel,detail(vat.balloonLoan.maintenance,"Netted against the expense"),detail(vat.standardLoan.maintenance,"Netted against the expense"),detail(vat.lease.maintenance,"Netted against the expense"),detail(vat.cashPurchase.maintenance,"Netted against the expense")),
   phase("03 · At each option’s end date"),
   row("Gross car sale proceeds",purchaseSold?detail(vat.balloonLoan.grossSale,endNote(b)):"Car kept",purchaseSold?detail(vat.standardLoan.grossSale,endNote(n)):"Car kept",leaseSold?detail(vat.lease.grossSale,endNote(l)):leaseBought?"Car kept":"Car returned",purchaseSold?detail(vat.cashPurchase.grossSale,endNote(cash)):"Car kept"),
@@ -213,7 +213,7 @@ export function createResults({document,window,views,onShowTooltip}){
    'Insurance paid separately':'Only separately entered insurance is added here. Coverage, including GAP, is whatever your quote actually provides; this calculator does not verify it. Insurance bundled into a lease is already in the lease invoice.',
    'Monthly bill incl. insurance':'The recurring amount paid before any separate VAT refund. Adds the loan payment or lease invoice and separately paid insurance. Maintenance, tyres, deposits and final payments are separate.',
    'VAT refund per lease invoice':'Eligible refund from one lease invoice, after the taxable-share and recovery-percentage settings. This is a tax refund, not a discount on the invoice or on a loan repayment.',
-   'Monthly bill less eventual VAT refund':'Recurring bill minus the VAT refund associated with that invoice. This is a net cost, not necessarily cash paid in that month. During a refund delay you still fund the gross invoice.',
+   'Monthly bill after VAT deduction':'Recurring bill minus eligible VAT deducted against VAT payable in the same month. The gross invoice remains payable to the lessor.',
    'Effective monthly ownership cost':'Total ownership cost on this table’s opportunity-cost basis ÷ the option’s months. Includes upfront and final payments, running costs, resale or retained value, and VAT settlement. This is not a monthly invoice.',
    'Vehicle purchase / buyout':'The invoice price for a car purchased now stays unchanged when inflation is toggled. Loans show the inflation benefit from paying principal later as a separate credit in the next row. A lease buyout occurs in the future, so its amount is converted to today’s money when selected. VAT deductions are separate.',
    'Inflation benefit on deferred principal':'Negative credit for repaying borrowed principal later, when it has less purchasing power. Equals the value of the deposit and principal payments in today’s money minus today’s invoice price. Includes the balloon or debt outstanding at the comparison end. Interest is separate. Zero when inflation is off or no principal is deferred. This credit is included once in the subtotal; the later inflation-effect row is only a summary.',
@@ -332,7 +332,7 @@ export function createResults({document,window,views,onShowTooltip}){
       }else extra+=' Today’s money is off, so no principal inflation credit is included.';
      }
      if(label==='Maintenance')extra+=' '+(v.kind==='lease'&&s.kintoMaintenance?'Included in lease invoices.':'Nominal budget: '+c[v.key].serviceCount+' services × '+money(s.serviceCost)+'.');
-     if(label==='Monthly bill less eventual VAT refund'&&v.kind==='lease')extra+=' Pay '+money(c.kRent+c.kInsurance)+' per invoice month; the '+money(c.leaseVatPerPayment)+' refund follows '+s.leaseVatDelay+' months later.';
+     if(label==='Monthly bill after VAT deduction'&&v.kind==='lease')extra+=' Pay '+money(c.kRent+c.kInsurance)+' per invoice month; the '+money(c.leaseVatPerPayment)+' VAT deduction offsets VAT payable in that same month.';
      explainResult(cell,help+'\n\n'+extra);
     }
    }

@@ -509,13 +509,14 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 
 </div></section>
 <div class="assumptions-grid"><section class="panel" data-card-key="vatEnabled"><div class="section-title"><h2>VAT, income tax and contributions</h2></div>
-<div class="checks"><div class="check-field"><label><input id="vatEnabled" type="checkbox"><span>VAT-registered business</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain vatEnabled" aria-describedby="help-vatEnabled">?</button><span class="help-text" role="tooltip" id="help-vatEnabled">Enables eligible VAT recovery and VAT payable on the eventual sale. Turn off to compare as a purchaser without VAT recovery.</span></span></div><div class="check-field"><label><input id="purchaseVatEligible" type="checkbox"><span>Purchase invoice allows VAT recovery</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatEligible" aria-describedby="help-purchaseVatEligible">?</button><span class="help-text" role="tooltip" id="help-purchaseVatEligible">Whether the vehicle purchase invoice allows VAT deduction. Some used-car invoices do not. This applies to both loans and the outright purchase.</span></span></div><div class="check-field" id="buyoutVatField"><label><input id="buyoutVatEligible" type="checkbox"><span>Buyout invoice allows VAT recovery</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain buyoutVatEligible" aria-describedby="help-buyoutVatEligible">?</button><span class="help-text" role="tooltip" id="help-buyoutVatEligible">Whether the separate lease buyout invoice allows VAT deduction. It does not control the VAT deduction on regular lease payments.</span></span></div></div>
-<div class="fields">
+<div class="checks"><div class="check-field"><label><input id="vatEnabled" type="checkbox"><span>VAT-registered business</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain vatEnabled" aria-describedby="help-vatEnabled">?</button><span class="help-text" role="tooltip" id="help-vatEnabled">Enables eligible VAT recovery and VAT payable on the eventual sale. Turn off to compare as a purchaser without VAT recovery.</span></span></div><div class="check-field" id="purchaseVatField"><label><input id="purchaseVatEligible" type="checkbox"><span>Purchase invoice allows VAT recovery</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatEligible" aria-describedby="help-purchaseVatEligible">?</button><span class="help-text" role="tooltip" id="help-purchaseVatEligible">Whether the vehicle purchase invoice allows VAT deduction. Some used-car invoices do not. This applies to both loans and the outright purchase.</span></span></div><div class="check-field" id="buyoutVatField"><label><input id="buyoutVatEligible" type="checkbox"><span>Buyout invoice allows VAT recovery</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain buyoutVatEligible" aria-describedby="help-buyoutVatEligible">?</button><span class="help-text" role="tooltip" id="help-buyoutVatEligible">Whether the separate lease buyout invoice allows VAT deduction. It does not control the VAT deduction on regular lease payments.</span></span></div></div>
+<div class="fields" id="globalVatFields">
+<div class="field"><label for="vatPct" class="field-label"><span class="field-title">VAT rate</span><span class="field-unit">%</span></label><input id="vatPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain vatPct" aria-describedby="help-vatPct">?</button><span class="help-text" role="tooltip" id="help-vatPct">VAT percentage used throughout the model for the purchase, resale, taxable lease invoices, maintenance and tyres.</span></span></div>
 <div class="field"><label for="recoveryPct" class="field-label"><span class="field-title">VAT recovery</span><span class="field-unit">% of eligible VAT</span></label><input id="recoveryPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain recoveryPct" aria-describedby="help-recoveryPct">?</button><span class="help-text" role="tooltip" id="help-recoveryPct">The percentage of eligible input VAT recovered. 100% models full recovery. Partial recovery is a simplified planning assumption; sale VAT is still included.</span></span></div>
 <div class="field"><label for="purchaseVatDelay" class="field-label"><span class="field-title">Purchase / buyout refund</span><span class="field-unit">months delay</span></label><input id="purchaseVatDelay" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatDelay" aria-describedby="help-purchaseVatDelay">?</button><span class="help-text" role="tooltip" id="help-purchaseVatDelay">Delay from the purchase to receiving its VAT refund. Applies at the start for loans and outright purchase, and after the end-of-lease buyout. Default: 3 months.</span></span></div>
 <div class="field"><label for="purchaseVatCap" class="field-label"><span class="field-title">Car VAT deduction cap</span><span class="field-unit">Kč · 0 = no cap</span></label><input id="purchaseVatCap" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain purchaseVatCap" aria-describedby="help-purchaseVatCap">?</button><span class="help-text" role="tooltip" id="help-purchaseVatCap">Maximum eligible capital VAT before the recovery percentage is applied. The default is 420,000 Kč for the Czech passenger-car planning example. Zero removes the cap. Running costs and lease invoices are not capped here.</span></span></div>
 
-</div><p class="hint">Maintenance and tyre VAT is netted against each expense, treating next-month deductibility as settled with no outstanding VAT. Insurance and loan interest have no VAT deduction in this model. Lease VAT settings are in the operating lease card. The 420,000 Kč capital VAT cap is for a typical Czech M1 passenger car.</p>
+</div><p class="hint" id="vatSettingsHint">Maintenance and tyre VAT is netted against each expense, treating next-month deductibility as settled with no outstanding VAT. Insurance and loan interest have no VAT deduction in this model. Lease VAT settings are in the operating lease card. The 420,000 Kč capital VAT cap is for a typical Czech M1 passenger car.</p>
 <div class="checks income-tax-toggle"><label><input id="incomeTaxEnabled" type="checkbox" aria-controls="incomeTaxSettings tax-balloon tax-normal tax-lease tax-cash"><span>Include income tax and contributions</span></label></div>
 <div id="incomeTaxSettings" hidden>
 <p class="hint">Optional manual estimates, separate from VAT. Enable to enter deductible expenses and remaining tax value in each option below. Rates start at 0%. Include DPFO and any social/health contribution effects in your effective rates; no tax regime is selected automatically.</p>
@@ -576,28 +577,34 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 <div class="field wide"><small id="balloonLoanTermNote" aria-live="polite"></small></div>
 <div class="field"><label for="downPct" class="field-label"><span class="field-title">Deposit</span><span class="field-unit">% of price</span></label><input id="downPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain downPct" aria-describedby="help-downPct">?</button><span class="help-text" role="tooltip" id="help-downPct">Part of the price paid immediately. A larger deposit lowers borrowing and monthly payments, but ties up more of your own cash.</span></span></div>
 <div class="field"><label for="balloonPct" class="field-label"><span class="field-title">Final balloon</span><span class="field-unit">% of price</span></label><input id="balloonPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain balloonPct" aria-describedby="help-balloonPct">?</button><span class="help-text" role="tooltip" id="help-balloonPct">Part of the purchase price left for the final payment. A larger balloon lowers monthly payments but leaves more principal outstanding, increasing interest.</span></span></div>
-<div class="field"><label for="rate" class="field-label"><span class="field-title">Interest rate</span><span class="field-unit">% p.a.</span></label><input id="rate" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step=".01"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain rate" aria-describedby="help-rate">?</button><span class="help-text" role="tooltip" id="help-rate">Fixed annual interest for the balloon loan only. It can differ from the standard loan rate. Enter the nominal rate, not an APR that bundles insurance and fees.</span></span></div>
 <div class="field"><label for="easyInsurance" class="field-label"><span class="field-title">Insurance incl. GAP</span><span class="field-unit">Kč / month</span></label><input id="easyInsurance" type="text" inputmode="decimal" class="numeric-input" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain easyInsurance" aria-describedby="help-easyInsurance">?</button><span class="help-text" role="tooltip" id="help-easyInsurance">Monthly insurance paid in addition to the balloon loan. Include any required GAP cover, which addresses a covered shortfall after theft or total loss.</span></span></div>
-<div class="field wide"><label for="easyExtra" class="field-label"><span class="field-title">Other balloon loan costs</span><span class="field-unit">Kč over full term</span></label><input id="easyExtra" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><small>Fees, additional tyre replacement or repairs outside the shared budgets.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain easyExtra" aria-describedby="help-easyExtra">?</button><span class="help-text" role="tooltip" id="help-easyExtra">Additional costs over the whole term, such as fees or repairs. The model pays this budget at the end and does not apply an extra VAT deduction.</span></span></div>
-</div><p class="hint">A loan with a larger final payment, such as Toyota Easy. Enter the nominal interest rate, not insurance-inclusive RPSN. Set the balloon to zero for full repayment.</p><div id="tax-balloon" class="tax-option" hidden data-option="balloon"><h3>Income tax and contributions</h3><small id="balloonTaxTerm"></small><div class="fields"><div class="field" ><label for="balloonDeductions" class="field-label"><span class="field-title">Deductible expenses</span><span class="field-unit">Kč over this term</span></label><input id="balloonDeductions" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain deductible expenses" aria-describedby="help-balloonDeductions">?</button><span class="help-text" role="tooltip" id="help-balloonDeductions">Total expenses that actually reduce taxable income over this option’s full term, not the tax saving itself. Exclude recoverable VAT. For a purchase, include eligible tax depreciation, loan interest where applicable, and running expenses. Deposits, loan principal and balloon repayments are not automatically deductions.</span></span></div><div class="field" id="balloonTaxValueField"><label for="balloonTaxValue" class="field-label"><span class="field-title">Remaining tax value</span><span class="field-unit">Kč at car sale</span></label><input id="balloonTaxValue" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain remaining tax value" aria-describedby="help-balloonTaxValue">?</button><span class="help-text" role="tooltip" id="help-balloonTaxValue">Remaining deductible tax value (daňová zůstatková cena), after any depreciation included above. This is not the expected market resale value. For a buyout and resale, use the eligible acquisition cost remaining at sale. Enter zero for a fully depreciated car.</span></span></div></div></div>
+<div class="field"><label for="easyExtra" class="field-label"><span class="field-title">Other balloon loan costs</span><span class="field-unit">Kč over full term</span></label><input id="easyExtra" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain easyExtra" aria-describedby="help-easyExtra">?</button><span class="help-text" role="tooltip" id="help-easyExtra">Fees, additional tyre replacement or repairs outside the shared budgets, over the whole term. The model pays this budget at the end and does not apply an extra VAT deduction.</span></span></div>
+<div class="field wide"><span class="field-title" id="balloonInputLabel">Calculate from</span><input id="balloonInputMode" type="hidden"><div class="resale-mode-options" role="radiogroup" aria-labelledby="balloonInputLabel"><label><input id="balloonModeRate" type="radio" name="balloonQuoteMethod" value="rate"><span>Interest rate</span></label><label><input id="balloonModePayment" type="radio" name="balloonQuoteMethod" value="payment"><span>Monthly payment</span></label></div></div>
+<div class="field" id="balloonRateField"><label for="rate" class="field-label"><span class="field-title">Interest rate</span><span class="field-unit">% p.a.</span></label><input id="rate" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step=".01"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain rate" aria-describedby="help-rate">?</button><span class="help-text" role="tooltip" id="help-rate">Fixed annual interest for the balloon loan only. It can differ from the standard loan rate. Enter the nominal rate, not an APR that bundles insurance and fees.</span></span></div>
+<div class="field" id="balloonPaymentField"><label for="balloonMonthlyPayment" class="field-label"><span class="field-title">Monthly loan payment</span><span class="field-unit">Kč / month</span></label><input id="balloonMonthlyPayment" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><small>Excluding insurance and fees.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain monthly loan payment" aria-describedby="help-balloonMonthlyPayment">?</button><span class="help-text" role="tooltip" id="help-balloonMonthlyPayment">Enter the lender’s regular repayment excluding insurance and fees. The nominal annual rate is inferred from the purchase price, deposit, balloon and repayment period. The balloon is paid in addition to the final regular instalment. Rounded quotes give an approximate rate; this is not RPSN.</span></span></div>
+<small class="field wide" id="balloonQuoteNote" aria-live="polite"></small>
+</div><p class="hint">A loan with a larger final payment, such as Toyota Easy. Enter the nominal interest rate or regular payment excluding insurance and fees. Set the balloon to zero for full repayment.</p><div id="tax-balloon" class="tax-option" hidden data-option="balloon"><h3>Income tax and contributions</h3><small id="balloonTaxTerm"></small><div class="fields"><div class="field" ><label for="balloonDeductions" class="field-label"><span class="field-title">Deductible expenses</span><span class="field-unit">Kč over this term</span></label><input id="balloonDeductions" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain deductible expenses" aria-describedby="help-balloonDeductions">?</button><span class="help-text" role="tooltip" id="help-balloonDeductions">Total expenses that actually reduce taxable income over this option’s full term, not the tax saving itself. Exclude recoverable VAT. For a purchase, include eligible tax depreciation, loan interest where applicable, and running expenses. Deposits, loan principal and balloon repayments are not automatically deductions.</span></span></div><div class="field" id="balloonTaxValueField"><label for="balloonTaxValue" class="field-label"><span class="field-title">Remaining tax value</span><span class="field-unit">Kč at car sale</span></label><input id="balloonTaxValue" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain remaining tax value" aria-describedby="help-balloonTaxValue">?</button><span class="help-text" role="tooltip" id="help-balloonTaxValue">Remaining deductible tax value (daňová zůstatková cena), after any depreciation included above. This is not the expected market resale value. For a buyout and resale, use the eligible acquisition cost remaining at sale. Enter zero for a fully depreciated car.</span></span></div></div></div>
 </section>
 <section class="panel option-panel" data-option="normal"><div class="section-title"><span class="number normal">03</span><h2>Standard loan</h2><label class="variant-toggle"><input id="normalEnabled" aria-label="Include standard loan in comparisons" type="checkbox" checked><span>Include</span></label></div><div class="fields"><div class="field individual-term" hidden><label for="normalMonths" class="field-label"><span class="field-title">Keep the car for</span><span class="field-unit">months</span></label><input id="normalMonths" type="text" inputmode="decimal" class="numeric-input" min="1" max="120" step="1"><small>Ownership length; repayment can differ below.</small></div><div class="field individual-term individual-resale" hidden><label for="normalResale" class="field-label"><span class="field-title">End resale value</span><span class="field-unit">Kč incl. VAT</span></label><input id="normalResale" type="text" inputmode="decimal" class="numeric-input" min="0" step="10000"><small>Value at this option’s end.</small></div>
 <div class="field wide"><label class="loan-term-toggle"><input id="normalMatchOwnership" type="checkbox" checked aria-controls="normalLoanTermField"><span>Repay over the ownership period</span></label></div>
 <div class="field" id="normalLoanTermField" hidden><label for="normalLoanMonths" class="field-label"><span class="field-title">Repay loan over</span><span class="field-unit">months</span></label><input id="normalLoanMonths" type="text" inputmode="decimal" class="numeric-input" min="1" max="120" step="1"><small>May be shorter or longer than ownership.</small></div>
 <div class="field wide"><small id="normalLoanTermNote" aria-live="polite"></small></div>
-<div class="field"><label for="normalDownPct" class="field-label"><span class="field-title">Deposit</span><span class="field-unit">% of price</span></label><input id="normalDownPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalDownPct" aria-describedby="help-normalDownPct">?</button><span class="help-text" role="tooltip" id="help-normalDownPct">The standard loan deposit, independent of the balloon-loan deposit. The remaining principal is repaid by the end.</span></span></div>
-<div class="field"><label for="normalRate" class="field-label"><span class="field-title">Interest rate</span><span class="field-unit">% p.a.</span></label><input id="normalRate" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step=".01"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalRate" aria-describedby="help-normalRate">?</button><span class="help-text" role="tooltip" id="help-normalRate">Fixed annual interest for the standard loan only. Changing it does not change the balloon-loan rate.</span></span></div>
+<div class="field wide"><label for="normalDownPct" class="field-label"><span class="field-title">Deposit</span><span class="field-unit">% of price</span></label><input id="normalDownPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalDownPct" aria-describedby="help-normalDownPct">?</button><span class="help-text" role="tooltip" id="help-normalDownPct">The standard loan deposit, independent of the balloon-loan deposit. The remaining principal is repaid by the end.</span></span></div>
 <div class="field"><label for="normalInsurance" class="field-label"><span class="field-title">Insurance incl. GAP</span><span class="field-unit">Kč / month</span></label><input id="normalInsurance" type="text" inputmode="decimal" class="numeric-input" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalInsurance" aria-describedby="help-normalInsurance">?</button><span class="help-text" role="tooltip" id="help-normalInsurance">Monthly insurance paid separately for the standard loan. Include required GAP cover in the quoted amount.</span></span></div>
 <div class="field"><label for="normalExtra" class="field-label"><span class="field-title">Other loan costs</span><span class="field-unit">Kč over full term</span></label><input id="normalExtra" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalExtra" aria-describedby="help-normalExtra">?</button><span class="help-text" role="tooltip" id="help-normalExtra">Additional standard-loan costs over the whole term. Modelled at the end, with no extra VAT deduction.</span></span></div>
+<div class="field wide"><span class="field-title" id="normalInputLabel">Calculate from</span><input id="normalInputMode" type="hidden"><div class="resale-mode-options" role="radiogroup" aria-labelledby="normalInputLabel"><label><input id="normalModeRate" type="radio" name="normalQuoteMethod" value="rate"><span>Interest rate</span></label><label><input id="normalModePayment" type="radio" name="normalQuoteMethod" value="payment"><span>Monthly payment</span></label></div></div>
+<div class="field" id="normalRateField"><label for="normalRate" class="field-label"><span class="field-title">Interest rate</span><span class="field-unit">% p.a.</span></label><input id="normalRate" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step=".01"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain normalRate" aria-describedby="help-normalRate">?</button><span class="help-text" role="tooltip" id="help-normalRate">Fixed annual interest for the standard loan only. Changing it does not change the balloon-loan rate.</span></span></div>
+<div class="field" id="normalPaymentField"><label for="normalMonthlyPayment" class="field-label"><span class="field-title">Monthly loan payment</span><span class="field-unit">Kč / month</span></label><input id="normalMonthlyPayment" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><small>Excluding insurance and fees.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain standard loan payment" aria-describedby="help-normalMonthlyPayment">?</button><span class="help-text" role="tooltip" id="help-normalMonthlyPayment">Enter the lender’s regular repayment excluding insurance and fees. The nominal annual rate is inferred from the purchase price, deposit and full repayment period. The standard loan is fully repaid at maturity with no balloon. Rounded quotes give an approximate rate, not RPSN.</span></span></div>
+<small class="field wide" id="normalQuoteNote" aria-live="polite"></small>
 </div><p class="hint">To compare 3- and 6-year loans fairly, keep the same 6-year ownership period and resale estimate. Set the repayment lengths to 36 and 72 months; use a 0% balloon to compare two standard loans.</p><div id="tax-normal" class="tax-option" hidden data-option="normal"><h3>Income tax and contributions</h3><small id="normalTaxTerm"></small><div class="fields"><div class="field" ><label for="normalDeductions" class="field-label"><span class="field-title">Deductible expenses</span><span class="field-unit">Kč over this term</span></label><input id="normalDeductions" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain deductible expenses" aria-describedby="help-normalDeductions">?</button><span class="help-text" role="tooltip" id="help-normalDeductions">Total expenses that actually reduce taxable income over this option’s full term, not the tax saving itself. Exclude recoverable VAT. For a purchase, include eligible tax depreciation, loan interest where applicable, and running expenses. Deposits, loan principal and balloon repayments are not automatically deductions.</span></span></div><div class="field" id="normalTaxValueField"><label for="normalTaxValue" class="field-label"><span class="field-title">Remaining tax value</span><span class="field-unit">Kč at car sale</span></label><input id="normalTaxValue" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain remaining tax value" aria-describedby="help-normalTaxValue">?</button><span class="help-text" role="tooltip" id="help-normalTaxValue">Remaining deductible tax value (daňová zůstatková cena), after any depreciation included above. This is not the expected market resale value. For a buyout and resale, use the eligible acquisition cost remaining at sale. Enter zero for a fully depreciated car.</span></span></div></div></div>
 </section>
 <section class="panel option-panel" data-option="lease"><div class="section-title"><span class="number kinto">04</span><h2>Operating lease</h2><label class="variant-toggle"><input id="leaseEnabled" aria-label="Include operating lease in comparisons" type="checkbox" checked><span>Include</span></label></div><div class="fields"><div class="field individual-term" hidden><label for="leaseMonths" class="field-label"><span class="field-title">Period</span><span class="field-unit">months</span></label><input id="leaseMonths" type="text" inputmode="decimal" class="numeric-input" min="1" max="120" step="1"><small>Whole months; quote must match this term.</small></div><div class="field individual-term individual-resale" hidden><label for="leaseResale" class="field-label"><span class="field-title">End resale value</span><span class="field-unit">Kč incl. VAT</span></label><input id="leaseResale" type="text" inputmode="decimal" class="numeric-input" min="0" step="10000"><small>Value at this option’s end. Ignored for a returned lease.</small></div>
-<div class="field"><label for="kintoMonthly" class="field-label"><span class="field-title">Monthly quote</span><span class="field-unit">Kč</span></label><input id="kintoMonthly" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoMonthly" aria-describedby="help-kintoMonthly">?</button><span class="help-text" role="tooltip" id="help-kintoMonthly">The regular lease invoice in the VAT basis selected beside it. Use a quote for the chosen term and mileage.</span></span></div>
-<div class="field"><label for="kintoVatMode" class="field-label"><span class="field-title">Quote VAT basis</span><span class="field-unit">&#160;</span></label><select id="kintoVatMode"><option value="gross">Including VAT</option><option value="net">Excluding VAT</option></select><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoVatMode" aria-describedby="help-kintoVatMode">?</button><span class="help-text" role="tooltip" id="help-kintoVatMode">Choose whether the quote includes VAT. An excluding-VAT quote is first converted to a gross invoice, then eligible VAT is deducted using the recovery settings.</span></span></div>
-<div class="field"><label for="vatPct" class="field-label"><span class="field-title">VAT rate</span><span class="field-unit">%</span></label><input id="vatPct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain vatPct" aria-describedby="help-vatPct">?</button><span class="help-text" role="tooltip" id="help-vatPct">VAT percentage used throughout the model for the purchase, resale, taxable lease invoices, maintenance and tyres.</span></span></div>
-<div class="field"><label for="kintoInitial" class="field-label"><span class="field-title">Initial payment</span><span class="field-unit">Kč incl. VAT</span></label><input id="kintoInitial" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInitial" aria-describedby="help-kintoInitial">?</button><span class="help-text" role="tooltip" id="help-kintoInitial">An initial lease payment in addition to the monthly invoices. Paid at month zero; eligible VAT follows the lease deduction delay.</span></span></div>
-<div class="field" id="leaseVatDelayField"><label for="leaseVatDelay" class="field-label"><span class="field-title">Lease payment VAT deduction</span><span class="field-unit">months delay</span></label><input id="leaseVatDelay" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseVatDelay" aria-describedby="help-leaseVatDelay">?</button><span class="help-text" role="tooltip" id="help-leaseVatDelay">Delay after each lease invoice before its VAT deduction. Zero models deduction with every payment. This is separate from the purchase refund delay.</span></span></div>
+<div class="field"><label for="kintoMonthly" class="field-label"><span class="field-title">Monthly quote</span><span class="field-unit">Kč incl. VAT</span></label><input id="kintoMonthly" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoMonthly" aria-describedby="help-kintoMonthly">?</button><span class="help-text" role="tooltip" id="help-kintoMonthly">The regular lease invoice including VAT. Use a quote for the chosen term and mileage.</span></span></div>
+<input id="kintoVatMode" type="hidden"><small class="field wide" id="legacyLeaseQuoteNote" hidden></small>
+<div class="field"><label for="kintoInitial" class="field-label"><span class="field-title">Initial payment</span><span class="field-unit">Kč incl. VAT</span></label><input id="kintoInitial" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInitial" aria-describedby="help-kintoInitial">?</button><span class="help-text" role="tooltip" id="help-kintoInitial">An initial lease payment in addition to the monthly invoices. Paid at month zero; eligible VAT is deducted with this payment.</span></span></div>
+<input id="leaseVatDelay" type="hidden">
 <div class="field" id="leaseTaxablePctField"><label for="leaseTaxablePct" class="field-label"><span class="field-title">Taxable share of lease</span><span class="field-unit">% of invoice</span></label><input id="leaseTaxablePct" type="text" inputmode="decimal" class="numeric-input" min="0" max="100" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseTaxablePct" aria-describedby="help-leaseTaxablePct">?</button><span class="help-text" role="tooltip" id="help-leaseTaxablePct">The part of a bundled lease invoice subject to VAT. Adjust this to the invoice when items such as insurance are not taxable.</span></span></div>
+<div class="field"><label for="kintoExtra" class="field-label"><span class="field-title">Return, mileage and other charges</span><span class="field-unit">Kč over full term</span></label><input id="kintoExtra" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoExtra" aria-describedby="help-kintoExtra">?</button><span class="help-text" role="tooltip" id="help-kintoExtra">Total expected lease return, excess mileage, damage or other charges. Modelled at the end with no extra VAT deduction.</span></span></div>
 </div><div class="checks">
 <div class="check-field"><label><input id="kintoInsuranceIncluded" type="checkbox"><span>Insurance incl. GAP is included</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInsuranceIncluded" aria-describedby="help-kintoInsuranceIncluded">?</button><span class="help-text" role="tooltip" id="help-kintoInsuranceIncluded">When checked, no separate insurance cost is added to the lease. Confirm which cover, including GAP, is included in the quote.</span></span></div>
 <div class="check-field"><label><input id="kintoMaintenance" type="checkbox"><span>Maintenance is included</span></label><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoMaintenance" aria-describedby="help-kintoMaintenance">?</button><span class="help-text" role="tooltip" id="help-kintoMaintenance">When checked, no shared maintenance costs are added to the lease. Otherwise the same servicing schedule and budget apply.</span></span></div>
@@ -606,7 +613,6 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 <div class="field wide" id="kInsuranceField"><label for="kintoInsurance" class="field-label"><span class="field-title">Additional insurance incl. GAP</span><span class="field-unit">Kč / month</span></label><input id="kintoInsurance" type="text" inputmode="decimal" class="numeric-input" min="0" step="100"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoInsurance" aria-describedby="help-kintoInsurance">?</button><span class="help-text" role="tooltip" id="help-kintoInsurance">Monthly insurance added to the lease when insurance is not included in its invoice.</span></span></div>
 <div class="field wide"><label for="leaseEnd" class="field-label"><span class="field-title">End of lease</span><span class="field-unit">&#160;</span></label><select id="leaseEnd"><option value="return">Return the car</option><option value="buySell">Buy out, then resell</option><option value="buyKeep">Buy out and keep</option></select><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseEnd" aria-describedby="help-leaseEnd">?</button><span class="help-text" role="tooltip" id="help-leaseEnd">Return ends with no car resale proceeds. Buy out then resell adds the buyout and sale at the end. Buy out and keep credits a retained asset instead of cash.</span></span></div>
 <div class="field wide" id="buyoutField"><label for="leaseBuyout" class="field-label"><span class="field-title">Agreed buyout price</span><span class="field-unit">Kč incl. VAT</span></label><input id="leaseBuyout" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><small>A buyout is only available if the lessor offers it. This is separate from the balloon loan.</small><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain leaseBuyout" aria-describedby="help-leaseBuyout">?</button><span class="help-text" role="tooltip" id="help-leaseBuyout">An agreed purchase price at the end of the lease. This is a separate purchase with its own eligible VAT refund. Do not assume the lessor will offer it.</span></span></div>
-<div class="field wide"><label for="kintoExtra" class="field-label"><span class="field-title">Return, mileage and other charges</span><span class="field-unit">Kč over full term</span></label><input id="kintoExtra" type="text" inputmode="decimal" class="numeric-input" min="0" step="1000"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain kintoExtra" aria-describedby="help-kintoExtra">?</button><span class="help-text" role="tooltip" id="help-kintoExtra">Total expected lease return, excess mileage, damage or other charges. Modelled at the end with no extra VAT deduction.</span></span></div>
 </div><p class="hint">Use a quote for the selected term and mileage. Changing these inputs does not reprice a dealer’s lease offer. Coverage switches are assumptions to match your contract.</p><div id="tax-lease" class="tax-option" hidden data-option="lease"><h3>Income tax and contributions</h3><small id="leaseTaxTerm"></small><div class="fields"><div class="field" ><label for="leaseDeductions" class="field-label"><span class="field-title">Deductible expenses</span><span class="field-unit">Kč over this term</span></label><input id="leaseDeductions" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain deductible expenses" aria-describedby="help-leaseDeductions">?</button><span class="help-text" role="tooltip" id="help-leaseDeductions">Total expenses that actually reduce taxable income over this option’s full term, not the tax saving itself. Exclude recoverable VAT. For a lease, include eligible lease and separately paid running expenses.</span></span></div><div class="field" id="leaseTaxValueField"><label for="leaseTaxValue" class="field-label"><span class="field-title">Remaining tax value</span><span class="field-unit">Kč at car sale</span></label><input id="leaseTaxValue" type="text" inputmode="decimal" class="numeric-input" min="0" step="1"><span class="help-wrap"><button type="button" class="help-button" aria-label="Explain remaining tax value" aria-describedby="help-leaseTaxValue">?</button><span class="help-text" role="tooltip" id="help-leaseTaxValue">Remaining deductible tax value (daňová zůstatková cena), after any depreciation included above. This is not the expected market resale value. For a buyout and resale, use the eligible acquisition cost remaining at sale. Enter zero for a fully depreciated car.</span></span></div></div></div>
 </section>
 <section class="panel option-panel" data-option="cash"><div class="section-title"><span class="number cash">05</span><h2>Buy outright</h2><label class="variant-toggle"><input id="cashEnabled" aria-label="Include outright purchase in comparisons" type="checkbox" checked><span>Include</span></label></div><div class="fields"><div class="field individual-term" hidden><label for="cashMonths" class="field-label"><span class="field-title">Period</span><span class="field-unit">months</span></label><input id="cashMonths" type="text" inputmode="decimal" class="numeric-input" min="1" max="120" step="1"><small>Whole months; quote must match this term.</small></div><div class="field individual-term individual-resale" hidden><label for="cashResale" class="field-label"><span class="field-title">End resale value</span><span class="field-unit">Kč incl. VAT</span></label><input id="cashResale" type="text" inputmode="decimal" class="numeric-input" min="0" step="10000"><small>Value at this option’s end.</small></div>
@@ -634,12 +640,13 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 <section class="panel resale-panel"><h2 class="help-heading explained" tabindex="0" data-explanation="Recalculates each option at several resale values. Exact crossings show equal costs on the selected basis, per month when periods differ.">What if resale changes?</h2><div class="opportunity-control"><div class="view-choice"><label title="Applies only to this comparison. Keeps your Setup return assumption unchanged."><input id="opportunity-resale" type="checkbox" data-opportunity-view="resale" aria-describedby="opportunity-resale-note" checked>Include opportunity cost</label><small id="opportunity-resale-note" aria-live="polite"></small></div><div class="view-choice"><label title="Convert dated costs to today’s purchasing power. Keeps future prices in Setup unchanged."><input id="inflation-resale" type="checkbox" aria-describedby="inflation-resale-note">Show costs in today’s money</label><small id="inflation-resale-note" aria-live="polite"></small></div></div><p class="hint"><span id="sensitivityBasis">Selected options include VAT and opportunity cost. Extra rows show exact break-even resale prices.</span></p><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="sensitivity-table"><thead><tr><th id="resaleColumnLabel" scope="col">Car resale</th><th scope="col" data-option="balloon">Balloon cost</th><th scope="col" data-option="normal">Standard cost</th><th scope="col" data-option="lease">Lease cost</th><th scope="col" data-option="cash">Outright cost</th><th scope="col">Lowest cost</th></tr></thead><tbody id="sensitivity"></tbody></table></div><p class="hint">When two options have the same exposure to resale value, changing resale cannot reverse their ranking. For kept cars, resale represents their estimated retained value.</p></section>
 <details class="panel" open><summary>Payments and end-of-term cash</summary><div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table, scroll horizontally for all options"><table class="comparison-table"><thead><tr><th scope="col">Payment / asset</th><th scope="col" data-option="balloon">Balloon loan</th><th scope="col" data-option="normal">Standard loan</th><th scope="col" data-option="lease">Operating lease</th><th scope="col" data-option="cash">Buy outright</th></tr></thead><tbody id="cashflow"></tbody></table></div><p class="hint">Start and end figures are snapshots, already included in net cash spent. Negative amounts mean cash received. Net cash spent minus retained value and outstanding refunds equals cost before opportunity. Monthly bills exclude separately budgeted maintenance and tyres. Lease payments start at month zero. Loan payments start at month one. Each loan’s total cost includes its deposit and repayments, then deducts the sale proceeds. They are not added again to depreciation.</p></details>
 </div>
-<details class="panel notes"><summary>Assumptions and sources</summary><p>Each scenario saves automatically in this browser when local storage is available, including incomplete scenarios. Card expansion is remembered separately in this browser. Clear all empties the current scenario’s numbers; Reset current restores the example values. Duplicate creates an independent variation. Export the current scenario or all scenarios as JSON, then import them on another device. Import adds scenarios without replacing existing ones. The HTML file itself contains the original defaults. To share your saved scenarios, send their JSON file with the HTML.</p><p>Enter prices including VAT, except a lease explicitly marked excluding VAT. Results subtract eligible VAT refunds and include disposal VAT when VAT registration is enabled. Income tax and contributions use optional manual estimates in Setup. Private-use adjustments and fuel or charging are excluded. Partial VAT recovery is a planning approximation.</p><p>The balloon loan assumes equal monthly payments with the balloon due alongside the final regular payment. The standard loan has no outstanding balance at its repayment maturity. A sale before maturity settles the remaining principal; keeping the car deducts that debt from retained value. Running costs continue for the full ownership period. Add any early-settlement fee to Other loan costs. Each loan has its own fixed interest rate. Buying outright pays the shared purchase price at month zero, then follows the non-lease sell or keep choice at its selected end date. The default period is entered in whole months. Uncheck matching periods to set individual terms and resale estimates; monthly economic costs then determine rankings when terms differ. Resale is your estimate, not a guaranteed future value. A kept car is credited as an asset at estimated resale value net of disposal VAT, so it is not treated as cash received.</p><p>Opportunity cost carries each cash outflow and inflow to that option’s end date at your annual after-tax return. A refund three months after buyout is included and discounted back to the end date. This return is an assumption, not a guaranteed investment. Maintenance assumes steady mileage, using whichever interval comes first. A service due exactly at the end is included. Seasonal costs cover one change and storage period at purchase, then every six months before ownership ends. VAT on eligible maintenance and tyres is netted against the expense immediately in this comparison, treating next-month deductibility as settled. It creates no outstanding VAT at the end. Lease VAT follows its separate delay, defaulting to deduction with each payment. The buyer pays the VAT-inclusive resale price at the end of the term. Its VAT component is then paid to the tax authority at that same modelled date, leaving the VAT-exclusive proceeds. This tax payment is shown separately and is not a refund. The capital VAT cap applies separately to a outright or loan-funded purchase, or lease buyout.</p><p>The starting example is a Toyota RAV4 Executive PHEV AWD. The 1,334,000 Kč price, 5.99% interest, 46% balloon and 3,700 Kč insurance are the supplied planning assumptions. Tyre resale of 3,000 Kč is an estimate. Confirm GAP coverage and deductibles in each quote.</p><p>The operating lease starts with the rounded VAT-inclusive KINTO quote, with tyres included and maintenance excluded for this example. The listing also mentions maintenance, so test that switch against the final contract.</p><ul><li><a href="https://financnisprava.gov.cz/cs/dane/dane/dan-z-pridane-hodnoty/informace-stanoviska-a-sdeleni/narok-na-odpocet-dph/informace-gfr-k-uplatnovani-dph-u" target="_blank" rel="noopener noreferrer">Czech Financial Administration: passenger-car VAT cap</a></li><li><a href="https://proverenevozy.toyota.cz/nabidka/toyota-rav4/404816" target="_blank" rel="noopener noreferrer">Lease Executive PHEV offer</a></li><li><a href="https://www.kinto-mobility.eu/content/dam/kinto/nmsc/czech-republic/pro-zakazniky/documents/podminky-kinto.pdf" target="_blank" rel="noopener noreferrer">Lease service terms</a></li><li><a href="https://www.ckauto.cz/detail-vozu/19052" target="_blank" rel="noopener noreferrer">2025 Executive PHEV asking price</a></li></ul><p class="hint">Starting assumptions researched 15 September 2026. This calculator does not fetch live offers.</p></details>
+<details class="panel notes"><summary>Assumptions and sources</summary><p>Each scenario saves automatically in this browser when local storage is available, including incomplete scenarios. Card expansion is remembered separately in this browser. Clear all empties the current scenario’s numbers; Reset current restores the example values. Duplicate creates an independent variation. Export the current scenario or all scenarios as JSON, then import them on another device. Import adds scenarios without replacing existing ones. The HTML file itself contains the original defaults. To share your saved scenarios, send their JSON file with the HTML.</p><p>Enter all prices including VAT. Results subtract eligible VAT refunds and include disposal VAT when VAT registration is enabled. Income tax and contributions use optional manual estimates in Setup. Private-use adjustments and fuel or charging are excluded. Partial VAT recovery is a planning approximation.</p><p>The balloon loan assumes equal monthly payments with the balloon due alongside the final regular payment. The standard loan has no outstanding balance at its repayment maturity. A sale before maturity settles the remaining principal; keeping the car deducts that debt from retained value. Running costs continue for the full ownership period. Add any early-settlement fee to Other loan costs. Each loan has its own fixed interest rate. Buying outright pays the shared purchase price at month zero, then follows the non-lease sell or keep choice at its selected end date. The default period is entered in whole months. Uncheck matching periods to set individual terms and resale estimates; monthly economic costs then determine rankings when terms differ. Resale is your estimate, not a guaranteed future value. A kept car is credited as an asset at estimated resale value net of disposal VAT, so it is not treated as cash received.</p><p>Opportunity cost carries each cash outflow and inflow to that option’s end date at your annual after-tax return. A refund three months after buyout is included and discounted back to the end date. This return is an assumption, not a guaranteed investment. Maintenance assumes steady mileage, using whichever interval comes first. A service due exactly at the end is included. Seasonal costs cover one change and storage period at purchase, then every six months before ownership ends. VAT on eligible maintenance and tyres is netted against the expense immediately in this comparison, treating next-month deductibility as settled. It creates no outstanding VAT at the end. Lease VAT is deducted with each payment, including the initial payment. The buyer pays the VAT-inclusive resale price at the end of the term. Its VAT component is then paid to the tax authority at that same modelled date, leaving the VAT-exclusive proceeds. This tax payment is shown separately and is not a refund. The capital VAT cap applies separately to a outright or loan-funded purchase, or lease buyout.</p><p>The starting example is a Toyota RAV4 Executive PHEV AWD. The 1,334,000 Kč price, 5.99% interest, 46% balloon and 3,700 Kč insurance are the supplied planning assumptions. Tyre resale of 3,000 Kč is an estimate. Confirm GAP coverage and deductibles in each quote.</p><p>The operating lease starts with the rounded VAT-inclusive KINTO quote, with tyres included and maintenance excluded for this example. The listing also mentions maintenance, so test that switch against the final contract.</p><ul><li><a href="https://financnisprava.gov.cz/cs/dane/dane/dan-z-pridane-hodnoty/informace-stanoviska-a-sdeleni/narok-na-odpocet-dph/informace-gfr-k-uplatnovani-dph-u" target="_blank" rel="noopener noreferrer">Czech Financial Administration: passenger-car VAT cap</a></li><li><a href="https://proverenevozy.toyota.cz/nabidka/toyota-rav4/404816" target="_blank" rel="noopener noreferrer">Lease Executive PHEV offer</a></li><li><a href="https://www.kinto-mobility.eu/content/dam/kinto/nmsc/czech-republic/pro-zakazniky/documents/podminky-kinto.pdf" target="_blank" rel="noopener noreferrer">Lease service terms</a></li><li><a href="https://www.ckauto.cz/detail-vozu/19052" target="_blank" rel="noopener noreferrer">2025 Executive PHEV asking price</a></li></ul><p class="hint">Starting assumptions researched 15 September 2026. This calculator does not fetch live offers.</p></details>
 </div>
 <div id="graphs" role="tabpanel" aria-labelledby="tab-graphs" hidden>
 <h2 class="area-title">Your comparison in graphs</h2><p id="graphNote" class="results-vat-note"></p><div id="graphContent">
 <section class="panel" data-card-key="waterfallGraph"><h2>Where the cost comes from</h2><div class="opportunity-control"><div class="view-choice"><label><input id="opportunity-waterfallGraph" type="checkbox" data-opportunity-view="waterfallGraph" aria-describedby="opportunity-waterfallGraph-note" checked>Include opportunity cost</label><small id="opportunity-waterfallGraph-note" aria-live="polite"></small></div><div class="view-choice"><label><input id="inflation-waterfallGraph" type="checkbox" aria-describedby="inflation-waterfallGraph-note">Show costs in today’s money</label><small id="inflation-waterfallGraph-note" aria-live="polite"></small></div></div><p class="hint">Nominal ownership cost, plus the inflation effect and opportunity cost, equals final economic cost. Negative steps reduce cost. All options use the same vertical scale. Inflation starts off; enable today’s money to see its effect.</p><div id="waterfallGraph" class="chart"></div></section>
-<section class="panel" data-card-key="timelineGraph"><h2>Car value through time</h2><p class="hint" id="timelineHint">Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.</p><div id="timelineGraph" class="chart"></div></section>
+<section class="panel" data-card-key="timelineGraph"><h2>Car value and remaining debt</h2><p class="hint" id="timelineHint">Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.</p><p class="hint">Loan lines show debt after scheduled payments, including any balloon paid at maturity. At an earlier sale, the remaining balance still needs settling. Equity is estimated car value minus debt, before sale taxes and fees. Compare debt with the nominal value line; the inflation-adjusted line uses a different money basis.</p><div id="timelineGraph" class="chart"></div></section>
+<section class="panel" data-card-key="loanPaymentGraph"><h2>Where each loan payment goes</h2><p class="hint">Regular repayments split into principal and interest. Both loans use the same scale. Final balloons and early-sale settlements are listed separately so they do not flatten the monthly bars. Hover or tap a month for both loans, interest paid so far and remaining debt. Nominal amounts exclude deposit, insurance and fees; repayments stop at sale or loan maturity.</p><div id="loanPaymentGraph" class="chart"></div></section>
 <section class="panel" data-card-key="heatmapGraph"><h2>Which option wins?</h2><div class="opportunity-control"><div class="view-choice"><label><input id="opportunity-heatmapGraph" type="checkbox" data-opportunity-view="heatmapGraph" aria-describedby="opportunity-heatmapGraph-note" checked>Include opportunity cost</label><small id="opportunity-heatmapGraph-note" aria-live="polite"></small></div><div class="view-choice"><label><input id="inflation-heatmapGraph" type="checkbox" aria-describedby="inflation-heatmapGraph-note">Show costs in today’s money</label><small id="inflation-heatmapGraph-note" aria-live="polite"></small></div></div><p class="hint" id="heatmapHint">Explore future inflation against alternative investment returns. Historical prices, historical inflation, finance quotes and running costs stay fixed. Relative mode recalculates future nominal resale; direct resale estimates stay fixed. Different terms are compared per month. With opportunity cost off, investment return has no effect. Cells are sampled scenarios, not exact break-even boundaries. Hover, tap or use arrow keys to compare all selected options.</p><div id="heatmapGraph" class="chart"></div></section>
 
 <section class="panel"><h2>Monthly payments and ownership cost</h2><div class="opportunity-control"><div class="view-choice"><label title="Applies only to this comparison. Keeps your Setup return assumption unchanged."><input id="opportunity-monthlyGraph" type="checkbox" data-opportunity-view="monthlyGraph" aria-describedby="opportunity-monthlyGraph-note" checked>Include opportunity cost</label><small id="opportunity-monthlyGraph-note" aria-live="polite"></small></div><div class="view-choice"><label title="Convert dated costs to today’s purchasing power. Keeps future prices in Setup unchanged."><input id="inflation-monthlyGraph" type="checkbox" aria-describedby="inflation-monthlyGraph-note">Show costs in today’s money</label><small id="inflation-monthlyGraph-note" aria-live="polite"></small></div></div><p class="hint">Outline bars show the regular payment plus separately paid insurance, after regular lease VAT credit. Solid bars spread all ownership costs across the term, including upfront payments, running costs, resale and VAT, plus opportunity cost when selected. With today’s money enabled, the outline bar is the average of inflation-adjusted bills and their regular VAT refunds. Both bars share one monthly scale, with the highest monthly amount at 100%. Full-term totals and periods are shown beside each option.</p><div id="monthlyGraph" class="chart"></div></section>
@@ -665,7 +672,7 @@ const defaults = {
  balloonDeductions:0,normalDeductions:0,leaseDeductions:0,cashDeductions:0,
  balloonTaxValue:0,normalTaxValue:0,leaseTaxValue:0,cashTaxValue:0,
  opportunityRateBasis:"nominal",inflationRate:2.5,
- balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,
+ balloonInputMode:"rate",balloonMonthlyPayment:0,normalInputMode:"rate",normalMonthlyPayment:0,balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,
  balloonMatchOwnership:true,normalMatchOwnership:true,balloonLoanMonths:36,normalLoanMonths:36,
  balloonMonths:36,normalMonths:36,leaseMonths:36,cashMonths:36,
  balloonResale:1000000,normalResale:1000000,leaseResale:1000000,cashResale:1000000,
@@ -680,6 +687,12 @@ const defaults = {
 // New fields inherit the original shared term and resale when reading older scenarios.
 function migrateInputs(inputs){
  const state={...defaults,...inputs};
+ // Retired quote basis: convert once, preserving the gross invoice of old saved leases.
+ // A draft with a missing VAT rate stays pending until that rate is supplied.
+ if(state.kintoVatMode==="net"&&(state.kintoMonthly===null||Number.isFinite(state.kintoMonthly)&&Number.isFinite(state.vatPct))){
+  if(state.kintoMonthly!==null)state.kintoMonthly*=1+state.vatPct/100;
+  state.kintoVatMode="gross";
+ }
  // Never share the schema default or a caller-owned year array with an effective scenario.
  state.additionalCostYears=Object.hasOwn(inputs,"additionalCostYears")?(Array.isArray(inputs.additionalCostYears)?[...inputs.additionalCostYears]:inputs.additionalCostYears):[...defaults.additionalCostYears];
  state.historicalInflationYears=Object.hasOwn(inputs,"historicalInflationYears")?(Array.isArray(inputs.historicalInflationYears)?[...inputs.historicalInflationYears]:inputs.historicalInflationYears):[...defaults.historicalInflationYears];
@@ -768,14 +781,26 @@ function effectiveInputs(inputs){
   if(s.matchPeriods||!s[v.enabled]){s[v.months]=s.months;s[v.resale]=s.resale;}
   if(v.loanMonths&&(s[v.matchLoanTerm]||!s[v.enabled]))s[v.loanMonths]=s[v.months];
  }
+ // Resolve quoted payments only after the independent repayment period is known.
+ if(s.balloonEnabled&&s.balloonInputMode==="payment")s.rate=annualRateFromPayment(s.price*(1-s.downPct/100),s.price*s.balloonPct/100,s.balloonMonthlyPayment,s.balloonLoanMonths);
+ else s.balloonMonthlyPayment=defaults.balloonMonthlyPayment;
+ if(s.normalEnabled&&s.normalInputMode==="payment")s.normalRate=annualRateFromPayment(s.price*(1-s.normalDownPct/100),0,s.normalMonthlyPayment,s.normalLoanMonths);
+ else s.normalMonthlyPayment=defaults.normalMonthlyPayment;
  if(s.additionalCostMode==="yearly"){
   const years=Array.isArray(s.additionalCostYears)?s.additionalCostYears:[];
   const needsFallback=Array.from({length:activeAdditionalCostYearCount(s)},(_,index)=>!Object.hasOwn(years,index)).some(Boolean);
   // A blank annual field is inactive when every applicable year has an explicit amount.
   if(!needsFallback)s.additionalCostAnnual=defaults.additionalCostAnnual;
  }
+ if(!s.vatEnabled){
+  for(const key of ["recoveryPct","purchaseVatDelay","purchaseVatCap"])s[key]=defaults[key];
+  // An unfinished legacy net quote still needs its rate to determine the actual invoice.
+  if(s.kintoVatMode!=="net")s.vatPct=defaults.vatPct;
+ }
+ // Retain legacy delay drafts in storage; lease VAT always offsets the payment month.
+ s.leaseVatDelay=0;
  // Inactive lease VAT fields may remain blank in saved drafts without blocking other results.
- if(!s.vatEnabled||!s.leaseEnabled)for(const key of ["leaseVatDelay","leaseTaxablePct"])s[key]=defaults[key];
+ if(!s.vatEnabled||!s.leaseEnabled)for(const key of ["leaseTaxablePct"])s[key]=defaults[key];
  if(!s.leaseEnabled)s.leaseEnd="return";
  if(s.leaseEnd==="return")s.leaseResale=s.resale;
  if(!s.balloonEnabled&&!s.normalEnabled&&!s.cashEnabled)s.purchaseVatEligible=false;
@@ -842,6 +867,10 @@ function validateAdditionalCosts(inputs,options={}){validateAdditionalCostState(
 
 function validate(s){
  s=effectiveInputs(s);
+ if(!["rate","payment"].includes(s.normalInputMode))throw new Error("Choose interest rate or monthly payment for the standard loan.");
+ if(s.normalEnabled&&s.normalInputMode==="payment"&&!Number.isFinite(s.normalRate))throw new Error("Enter a valid standard loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
+ if(!["rate","payment"].includes(s.balloonInputMode))throw new Error("Choose interest rate or monthly payment for the balloon loan.");
+ if(s.balloonEnabled&&s.balloonInputMode==="payment"&&!Number.isFinite(s.rate))throw new Error("Enter a valid balloon loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
  validateAdditionalCostState(s);
  validateHistoricalInflationState(s);
  if(!["direct","relative"].includes(s.resaleMode))throw new Error("Choose direct resale or relative depreciation.");
@@ -867,10 +896,22 @@ function validate(s){
  if(s.leaseEnd!=="return"&&s.leaseBuyout<=0)throw new Error("Enter a positive, agreed lease buyout price.");
 }
 // --- Dated cash flows and valuation ---
+/** Equal monthly instalment with a separate balloon alongside the final instalment. */
 function monthlyPayment(principal,balloon,annualRate,months){
  const r=annualRate/1200;
  // log1p/expm1 keep the break-even search stable for interest rates close to zero.
  return r===0?(principal-balloon)/months:(principal-balloon*Math.exp(-months*Math.log1p(r)))*r/-Math.expm1(-months*Math.log1p(r));
+}
+/** Infer nominal annual interest from a quoted instalment, excluding insurance and fees. */
+function annualRateFromPayment(principal,balloon,payment,months){
+ if(![principal,balloon,payment,months].every(Number.isFinite)||principal<=0||balloon<0||balloon>principal||payment<0||!Number.isInteger(months)||months<1||months>120)return NaN;
+ const minimum=monthlyPayment(principal,balloon,0,months),maximum=monthlyPayment(principal,balloon,100,months);
+ if(payment<minimum-1e-8||payment>maximum+1e-8)return NaN;
+ if(Math.abs(payment-minimum)<1e-8)return 0;
+ // Instalments increase monotonically with the rate; bisection also handles interest-only loans.
+ let low=0,high=100;
+ for(let i=0;i<60;i++){const mid=(low+high)/2;if(monthlyPayment(principal,balloon,mid,months)<payment)low=mid;else high=mid;}
+ return (low+high)/2;
 }
 // Value the remaining scheduled debt at the comparison end, excluding future interest.
 function loanPlan(principal,balloon,rate,loanMonths,ownershipMonths){
@@ -881,6 +922,25 @@ function loanPlan(principal,balloon,rate,loanMonths,ownershipMonths){
  const balloonPaid=remainingMonths===0?balloon:0;
  const interest=payment*paidMonths+balloonPaid+remainingPrincipal-principal;
  return {payment,loanMonths,paidMonths,remainingPrincipal,balloonPaid,interest};
+}
+/** Monthly loan amortization through ownership, with final and early-exit payments separated. */
+function loanSchedule(inputs,kind){
+ const s=effectiveInputs(inputs);validate(s);
+ if(!["balloon","normal"].includes(kind))throw new Error("Choose a balloon or standard loan schedule.");
+ const normal=kind==="normal",principal=s.price*(1-s[normal?"normalDownPct":"downPct"]/100);
+ const balloon=normal?0:s.price*s.balloonPct/100,rate=s[normal?"normalRate":"rate"],months=s[kind+"LoanMonths"],ownership=s[kind+"Months"];
+ const payment=monthlyPayment(principal,balloon,rate,months),rows=[];
+ let balance=principal,totalInterest=0;
+ for(let month=1;month<=Math.min(months,ownership);month++){
+  const interest=balance*rate/1200,paidPrincipal=payment-interest;
+  const finalBalloon=month===months?balloon:0;
+  balance=month===months?0:Math.max(0,balance-paidPrincipal);
+  totalInterest+=interest;
+  // Remaining debt is shown before an ownership-end sale settles it.
+  const settlement=month===ownership&&month<months&&s.loanEnd==="sell"?balance:0;
+  rows.push({month,payment,principal:paidPrincipal,interest,totalInterest,balloon:finalBalloon,settlement,balance});
+ }
+ return {kind,principal,payment,months,ownership,rows};
 }
 /** Value one dated payment or receipt on the selected purchasing-power and return basis. */
 function cashFlowValue(event,months,nominalReturn,inflationRate,{opportunity=true,todayMoney=false}={}){
@@ -917,10 +977,10 @@ function calculate(s,valuation={}){
   // Treat next-month maintenance and tyre deductions as settled with the expense for this comparison.
   const refund=(month,amount,capital=false,delay=capital?s.purchaseVatDelay:0)=>{if(amount)add(month+delay,-amount,"vat");};
   const insured=isLease?kInsurance:isCash?s.cashInsurance:isNormal?s.normalInsurance:s.easyInsurance;
-  if(isLease){add(0,s.kintoInitial,"initial");refund(0,inputVat(s.kintoInitial*s.leaseTaxablePct/100),false,s.leaseVatDelay);}
+  if(isLease){add(0,s.kintoInitial,"initial");refund(0,inputVat(s.kintoInitial*s.leaseTaxablePct/100),false,0);}
   else{add(0,isCash?s.price:isNormal?normalDown:down,"capital");refund(0,purchaseRefund,true);}
   for(let m=1;m<=n;m++){
-   if(isLease){add(m-1,kRent,"lease");refund(m-1,inputVat(kRent*s.leaseTaxablePct/100),false,s.leaseVatDelay);}
+   if(isLease){add(m-1,kRent,"lease");refund(m-1,inputVat(kRent*s.leaseTaxablePct/100),false,0);}
    else if(plan&&m<=plan.paidMonths)add(m,plan.payment,"repayment");
    add(isLease?m-1:m,insured,"insurance");
   }
@@ -1069,7 +1129,7 @@ function interestComparisons(s,valuation={}){
  for(const loan of variants.slice(0,2).filter(v=>s[v.enabled]))for(const target of variants.slice(2).filter(v=>s[v.enabled])){
   const rateKey=loan.kind==="balloon"?"rate":"normalRate";
   const targetCost=comparisonValue(base[target.key],split);
-  const difference=rate=>comparisonValue(calculate({...s,[rateKey]:rate},valuation)[loan.key],split)-targetCost;
+  const difference=rate=>comparisonValue(calculate({...s,balloonInputMode:"rate",normalInputMode:"rate",[rateKey]:rate},valuation)[loan.key],split)-targetCost;
   const low=difference(0),high=difference(100);
   let rate=null,status;
   if(Math.abs(high-low)<1e-7)status=Math.abs(low)<.005?"equal":"unaffected";
@@ -1112,7 +1172,7 @@ function resaleSamples(s,pairs){
 
 /** Rank selected options on the common total or monthly comparison basis. */
 function ranked(c,split=false){return variants.filter(v=>c[v.key].enabled).map(v=>({name:v.name,value:comparisonValue(c[v.key],split),key:v.kind})).sort((a,b)=>a.value-b.value);}
-return Object.freeze({variants,defaults,migrateInputs,historicalInflationTotal,historicalInflationRate,relativeResaleEstimate,effectiveInputs,nominalOpportunityRate,comparisonValue,hasDifferentPeriods,validateHistoricalInflation,validateAdditionalCosts,validate,cashFlowValue,calculate,withResale,resaleTaxBreakpoints,resaleComparisons,interestComparisons,inflationReturnGrid,resaleSamples,ranked});
+return Object.freeze({variants,defaults,migrateInputs,historicalInflationTotal,historicalInflationRate,relativeResaleEstimate,effectiveInputs,nominalOpportunityRate,comparisonValue,hasDifferentPeriods,validateHistoricalInflation,validateAdditionalCosts,validate,monthlyPayment,annualRateFromPayment,loanSchedule,cashFlowValue,calculate,withResale,resaleTaxBreakpoints,resaleComparisons,interestComparisons,inflationReturnGrid,resaleSamples,ranked});
 })();
 
 // ./views.mjs
@@ -1272,18 +1332,22 @@ return Object.freeze({createYearEditor});
 
 // ./form.mjs
 __modules["./form.mjs"]=(()=>{
-const {defaults,variants,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate}=__modules["./model.mjs"];
+const {defaults,variants,migrateInputs,monthlyPayment,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate}=__modules["./model.mjs"];
 const {money,num,ratePercent,ungroupNumber,parseNumber,formatNumberInput}=__modules["./format.mjs"];
 const {createYearEditor}=__modules["./year-editor.mjs"];
 /** Own raw form values, derived controls and forward-only suggestions. */
 function createForm({document,views,onChange}){
  const $=id=>document.getElementById(id);
  const {applyTimeLabels}=views;
+ // A calculated display must not overwrite an inactive saved input during ordinary renders.
+ const loanQuotes=[{kind:"balloon",rate:"rate",down:"downPct"},{kind:"normal",rate:"normalRate",down:"normalDownPct"}];
+ const calculatedLoanFields=new Map();
  const additionalEditor=createYearEditor({document,prefix:"additionalYear",dialogId:"additionalCostsDialog",openerId:"editAdditionalYears",closeIds:["closeAdditionalYears","doneAdditionalYears"],datasetKey:"additionalYear",unit:"Kč / year incl. VAT",staticFields:true,describe:(value,duration)=>money(value*duration/12)+(duration<12?" · "+duration+"/12 year":" in this year")});
  const historicalEditor=createYearEditor({document,prefix:"historicalInflationYear",dialogId:"historicalInflationDialog",openerId:"editHistoricalInflation",closeIds:["closeHistoricalInflation","doneHistoricalInflation"],gridId:"historicalInflationYearGrid",datasetKey:"historicalInflationYear",unit:"% p.a.",maxYears:100,baseMax:20,step:.1,limit:100,describe:(value,duration)=>ratePercent(((1+value/100)**(duration/12)-1)*100)+(duration<12?" · "+duration+"/12 year":" in this year")});
 
  function read(){
   const state=Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,Array.isArray(v)?JSON.parse($(k).value||"[]"):typeof v==="boolean"?$(k).checked:typeof v==="number"?($(k).value.trim()===""?NaN:parseNumber($(k).value)):$(k).value]));
+  for(const {key,raw} of calculatedLoanFields.values())state[key]=raw===null?NaN:raw;
   // Hidden, unused charges are zero for calculation, but stay blank in saved drafts.
   if(state.leaseEnd==="return"&&$("leaseBuyout").value.trim()==="")state.leaseBuyout=0;
   if(state.kintoInsuranceIncluded&&$("kintoInsurance").value.trim()==="")state.kintoInsurance=0;
@@ -1304,6 +1368,8 @@ function createForm({document,views,onChange}){
  }
 
  function write(s){
+  s=migrateInputs(s);
+  calculatedLoanFields.clear();
   additionalEditor.close();historicalEditor.close();
   $("prefillStatus").textContent="";
   for(const [k,v] of Object.entries(s)){if(Array.isArray(v))$(k).value=JSON.stringify(v);else if(typeof v==="boolean")$(k).checked=v;else $(k).value=v===null?"":typeof v==="number"?formatNumberInput(v):v;}
@@ -1311,7 +1377,8 @@ function createForm({document,views,onChange}){
  }
 
  function readSettings(){
-  return Object.fromEntries(Object.entries(read()).map(([key,value])=>[key,typeof defaults[key]==="number"&&$(key).value.trim()===""?null:value]));
+  const rawCalculated=new Map([...calculatedLoanFields.values()].map(({key,raw})=>[key,raw]));
+  return Object.fromEntries(Object.entries(read()).map(([key,value])=>[key,rawCalculated.has(key)?rawCalculated.get(key):typeof defaults[key]==="number"&&$(key).value.trim()===""?null:value]));
  }
 
  function additionalPeriod(s){
@@ -1368,7 +1435,25 @@ function createForm({document,views,onChange}){
    const timing=repay<keep?"Repayments stop at month "+repay+"; insurance and running costs continue.":repay>keep?(s.loanEnd==="sell"?"Selling at month "+keep+" pays off the remaining principal. Add any settlement fee to Other loan costs.":"At month "+keep+", remaining debt reduces the retained car value. Later payments and interest are outside this comparison."):"Repayments end when ownership ends.";
    $(v.kind+"LoanTermNote").textContent=Number.isFinite(keep)&&Number.isFinite(repay)?"Keep for "+keep+" months · repay over "+repay+" months. "+timing+(v.kind==="balloon"&&s.balloonPct>0?" The balloon is due at month "+repay+" if the loan reaches maturity.":""):"Enter ownership and repayment periods in whole months.";
   }
-  for(const key of ["leaseVatDelay","leaseTaxablePct"]){
+  for(const {kind,rate,down} of loanQuotes){
+   const paymentMode=$(kind+"InputMode").value==="payment",payment=kind+"MonthlyPayment",enabled=s[kind+"Enabled"];
+   $(kind+"ModeRate").checked=!paymentMode;$(kind+"ModePayment").checked=paymentMode;
+   $(kind+"RateField").hidden=false;$(kind+"PaymentField").hidden=false;
+   $(rate).disabled=!enabled||paymentMode;$(payment).disabled=!enabled||!paymentMode;
+   const derivedKey=paymentMode?rate:payment;
+   if(calculatedLoanFields.get(kind)?.key!==derivedKey)calculatedLoanFields.set(kind,{key:derivedKey,raw:readSettings()[derivedKey]});
+   const balloon=kind==="balloon"?s.price*s.balloonPct/100:0;
+   const derived=paymentMode?s[rate]:monthlyPayment(s.price*(1-s[down]/100),balloon,s[rate],s[kind+"LoanMonths"]);
+   $(derivedKey).value=Number.isFinite(derived)?formatNumberInput(Number(derived.toFixed(paymentMode?4:2))):"";
+   $(kind+"QuoteNote").textContent=paymentMode?"Interest is calculated from the monthly payment, excluding insurance and fees.":"Monthly payment is calculated from the interest rate."+(kind==="balloon"?" The balloon is additional to the last instalment.":" Excludes insurance and fees.");
+  }
+  $("globalVatFields").hidden=!s.vatEnabled;$("vatSettingsHint").hidden=!s.vatEnabled;
+  $("purchaseVatField").hidden=!s.vatEnabled;$("buyoutVatField").hidden=!s.vatEnabled||s.leaseEnd==="return";
+  for(const key of ["vatPct","recoveryPct","purchaseVatDelay","purchaseVatCap","purchaseVatEligible","buyoutVatEligible"])$(key).disabled=!s.vatEnabled;
+  const pendingNet=$("kintoVatMode").value==="net";
+  $("legacyLeaseQuoteNote").hidden=!pendingNet;
+  $("legacyLeaseQuoteNote").textContent=pendingNet?"This saved quote excludes VAT. Enable VAT and enter its rate in the global settings to convert the quote to an inclusive amount.":"";
+  for(const key of ["leaseTaxablePct"]){
    $(key+"Field").hidden=!s.vatEnabled;
    $(key).disabled=!s.vatEnabled||!s.leaseEnabled;
   }
@@ -1389,7 +1474,7 @@ function createForm({document,views,onChange}){
   $("help-resale").textContent=past?"Actual sale proceeds including VAT, after selling fees, or the retained market value at the ownership end. This reduces ownership cost. Winter tyres are counted separately.":"Your expected selling price including VAT, after selling fees. This reduces ownership cost. If kept, it is estimated retained value. Winter tyres are counted separately.";
   $("historicalPricesHint").textContent=past?"Use the original price and end value of the historical car. Set Price paid at purchase above to the same original price to replay that car exactly. Its age follows the ownership period automatically. Cumulative inflation must cover that whole period. Other purchase prices or individual option periods model a scaled comparison.":"The two prices are initially copied from your purchase and direct resale estimates as starting suggestions. Replace them with a comparable car’s actual original new price and its used resale value today. The purchase price above is the new car’s price today. Enter actual prices on the same VAT basis and use comparable trim, condition and mileage.";
   $("relativeMethodHint").textContent=past?"The derived annual inflation reconciles cumulative inflation with the ownership period. Matching the original purchase price reproduces the entered end value. Other periods use a constant compounded depreciation rate; they are estimates, not observed sale prices.":"Different ownership periods use the same compounded annual real depreciation rate. This is a simple extrapolation, not a forecast of market prices. Choose comparable mileage yourself; mileage does not adjust resale automatically. Future nominal resale uses the annual inflation estimate above, even when the results’ today’s-money switches are off.";
-  $("timelineHint").textContent=past?"Replay the ownership period from purchase to the end value. Solid and dashed lines show nominal value and purchasing power at purchase. The curve assumes constant compounded depreciation, not measured price history. Values include VAT, before settlement of VAT, sale taxes or remaining debt.":"Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.";
+  $("timelineHint").textContent=!relative?"Loan balances follow the repayment schedule. Value dots show the purchase price and entered end value, with no assumed path between them. Choose Relative depreciation for an estimated value curve.":past?"Replay the ownership period from purchase to the end value. Solid and dashed lines show nominal value and purchasing power at purchase. The curve assumes constant compounded depreciation, not measured price history. Values include VAT, before settlement of VAT, sale taxes or remaining debt.":"Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.";
   $("help-resaleMode").textContent=past?"Direct resale uses the known sale or retained value unchanged. Relative depreciation replays the historical value change; matching the original price and age reproduces the known end value. Other prices or periods remain modelled comparisons. Inactive inputs are preserved.":"Direct mode uses your expected future selling price as entered. Relative depreciation estimates future resale from a comparable car’s historical prices, age and inflation. Switching methods preserves inactive inputs.";
   $("heatmapHint").textContent=past?"What if inflation or the alternative investment return had differed? Known or modelled end values, quotes and running costs stay fixed. This is sensitivity analysis, not a reconstruction of actual inflation. Different ownership terms are compared per month.":"Explore future inflation against alternative investment returns. Historical prices, historical inflation, finance quotes and running costs stay fixed. Relative mode recalculates future nominal resale; direct resale estimates stay fixed. Different terms are compared per month. With opportunity cost off, investment return has no effect. Cells are sampled scenarios, not exact break-even boundaries. Hover, tap or use arrow keys to compare all selected options.";
   $("resaleMode-direct").checked=!relative;$("resaleMode-relative").checked=relative;
@@ -1460,7 +1545,7 @@ function createForm({document,views,onChange}){
   // DOM order follows the setup cards from top to bottom and left to right.
   for(const [target,value] of suggestions){
    const targetIndex=controls.findIndex(control=>control.id===target);
-   if(targetIndex<=sourceIndex||$(target).value.trim()!=="")continue;
+   if(targetIndex<=sourceIndex||$(target).disabled||$(target).value.trim()!=="")continue;
    $(target).value=formatNumberInput(value);
    const label=document.querySelector('label[for="'+target+'"] .field-title');
    filled.push((label?.textContent||target)+": "+value);
@@ -1470,12 +1555,22 @@ function createForm({document,views,onChange}){
 
  function handleInput(event){
   const target=event?.target;
+  for(const {kind} of loanQuotes)if(target?.name===kind+"QuoteMethod"&&target.checked&&target.value!==$(kind+"InputMode").value){
+   // Choosing the other source promotes its displayed result to an editable quote.
+   calculatedLoanFields.delete(kind);
+   $(kind+"InputMode").value=target.value;
+  }
   if(target?.name==="additionalMethod"&&target.checked){
    $("additionalCostMode").value=target.value;
    // Seed once; switching back or shortening ownership never erases the yearly schedule.
    if(target.value==="yearly"&&!JSON.parse($("additionalCostYears").value||"[]").length){
     const raw=readSettings();$("additionalCostYears").value=JSON.stringify(Array(Math.ceil(additionalPeriod(raw)/12)).fill(raw.additionalCostAnnual));
    }
+  }
+  // Wait for the completed VAT rate; typing its first digit must not fix the invoice basis.
+  if(event?.type==="change"&&$("kintoVatMode").value==="net"){
+   const migrated=migrateInputs(readSettings());
+   if(migrated.kintoVatMode==="gross"){$("kintoVatMode").value="gross";$("kintoMonthly").value=migrated.kintoMonthly===null?"":formatNumberInput(migrated.kintoMonthly);}
   }
   const raw=readSettings();
   const additionalValues=additionalEditor.editedValues(target,raw.additionalCostYears,raw.additionalCostAnnual);
@@ -1566,6 +1661,8 @@ function validateSettings(state){
    if(!Number.isFinite(value)||value<0)throw new Error("Enter a non-negative number or leave the field empty.");
   }else if(typeof value!==typeof fallback)throw new Error("Invalid setting: "+key);
  }
+ if(!["rate","payment"].includes(state.normalInputMode))throw new Error("Choose interest rate or monthly payment for the standard loan.");
+ if(!["rate","payment"].includes(state.balloonInputMode))throw new Error("Choose interest rate or monthly payment for the balloon loan.");
  if(!["direct","relative"].includes(state.resaleMode))throw new Error("Choose direct resale or relative depreciation.");
  if(!["real","nominal"].includes(state.opportunityRateBasis))throw new Error("Choose a valid return basis.");
  if(state.carName.length>100)throw new Error("Keep the scenario name under 100 characters.");
@@ -1796,9 +1893,9 @@ function createResults({document,window,views,onShowTooltip}){
   const vatFraction=s.vatEnabled?s.vatPct/(100+s.vatPct)*s.recoveryPct/100:0;
   return Object.fromEntries(variants.map(v=>{
    const o=c[v.key],lease=v.kind==='lease';
-   const regular=lease?Array.from({length:o.months},(_,month)=>value(c.leaseVatPerPayment,month+s.leaseVatDelay)).reduce((a,b)=>a+b,0)/o.months:0;
+   const regular=lease?Array.from({length:o.months},(_,month)=>value(c.leaseVatPerPayment,month)).reduce((a,b)=>a+b,0)/o.months:0;
    const maintenance=o.events.filter(e=>['maintenance','tyres','additional'].includes(e.category)&&e.amount>0).reduce((sum,e)=>sum+value(e.amount*vatFraction,e.month),0);
-   return [v.key,{purchase:lease?0:value(c.purchaseRefund,s.purchaseVatDelay),initial:lease?value(c.leaseInitialVat,s.leaseVatDelay):0,regular,maintenance,
+   return [v.key,{purchase:lease?0:value(c.purchaseRefund,s.purchaseVatDelay),initial:lease?value(c.leaseInitialVat,0):0,regular,maintenance,
     grossSale:value(o.resale,o.months),saleVat:value(o.carSaleVat,o.months),netSale:value(o.resale-o.carSaleVat,o.months),
     tyreVat:value(s.vatEnabled?s.tyreResale*s.vatPct/(100+s.vatPct):0,o.months),buyout:lease?value(c.buyoutRefund,o.months+s.purchaseVatDelay):0,
     outstanding:-o.events.filter(e=>e.category==='vat'&&e.amount<0&&e.month>o.months).reduce((sum,e)=>sum+value(e.amount,e.month),0)}];
@@ -1869,7 +1966,7 @@ function createResults({document,window,views,onShowTooltip}){
   row("Monthly bill incl. insurance",detail(c.insuredPayment,"During "+b.paidMonths+" repayment months"),detail(c.normalPayment+s.normalInsurance,"During "+n.paidMonths+" repayment months"),money(c.kRent+c.kInsurance),money(s.cashInsurance),"emphasis"),
   (s.balloonEnabled&&b.loanMonths<b.months||s.normalEnabled&&n.loanMonths<n.months)?row("Monthly bill after loan ends",b.loanMonths<b.months?detail(s.easyInsurance,"Months "+(b.loanMonths+1)+"–"+b.months):"Outside ownership period",n.loanMonths<n.months?detail(s.normalInsurance,"Months "+(n.loanMonths+1)+"–"+n.months):"Outside ownership period","—",money(s.cashInsurance)):"",
   s.leaseEnabled&&c.leaseVatPerPayment?row("VAT refund per lease invoice","—","—",money(c.leaseVatPerPayment),"—"):"",
-  s.leaseEnabled&&c.leaseVatPerPayment?row("Monthly bill less eventual VAT refund",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,s.leaseVatDelay?"Refund "+s.leaseVatDelay+" months after invoice":"VAT deducted with each payment"),money(s.cashInsurance)):"",
+  s.leaseEnabled&&c.leaseVatPerPayment?row("Monthly bill after VAT deduction",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,"VAT deducted with each payment"),money(s.cashInsurance)):"",
   row("Effective monthly ownership cost",...variants.map(v=>money(monthly[v.key].adjusted/monthly[v.key].months)),"sum")
   ].join("");
   const conversion=s.opportunityRateBasis==="real"?returnSummary(s)+" with "+ratePercent(s.inflationRate)+" inflation gives "+ratePercent(c.nominalReturn)+" p.a. after tax, before inflation.":returnSummary(s)+" is used directly. The inflation estimate also powers each today’s-money toggle.";
@@ -1947,9 +2044,9 @@ function createResults({document,window,views,onShowTooltip}){
   $("vatTimeline").innerHTML=[
   (s.balloonEnabled||s.normalEnabled||s.cashEnabled||(s.leaseEnabled&&c.leaseInitialVat))?phase("01 · Purchase and lease start"):"",
   (s.balloonEnabled||s.normalEnabled||s.cashEnabled)?row("Purchase VAT refund",detail(vat.balloonLoan.purchase,refundNote(c.purchaseRefund)),detail(vat.standardLoan.purchase,refundNote(c.purchaseRefund)),"Not a purchase",detail(vat.cashPurchase.purchase,refundNote(c.purchaseRefund))):"",
-  s.leaseEnabled&&c.leaseInitialVat?row("Initial lease payment VAT","—","—",detail(vat.lease.initial,"Month "+s.leaseVatDelay),"—"):"",
+  s.leaseEnabled&&c.leaseInitialVat?row("Initial lease payment VAT","—","—",detail(vat.lease.initial,"Month 0"),"—"):"",
   phase("02 · During the agreement"),
-  s.leaseEnabled?row("VAT on regular lease invoices","No VAT on loan repayments","No VAT on loan repayments",detail(vat.lease.regular,(inflationViews.vat?"Average per invoice":"Per invoice")+" · months "+s.leaseVatDelay+"–"+(l.months-1+s.leaseVatDelay)),"No regular purchase payments"):"",
+  s.leaseEnabled?row("VAT on regular lease invoices","No VAT on loan repayments","No VAT on loan repayments",detail(vat.lease.regular,(inflationViews.vat?"Average per invoice":"Per invoice")+" · months 0–"+(l.months-1)),"No regular purchase payments"):"",
   row(runningVatLabel,detail(vat.balloonLoan.maintenance,"Netted against the expense"),detail(vat.standardLoan.maintenance,"Netted against the expense"),detail(vat.lease.maintenance,"Netted against the expense"),detail(vat.cashPurchase.maintenance,"Netted against the expense")),
   phase("03 · At each option’s end date"),
   row("Gross car sale proceeds",purchaseSold?detail(vat.balloonLoan.grossSale,endNote(b)):"Car kept",purchaseSold?detail(vat.standardLoan.grossSale,endNote(n)):"Car kept",leaseSold?detail(vat.lease.grossSale,endNote(l)):leaseBought?"Car kept":"Car returned",purchaseSold?detail(vat.cashPurchase.grossSale,endNote(cash)):"Car kept"),
@@ -1990,7 +2087,7 @@ function createResults({document,window,views,onShowTooltip}){
    'Insurance paid separately':'Only separately entered insurance is added here. Coverage, including GAP, is whatever your quote actually provides; this calculator does not verify it. Insurance bundled into a lease is already in the lease invoice.',
    'Monthly bill incl. insurance':'The recurring amount paid before any separate VAT refund. Adds the loan payment or lease invoice and separately paid insurance. Maintenance, tyres, deposits and final payments are separate.',
    'VAT refund per lease invoice':'Eligible refund from one lease invoice, after the taxable-share and recovery-percentage settings. This is a tax refund, not a discount on the invoice or on a loan repayment.',
-   'Monthly bill less eventual VAT refund':'Recurring bill minus the VAT refund associated with that invoice. This is a net cost, not necessarily cash paid in that month. During a refund delay you still fund the gross invoice.',
+   'Monthly bill after VAT deduction':'Recurring bill minus eligible VAT deducted against VAT payable in the same month. The gross invoice remains payable to the lessor.',
    'Effective monthly ownership cost':'Total ownership cost on this table’s opportunity-cost basis ÷ the option’s months. Includes upfront and final payments, running costs, resale or retained value, and VAT settlement. This is not a monthly invoice.',
    'Vehicle purchase / buyout':'The invoice price for a car purchased now stays unchanged when inflation is toggled. Loans show the inflation benefit from paying principal later as a separate credit in the next row. A lease buyout occurs in the future, so its amount is converted to today’s money when selected. VAT deductions are separate.',
    'Inflation benefit on deferred principal':'Negative credit for repaying borrowed principal later, when it has less purchasing power. Equals the value of the deposit and principal payments in today’s money minus today’s invoice price. Includes the balloon or debt outstanding at the comparison end. Interest is separate. Zero when inflation is off or no principal is deferred. This credit is included once in the subtotal; the later inflation-effect row is only a summary.',
@@ -2109,7 +2206,7 @@ function createResults({document,window,views,onShowTooltip}){
       }else extra+=' Today’s money is off, so no principal inflation credit is included.';
      }
      if(label==='Maintenance')extra+=' '+(v.kind==='lease'&&s.kintoMaintenance?'Included in lease invoices.':'Nominal budget: '+c[v.key].serviceCount+' services × '+money(s.serviceCost)+'.');
-     if(label==='Monthly bill less eventual VAT refund'&&v.kind==='lease')extra+=' Pay '+money(c.kRent+c.kInsurance)+' per invoice month; the '+money(c.leaseVatPerPayment)+' refund follows '+s.leaseVatDelay+' months later.';
+     if(label==='Monthly bill after VAT deduction'&&v.kind==='lease')extra+=' Pay '+money(c.kRent+c.kInsurance)+' per invoice month; the '+money(c.leaseVatPerPayment)+' VAT deduction offsets VAT payable in that same month.';
      explainResult(cell,help+'\n\n'+extra);
     }
    }
@@ -2241,7 +2338,7 @@ return Object.freeze({createResults});
 
 // ./charts.mjs
 __modules["./charts.mjs"]=(()=>{
-const {inflationReturnGrid,relativeResaleEstimate,nominalOpportunityRate,calculate,cashFlowValue,resaleComparisons,interestComparisons,comparisonValue,withResale,resaleSamples}=__modules["./model.mjs"];
+const {loanSchedule,inflationReturnGrid,relativeResaleEstimate,nominalOpportunityRate,calculate,cashFlowValue,resaleComparisons,interestComparisons,comparisonValue,withResale,resaleSamples}=__modules["./model.mjs"];
 const {money,num,ratePercent,returnBasisLabel}=__modules["./format.mjs"];
 /** Render charts and own shared hover, touch and keyboard interaction state. */
 function createCharts({document,window,views,onShowTooltip}){
@@ -2267,10 +2364,10 @@ function createCharts({document,window,views,onShowTooltip}){
   }
   body+='<text class="chart-axis" x="'+left+'" y="18">'+yLabel+'</text><text class="chart-axis" x="910" y="326" text-anchor="end">'+xLabel+'</text>';
   for(const seriesItem of series){
-   const path=seriesItem.points.map((p,i)=>(i?'L':'M')+x(p.x)+' '+y(p.y)).join(' ');
-   body+='<g data-option="'+seriesItem.kind+'"><path d="'+path+'" fill="none" stroke="currentColor" stroke-width="1.75"'+(seriesItem.dashed?' stroke-dasharray="6 5"':'')+'/>';
+   const path=seriesItem.points.map((p,i)=>i?(seriesItem.step?'H'+x(p.x)+'V'+y(p.y):'L'+x(p.x)+' '+y(p.y)):'M'+x(p.x)+' '+y(p.y)).join(' ');
+   body+='<g data-option="'+seriesItem.kind+'">'+(seriesItem.pointsOnly?'':'<path d="'+path+'" fill="none" stroke="currentColor" stroke-width="1.75"'+(seriesItem.dashed?' stroke-dasharray="6 5"':'')+'/>');
    // Focusable points provide the same exact values as hover, without a chart library.
-   for(const p of seriesItem.points)body+='<circle tabindex="0" data-point-x="'+p.x+'" cx="'+x(p.x)+'" cy="'+y(p.y)+'" r="'+(p.current?4.5:2)+'" fill="'+(p.current?'var(--bg)':'currentColor')+'" stroke="currentColor" stroke-width="1.25" aria-label="'+seriesItem.name+', '+p.label+', '+money(p.y)+'"><title>'+seriesItem.name+' · '+p.label+' · '+money(p.y)+'</title></circle>';
+   for(const p of seriesItem.points)body+='<circle tabindex="0" data-point-x="'+p.x+'" cx="'+x(p.x)+'" cy="'+y(p.y)+'" r="'+(p.current||seriesItem.pointsOnly?4.5:2)+'" fill="'+(p.current||seriesItem.pointsOnly?'var(--bg)':'currentColor')+'" stroke="currentColor" stroke-width="1.25" aria-label="'+seriesItem.name+', '+p.label+', '+money(p.y)+'"><title>'+seriesItem.name+' · '+p.label+' · '+money(p.y)+'</title></circle>';
    body+='</g>';
   }
   body+='<path class="chart-cursor" hidden/>';
@@ -2283,7 +2380,7 @@ function createCharts({document,window,views,onShowTooltip}){
   for(const v of active){
    const n=c[v.key].months;
    const recurring=c[v.key].events.filter(e=>['lease','repayment','insurance'].includes(e.category));
-   if(v.kind==='lease')for(let month=0;month<n;month++)recurring.push({amount:-c.leaseVatPerPayment,month:month+s.leaseVatDelay});
+   if(v.kind==='lease')for(let month=0;month<n;month++)recurring.push({amount:-c.leaseVatPerPayment,month});
    nominalBills[v.key]=recurring.reduce((sum,e)=>sum+e.amount,0)/n;
    bills[v.key]=inflationViews.monthlyGraph?recurring.reduce((sum,e)=>sum+cashFlowValue(e,n,c.nominalReturn,s.inflationRate,{opportunity:false,todayMoney:true}),0)/n:nominalBills[v.key];
   }
@@ -2337,7 +2434,7 @@ function createCharts({document,window,views,onShowTooltip}){
   const currentRates=loans.map(v=>v.kind==='balloon'?s.rate:s.normalRate);
   const interestMax=Math.min(100,Math.max(12,Math.ceil(Math.max(...currentRates)*1.5)));
   // Loans are independent: sampling both at x leaves lease and cash benchmarks unchanged.
-  const rates=sampleRates(interestMax,[...currentRates,...matches.filter(m=>m.rate!==null).map(m=>m.rate)]).map(rate=>({rate,result:calculate({...interestInputs,rate,normalRate:rate},viewOptions("interestGraph")),nominal:calculate({...interestInputs,rate,normalRate:rate})}));
+  const rates=sampleRates(interestMax,[...currentRates,...matches.filter(m=>m.rate!==null).map(m=>m.rate)]).map(rate=>({rate,result:calculate({...interestInputs,balloonInputMode:"rate",normalInputMode:"rate",rate,normalRate:rate},viewOptions("interestGraph")),nominal:calculate({...interestInputs,balloonInputMode:"rate",normalInputMode:"rate",rate,normalRate:rate})}));
   const loanSeries=active.map(v=>({...v,points:rates.map(sample=>({x:sample.rate,y:comparisonValue(sample.result[v.key],split),nominalY:comparisonValue(sample.nominal[v.key],split),label:percent(sample.rate)+' loan interest',current:v.kind==='balloon'?sample.rate===s.rate:v.kind==='normal'&&sample.rate===s.normalRate}))}));
   $("interestGraph").innerHTML=chartLegend(active)+lineChart('Loan interest sensitivity',loanSeries,'Nominal annual loan interest',basis+' · '+comparisonBasis('interestGraph'),percent)+sensitivityWinners(rates,active,split,percent);
  }
@@ -2367,10 +2464,49 @@ function createCharts({document,window,views,onShowTooltip}){
   chartData.set('cost-waterfall',{type:'cells',cells,columns:4});
   return graphFrame('Cost waterfall',body,960,active.length*rowHeight+40).replace('<svg ','<svg tabindex="0" data-chart-key="cost-waterfall" ');
  }
+ function loanDebtSeries(s,loans){
+  return loans.map(v=>{
+   const schedule=loanSchedule(s,v.kind);
+   const points=Array.from({length:schedule.ownership+1},(_,month)=>({x:month,y:month===0?schedule.principal:schedule.rows[Math.min(month,schedule.rows.length)-1].balance,label:'Month '+month+' · after regular payment and any balloon'}));
+   return {...v,name:v.name+' · remaining debt',onlyWithin:true,step:true,points};
+  });
+ }
+ function loanPaymentChart(s,active){
+  const loans=active.filter(v=>['balloon','normal'].includes(v.kind)).map(v=>({...v,schedule:loanSchedule(s,v.kind)}));
+  if(!loans.length){chartData.delete('loan-payment-breakdown');return '<p class="hint">Include a loan in Setup to see principal and interest repayments.</p>';}
+  const maxMonths=Math.max(...loans.map(v=>v.schedule.rows.length)),maxPayment=Math.max(1,...loans.map(v=>v.schedule.payment));
+  const left=100,width=810,rowHeight=230,cells=[],slot=width/maxMonths;
+  const values=month=>({title:'Month '+month+' · loan repayments',unit:'Nominal Kč · excludes deposit, insurance and fees',rows:loans.flatMap(v=>{
+   const row=v.schedule.rows.find(row=>row.month===month);
+   if(!row)return [];
+   return [{name:v.name+' · principal',value:row.principal},{name:v.name+' · interest',value:row.interest},{name:v.name+' · interest paid so far',value:row.totalInterest},{name:v.name+' · remaining debt',value:row.balance},
+    ...(row.balloon?[{name:v.name+' · final balloon',value:row.balloon}]:[]),...(row.settlement?[{name:v.name+' · sale settlement',value:row.settlement}]:[])].map(row=>({...row,kind:v.kind}));
+  })});
+  let body='';
+  loans.forEach((v,index)=>{
+   const top=55+index*rowHeight,base=top+130,y=value=>base-value/maxPayment*120,last=v.schedule.rows.at(-1);
+   const extra=last.balloon?'Month '+last.month+' balloon: '+money(last.balloon):last.settlement?'Month '+last.month+' sale settlement: '+money(last.settlement):'No separate final payment';
+   body+='<g data-option="'+v.kind+'"><text class="chart-label" x="'+left+'" y="'+(top-28)+'">'+v.name+' · '+money(v.schedule.payment)+' / month</text><text class="chart-axis" x="'+left+'" y="'+(top-8)+'">'+extra+' · shown separately from the bars</text>';
+   for(let i=0;i<=2;i++){const amount=maxPayment*i/2;body+='<path class="chart-grid" d="M'+left+' '+y(amount)+'H'+(left+width)+'"/><text class="chart-axis" x="'+(left-10)+'" y="'+(y(amount)+4)+'" text-anchor="end">'+num(amount/1000)+'k</text>';}
+   for(const row of v.schedule.rows){
+    const x=left+(row.month-1)*slot,w=Math.max(1,slot*.78),cell=cells.length;
+    body+='<g tabindex="0" data-point-x="'+cell+'" aria-label="'+v.name+', month '+row.month+', principal '+money(row.principal)+', interest '+money(row.interest)+'"><rect x="'+x+'" y="'+y(row.principal)+'" width="'+w+'" height="'+Math.max(0,row.principal/maxPayment*120)+'" fill="currentColor"/><rect x="'+x+'" y="'+y(row.payment)+'" width="'+w+'" height="'+Math.max(0,row.interest/maxPayment*120)+'" fill="currentColor" fill-opacity=".3"/></g>';
+    cells.push({x,y:top,w:slot,h:145,values:values(row.month)});
+   }
+   for(const month of [...new Set([1,Math.ceil(maxMonths/2),maxMonths])])body+='<text class="chart-axis" x="'+(left+(month-.5)*slot)+'" y="'+(base+22)+'" text-anchor="middle">'+month+'</text>';
+   body+='<text class="chart-axis" x="910" y="'+(base+43)+'" text-anchor="end">Month · '+v.schedule.months+' repayment / '+v.schedule.ownership+' ownership</text></g>';
+  });
+  chartData.set('loan-payment-breakdown',{type:'cells',cells,columns:1});
+  return '<div class="chart-key"><span>Solid: principal repaid</span><span>Light: interest</span></div>'+graphFrame('Monthly principal and interest repayments',body,960,loans.length*rowHeight).replace('<svg ','<svg tabindex="0" data-chart-key="loan-payment-breakdown" ');
+ }
  function carValueTimeline(s,active){
+  const loans=active.filter(v=>['balloon','normal'].includes(v.kind)),debt=loanDebtSeries(s,loans);
   if(s.resaleMode!=='relative'){
-   chartData.delete('car-value-timeline');
-   return '<p class="hint">Choose Relative depreciation in Setup to see historical prices and a projected value timeline. A direct resale estimate gives no depreciation path to plot.</p>';
+   if(!debt.length){chartData.delete('car-value-timeline');return '<p class="hint">Choose Relative depreciation or include a loan to see values and remaining debt.</p>';}
+   const values=loans.map(v=>({...v,name:v.name+' · entered car value',pointsOnly:true,onlyWithin:true,points:[{x:0,y:s.price,label:'Purchase price'},{x:s[v.months],y:s[v.resale],label:'Entered end value at month '+s[v.months]}]}));
+   const series=[...debt,...values],svg=lineChart('Car value timeline',series,'Month','Nominal value / debt · Kč',num);
+   chartData.get('car-value-timeline').equity={s,loans};
+   return chartLegend(series)+svg+'<p class="hint">Value dots show only purchase and entered end values. No depreciation curve is assumed. Choose Relative depreciation to estimate values between them.</p>';
   }
   const owners=active.filter(v=>v.kind!=='lease'||s.leaseEnd!=='return');
   if(!owners.length){chartData.delete('car-value-timeline');return '<p class="hint">Include a purchase option or a lease buyout to see projected car values.</p>';}
@@ -2378,7 +2514,10 @@ function createCharts({document,window,views,onShowTooltip}){
    const end=Math.max(...owners.map(v=>s[v.months])),times=[...new Set([0,end,...owners.map(v=>s[v.months]),...Array.from({length:25},(_,i)=>end*i/24)])].sort((a,b)=>a-b);
    const series=[{name:'Modelled nominal value',kind:'nominal-value',points:times.map(x=>({x,y:relativeResaleEstimate(s,x).nominalValue,label:'Month '+num(x)+' since purchase'}))},
     {name:'Value in purchase-date money',kind:'real-value',dashed:true,points:times.map(x=>({x,y:relativeResaleEstimate(s,x).todayValue,label:'Month '+num(x)+' since purchase'}))}];
-   return chartLegend(series)+lineChart('Car value timeline',series,'Months since purchase','Car value · Kč incl. VAT',value=>num(value))+'<p class="hint">A constant depreciation curve between the input values, not measured historical prices. Inflation-adjusted values use purchasing power at purchase.</p>';
+   series.push(...debt);
+   const svg=lineChart('Car value timeline',series,'Months since purchase','Value / debt · Kč',value=>num(value));
+   chartData.get('car-value-timeline').equity={s,loans};
+   return chartLegend(series)+svg+'<p class="hint">A constant depreciation curve between the input values, not measured historical prices. Inflation-adjusted values use purchasing power at purchase.</p>';
   }
   const age=s.historicalMonths,end=Math.max(...owners.map(v=>s[v.months])),forecast=relativeResaleEstimate(s);
   const times=[...new Set([0,end,...owners.map(v=>s[v.months]),...Array.from({length:25},(_,i)=>end*i/24)])].sort((a,b)=>a-b);
@@ -2388,9 +2527,10 @@ function createCharts({document,window,views,onShowTooltip}){
    {name:'New car · nominal resale',kind:'nominal-value',onlyWithin:true,points:times.map(x=>({x,y:relativeResaleEstimate(s,x).nominalValue,label:label(x)}))},
    {name:'New car · resale in today’s money',kind:'real-value',dashed:true,onlyWithin:true,points:times.map(x=>({x,y:relativeResaleEstimate(s,x).todayValue,label:label(x)}))}
   ];
+  series.push(...debt);
   let svg=lineChart('Car value timeline',series,'Months from today','Car value · Kč incl. VAT',value=>num(value));
   const data=chartData.get('car-value-timeline');data.step=false;
-  data.timeline={s,owners,forecast};
+  data.timeline={s,owners,forecast};data.equity={s,loans};
   const x=value=>data.left+(value-data.minX)/(data.maxX-data.minX)*data.width;
   let background='<rect class="projection-shade" x="'+x(0)+'" y="'+data.top+'" width="'+(x(end)-x(0))+'" height="'+data.height+'"/><path class="timeline-origin" d="M'+x(0)+' '+data.top+'V'+(data.top+data.height)+'"/>';
   const endGroups=[...new Set(owners.map(v=>s[v.months]))].sort((a,b)=>a-b).map(month=>({month,options:owners.filter(v=>s[v.months]===month)}));
@@ -2441,6 +2581,7 @@ function createCharts({document,window,views,onShowTooltip}){
   renderRateGraphs(s,active,split);
   $("waterfallGraph").innerHTML=costWaterfall(s,active,split);
   $("timelineGraph").innerHTML=carValueTimeline(s,active);
+  $("loanPaymentGraph").innerHTML=loanPaymentChart(s,active);
   $("heatmapGraph").innerHTML=inflationReturnHeatmap(s,active,split);
   for(const [key,chart] of [['monthlyGraph','monthly-costs'],['interestGraph','loan-interest-sensitivity'],['resaleGraph','resale-sensitivity']]){
    const data=chartData.get(chart);if(data)data.inflationRate=inflationViews[key]?s.inflationRate:null;
@@ -2464,7 +2605,7 @@ function createCharts({document,window,views,onShowTooltip}){
    ]};
   }
   const point=data.series.flatMap(series=>series.points).find(point=>Math.abs(point.x-position)<1e-8);
-  const rows=data.series.filter(series=>!series.onlyWithin||(position>=series.points[0].x&&position<=series.points.at(-1).x)).map(series=>{
+  const rows=data.series.filter(series=>(!series.pointsOnly||series.points.some(p=>Math.abs(p.x-position)<1e-8))&&(!series.onlyWithin||(position>=series.points[0].x&&position<=series.points.at(-1).x))).map(series=>{
    const points=series.points,last=points[points.length-1];
    const exact=points.find(point=>Math.abs(point.x-position)<1e-8);
    let value,nominalValue,note='',approximate=false;
@@ -2474,9 +2615,9 @@ function createCharts({document,window,views,onShowTooltip}){
    else{
     const after=points.findIndex(point=>point.x>position),left=points[after-1],right=points[after];
     // Cash moves only on its event dates. Other charts interpolate only if a series lacks this x.
-    value=data.step?left.y:left.y+(right.y-left.y)*(position-left.x)/(right.x-left.x);
-    nominalValue=data.step?left.nominalY:left.nominalY+(right.nominalY-left.nominalY)*(position-left.x)/(right.x-left.x);
-    approximate=!data.step;
+    value=data.step||series.step?left.y:left.y+(right.y-left.y)*(position-left.x)/(right.x-left.x);
+    nominalValue=data.step||series.step?left.nominalY:left.nominalY+(right.nominalY-left.nominalY)*(position-left.x)/(right.x-left.x);
+    approximate=!(data.step||series.step);
    }
    return {name:series.name,kind:series.kind,value,nominalValue,note,approximate};
   });
@@ -2487,6 +2628,17 @@ function createCharts({document,window,views,onShowTooltip}){
     const projected=relativeResaleEstimate(s,position);
     rows.push({name:'Real value lost since new purchase',kind:'history',value:s.price-projected.todayValue,note:'Real value retained '+ratePercent(projected.todayValue/(s.price||1)*100)});
     rows.push({name:'Future inflation added to resale',kind:'real-value',value:projected.nominalValue-projected.todayValue});
+   }
+  }
+  if(data.equity&&position>=0){
+   const {s,loans}=data.equity;
+   for(const v of loans){
+    if(position>s[v.months])continue;
+    const value=s.resaleMode==='relative'?relativeResaleEstimate(s,position).nominalValue:position===0?s.price:position===s[v.months]?s[v.resale]:null;
+    if(value===null)continue;
+    const schedule=loanSchedule(s,v.kind),month=Math.floor(position),row=month===0?null:schedule.rows[Math.min(month,schedule.rows.length)-1],balance=row?row.balance:schedule.principal;
+    rows.push({name:v.name+' · equity before sale taxes / fees',kind:v.kind,value:value-balance,note:'Car value minus debt after scheduled payments; an early-sale settlement is still owed.'});
+    if(row?.balloon&&position===row.month)rows.push({name:v.name+' · balloon paid this month',kind:v.kind,value:row.balloon});
    }
   }
   return {title:data.timeline&&position===0?'Today · comparable car and new purchase':point?.label||String(position),unit:data.yLabel,rows};
@@ -2714,7 +2866,7 @@ function createApp({document,window,storage}){
  function update(){
   charts.hideGraphTooltip();results.hideResultExplanation();
   const s=effectiveInputs(form.read());form.updateSelection(s);$("kInsuranceField").hidden=s.kintoInsuranceIncluded;
-  $("buyoutField").hidden=s.leaseEnd==="return";$("buyoutVatField").hidden=s.leaseEnd==="return";
+  $("buyoutField").hidden=s.leaseEnd==="return";$("buyoutVatField").hidden=!s.vatEnabled||s.leaseEnd==="return";
   const missing=Object.entries(defaults).filter(([key,value])=>typeof value==="number"&&!Number.isFinite(s[key])&&$(key).value.trim()==="");
   if(!variants.some(v=>s[v.enabled])){
    $("error").textContent="Select at least one option in Setup to see results and graphs.";$("error").hidden=false;$("resultContent").hidden=true;$("graphContent").hidden=true;return null;

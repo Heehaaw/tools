@@ -12,7 +12,7 @@ export const defaults = {
  balloonDeductions:0,normalDeductions:0,leaseDeductions:0,cashDeductions:0,
  balloonTaxValue:0,normalTaxValue:0,leaseTaxValue:0,cashTaxValue:0,
  opportunityRateBasis:"nominal",inflationRate:2.5,
- balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,
+ balloonInputMode:"rate",balloonMonthlyPayment:0,normalInputMode:"rate",normalMonthlyPayment:0,balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,
  balloonMatchOwnership:true,normalMatchOwnership:true,balloonLoanMonths:36,normalLoanMonths:36,
  balloonMonths:36,normalMonths:36,leaseMonths:36,cashMonths:36,
  balloonResale:1000000,normalResale:1000000,leaseResale:1000000,cashResale:1000000,
@@ -27,6 +27,12 @@ export const defaults = {
 // New fields inherit the original shared term and resale when reading older scenarios.
 export function migrateInputs(inputs){
  const state={...defaults,...inputs};
+ // Retired quote basis: convert once, preserving the gross invoice of old saved leases.
+ // A draft with a missing VAT rate stays pending until that rate is supplied.
+ if(state.kintoVatMode==="net"&&(state.kintoMonthly===null||Number.isFinite(state.kintoMonthly)&&Number.isFinite(state.vatPct))){
+  if(state.kintoMonthly!==null)state.kintoMonthly*=1+state.vatPct/100;
+  state.kintoVatMode="gross";
+ }
  // Never share the schema default or a caller-owned year array with an effective scenario.
  state.additionalCostYears=Object.hasOwn(inputs,"additionalCostYears")?(Array.isArray(inputs.additionalCostYears)?[...inputs.additionalCostYears]:inputs.additionalCostYears):[...defaults.additionalCostYears];
  state.historicalInflationYears=Object.hasOwn(inputs,"historicalInflationYears")?(Array.isArray(inputs.historicalInflationYears)?[...inputs.historicalInflationYears]:inputs.historicalInflationYears):[...defaults.historicalInflationYears];
@@ -115,14 +121,26 @@ export function effectiveInputs(inputs){
   if(s.matchPeriods||!s[v.enabled]){s[v.months]=s.months;s[v.resale]=s.resale;}
   if(v.loanMonths&&(s[v.matchLoanTerm]||!s[v.enabled]))s[v.loanMonths]=s[v.months];
  }
+ // Resolve quoted payments only after the independent repayment period is known.
+ if(s.balloonEnabled&&s.balloonInputMode==="payment")s.rate=annualRateFromPayment(s.price*(1-s.downPct/100),s.price*s.balloonPct/100,s.balloonMonthlyPayment,s.balloonLoanMonths);
+ else s.balloonMonthlyPayment=defaults.balloonMonthlyPayment;
+ if(s.normalEnabled&&s.normalInputMode==="payment")s.normalRate=annualRateFromPayment(s.price*(1-s.normalDownPct/100),0,s.normalMonthlyPayment,s.normalLoanMonths);
+ else s.normalMonthlyPayment=defaults.normalMonthlyPayment;
  if(s.additionalCostMode==="yearly"){
   const years=Array.isArray(s.additionalCostYears)?s.additionalCostYears:[];
   const needsFallback=Array.from({length:activeAdditionalCostYearCount(s)},(_,index)=>!Object.hasOwn(years,index)).some(Boolean);
   // A blank annual field is inactive when every applicable year has an explicit amount.
   if(!needsFallback)s.additionalCostAnnual=defaults.additionalCostAnnual;
  }
+ if(!s.vatEnabled){
+  for(const key of ["recoveryPct","purchaseVatDelay","purchaseVatCap"])s[key]=defaults[key];
+  // An unfinished legacy net quote still needs its rate to determine the actual invoice.
+  if(s.kintoVatMode!=="net")s.vatPct=defaults.vatPct;
+ }
+ // Retain legacy delay drafts in storage; lease VAT always offsets the payment month.
+ s.leaseVatDelay=0;
  // Inactive lease VAT fields may remain blank in saved drafts without blocking other results.
- if(!s.vatEnabled||!s.leaseEnabled)for(const key of ["leaseVatDelay","leaseTaxablePct"])s[key]=defaults[key];
+ if(!s.vatEnabled||!s.leaseEnabled)for(const key of ["leaseTaxablePct"])s[key]=defaults[key];
  if(!s.leaseEnabled)s.leaseEnd="return";
  if(s.leaseEnd==="return")s.leaseResale=s.resale;
  if(!s.balloonEnabled&&!s.normalEnabled&&!s.cashEnabled)s.purchaseVatEligible=false;
@@ -189,6 +207,10 @@ export function validateAdditionalCosts(inputs,options={}){validateAdditionalCos
 
 export function validate(s){
  s=effectiveInputs(s);
+ if(!["rate","payment"].includes(s.normalInputMode))throw new Error("Choose interest rate or monthly payment for the standard loan.");
+ if(s.normalEnabled&&s.normalInputMode==="payment"&&!Number.isFinite(s.normalRate))throw new Error("Enter a valid standard loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
+ if(!["rate","payment"].includes(s.balloonInputMode))throw new Error("Choose interest rate or monthly payment for the balloon loan.");
+ if(s.balloonEnabled&&s.balloonInputMode==="payment"&&!Number.isFinite(s.rate))throw new Error("Enter a valid balloon loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
  validateAdditionalCostState(s);
  validateHistoricalInflationState(s);
  if(!["direct","relative"].includes(s.resaleMode))throw new Error("Choose direct resale or relative depreciation.");
@@ -214,10 +236,22 @@ export function validate(s){
  if(s.leaseEnd!=="return"&&s.leaseBuyout<=0)throw new Error("Enter a positive, agreed lease buyout price.");
 }
 // --- Dated cash flows and valuation ---
-function monthlyPayment(principal,balloon,annualRate,months){
+/** Equal monthly instalment with a separate balloon alongside the final instalment. */
+export function monthlyPayment(principal,balloon,annualRate,months){
  const r=annualRate/1200;
  // log1p/expm1 keep the break-even search stable for interest rates close to zero.
  return r===0?(principal-balloon)/months:(principal-balloon*Math.exp(-months*Math.log1p(r)))*r/-Math.expm1(-months*Math.log1p(r));
+}
+/** Infer nominal annual interest from a quoted instalment, excluding insurance and fees. */
+export function annualRateFromPayment(principal,balloon,payment,months){
+ if(![principal,balloon,payment,months].every(Number.isFinite)||principal<=0||balloon<0||balloon>principal||payment<0||!Number.isInteger(months)||months<1||months>120)return NaN;
+ const minimum=monthlyPayment(principal,balloon,0,months),maximum=monthlyPayment(principal,balloon,100,months);
+ if(payment<minimum-1e-8||payment>maximum+1e-8)return NaN;
+ if(Math.abs(payment-minimum)<1e-8)return 0;
+ // Instalments increase monotonically with the rate; bisection also handles interest-only loans.
+ let low=0,high=100;
+ for(let i=0;i<60;i++){const mid=(low+high)/2;if(monthlyPayment(principal,balloon,mid,months)<payment)low=mid;else high=mid;}
+ return (low+high)/2;
 }
 // Value the remaining scheduled debt at the comparison end, excluding future interest.
 function loanPlan(principal,balloon,rate,loanMonths,ownershipMonths){
@@ -228,6 +262,25 @@ function loanPlan(principal,balloon,rate,loanMonths,ownershipMonths){
  const balloonPaid=remainingMonths===0?balloon:0;
  const interest=payment*paidMonths+balloonPaid+remainingPrincipal-principal;
  return {payment,loanMonths,paidMonths,remainingPrincipal,balloonPaid,interest};
+}
+/** Monthly loan amortization through ownership, with final and early-exit payments separated. */
+export function loanSchedule(inputs,kind){
+ const s=effectiveInputs(inputs);validate(s);
+ if(!["balloon","normal"].includes(kind))throw new Error("Choose a balloon or standard loan schedule.");
+ const normal=kind==="normal",principal=s.price*(1-s[normal?"normalDownPct":"downPct"]/100);
+ const balloon=normal?0:s.price*s.balloonPct/100,rate=s[normal?"normalRate":"rate"],months=s[kind+"LoanMonths"],ownership=s[kind+"Months"];
+ const payment=monthlyPayment(principal,balloon,rate,months),rows=[];
+ let balance=principal,totalInterest=0;
+ for(let month=1;month<=Math.min(months,ownership);month++){
+  const interest=balance*rate/1200,paidPrincipal=payment-interest;
+  const finalBalloon=month===months?balloon:0;
+  balance=month===months?0:Math.max(0,balance-paidPrincipal);
+  totalInterest+=interest;
+  // Remaining debt is shown before an ownership-end sale settles it.
+  const settlement=month===ownership&&month<months&&s.loanEnd==="sell"?balance:0;
+  rows.push({month,payment,principal:paidPrincipal,interest,totalInterest,balloon:finalBalloon,settlement,balance});
+ }
+ return {kind,principal,payment,months,ownership,rows};
 }
 /** Value one dated payment or receipt on the selected purchasing-power and return basis. */
 export function cashFlowValue(event,months,nominalReturn,inflationRate,{opportunity=true,todayMoney=false}={}){
@@ -264,10 +317,10 @@ export function calculate(s,valuation={}){
   // Treat next-month maintenance and tyre deductions as settled with the expense for this comparison.
   const refund=(month,amount,capital=false,delay=capital?s.purchaseVatDelay:0)=>{if(amount)add(month+delay,-amount,"vat");};
   const insured=isLease?kInsurance:isCash?s.cashInsurance:isNormal?s.normalInsurance:s.easyInsurance;
-  if(isLease){add(0,s.kintoInitial,"initial");refund(0,inputVat(s.kintoInitial*s.leaseTaxablePct/100),false,s.leaseVatDelay);}
+  if(isLease){add(0,s.kintoInitial,"initial");refund(0,inputVat(s.kintoInitial*s.leaseTaxablePct/100),false,0);}
   else{add(0,isCash?s.price:isNormal?normalDown:down,"capital");refund(0,purchaseRefund,true);}
   for(let m=1;m<=n;m++){
-   if(isLease){add(m-1,kRent,"lease");refund(m-1,inputVat(kRent*s.leaseTaxablePct/100),false,s.leaseVatDelay);}
+   if(isLease){add(m-1,kRent,"lease");refund(m-1,inputVat(kRent*s.leaseTaxablePct/100),false,0);}
    else if(plan&&m<=plan.paidMonths)add(m,plan.payment,"repayment");
    add(isLease?m-1:m,insured,"insurance");
   }
@@ -416,7 +469,7 @@ export function interestComparisons(s,valuation={}){
  for(const loan of variants.slice(0,2).filter(v=>s[v.enabled]))for(const target of variants.slice(2).filter(v=>s[v.enabled])){
   const rateKey=loan.kind==="balloon"?"rate":"normalRate";
   const targetCost=comparisonValue(base[target.key],split);
-  const difference=rate=>comparisonValue(calculate({...s,[rateKey]:rate},valuation)[loan.key],split)-targetCost;
+  const difference=rate=>comparisonValue(calculate({...s,balloonInputMode:"rate",normalInputMode:"rate",[rateKey]:rate},valuation)[loan.key],split)-targetCost;
   const low=difference(0),high=difference(100);
   let rate=null,status;
   if(Math.abs(high-low)<1e-7)status=Math.abs(low)<.005?"equal":"unaffected";

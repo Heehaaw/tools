@@ -56,6 +56,10 @@ node tests/build.test.mjs
 node tests/components.test.mjs
 node tests/additional-costs.test.mjs
 node tests/historical-inflation.test.mjs
+node tests/balloon-quote.test.mjs
+node tests/standard-quote.test.mjs
+node tests/loan-graphs.test.mjs
+node tests/vat-settings.test.mjs
 node tests/model.test.mjs
 node tests/ui.test.mjs
 ```

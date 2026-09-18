@@ -1,4 +1,4 @@
-import {inflationReturnGrid,relativeResaleEstimate,nominalOpportunityRate,calculate,cashFlowValue,resaleComparisons,interestComparisons,comparisonValue,withResale,resaleSamples} from "./model.mjs";
+import {loanSchedule,inflationReturnGrid,relativeResaleEstimate,nominalOpportunityRate,calculate,cashFlowValue,resaleComparisons,interestComparisons,comparisonValue,withResale,resaleSamples} from "./model.mjs";
 import {money,num,ratePercent,returnBasisLabel} from "./format.mjs";
 
 /** Render charts and own shared hover, touch and keyboard interaction state. */
@@ -25,10 +25,10 @@ export function createCharts({document,window,views,onShowTooltip}){
   }
   body+='<text class="chart-axis" x="'+left+'" y="18">'+yLabel+'</text><text class="chart-axis" x="910" y="326" text-anchor="end">'+xLabel+'</text>';
   for(const seriesItem of series){
-   const path=seriesItem.points.map((p,i)=>(i?'L':'M')+x(p.x)+' '+y(p.y)).join(' ');
-   body+='<g data-option="'+seriesItem.kind+'"><path d="'+path+'" fill="none" stroke="currentColor" stroke-width="1.75"'+(seriesItem.dashed?' stroke-dasharray="6 5"':'')+'/>';
+   const path=seriesItem.points.map((p,i)=>i?(seriesItem.step?'H'+x(p.x)+'V'+y(p.y):'L'+x(p.x)+' '+y(p.y)):'M'+x(p.x)+' '+y(p.y)).join(' ');
+   body+='<g data-option="'+seriesItem.kind+'">'+(seriesItem.pointsOnly?'':'<path d="'+path+'" fill="none" stroke="currentColor" stroke-width="1.75"'+(seriesItem.dashed?' stroke-dasharray="6 5"':'')+'/>');
    // Focusable points provide the same exact values as hover, without a chart library.
-   for(const p of seriesItem.points)body+='<circle tabindex="0" data-point-x="'+p.x+'" cx="'+x(p.x)+'" cy="'+y(p.y)+'" r="'+(p.current?4.5:2)+'" fill="'+(p.current?'var(--bg)':'currentColor')+'" stroke="currentColor" stroke-width="1.25" aria-label="'+seriesItem.name+', '+p.label+', '+money(p.y)+'"><title>'+seriesItem.name+' · '+p.label+' · '+money(p.y)+'</title></circle>';
+   for(const p of seriesItem.points)body+='<circle tabindex="0" data-point-x="'+p.x+'" cx="'+x(p.x)+'" cy="'+y(p.y)+'" r="'+(p.current||seriesItem.pointsOnly?4.5:2)+'" fill="'+(p.current||seriesItem.pointsOnly?'var(--bg)':'currentColor')+'" stroke="currentColor" stroke-width="1.25" aria-label="'+seriesItem.name+', '+p.label+', '+money(p.y)+'"><title>'+seriesItem.name+' · '+p.label+' · '+money(p.y)+'</title></circle>';
    body+='</g>';
   }
   body+='<path class="chart-cursor" hidden/>';
@@ -41,7 +41,7 @@ export function createCharts({document,window,views,onShowTooltip}){
   for(const v of active){
    const n=c[v.key].months;
    const recurring=c[v.key].events.filter(e=>['lease','repayment','insurance'].includes(e.category));
-   if(v.kind==='lease')for(let month=0;month<n;month++)recurring.push({amount:-c.leaseVatPerPayment,month:month+s.leaseVatDelay});
+   if(v.kind==='lease')for(let month=0;month<n;month++)recurring.push({amount:-c.leaseVatPerPayment,month});
    nominalBills[v.key]=recurring.reduce((sum,e)=>sum+e.amount,0)/n;
    bills[v.key]=inflationViews.monthlyGraph?recurring.reduce((sum,e)=>sum+cashFlowValue(e,n,c.nominalReturn,s.inflationRate,{opportunity:false,todayMoney:true}),0)/n:nominalBills[v.key];
   }
@@ -95,7 +95,7 @@ export function createCharts({document,window,views,onShowTooltip}){
   const currentRates=loans.map(v=>v.kind==='balloon'?s.rate:s.normalRate);
   const interestMax=Math.min(100,Math.max(12,Math.ceil(Math.max(...currentRates)*1.5)));
   // Loans are independent: sampling both at x leaves lease and cash benchmarks unchanged.
-  const rates=sampleRates(interestMax,[...currentRates,...matches.filter(m=>m.rate!==null).map(m=>m.rate)]).map(rate=>({rate,result:calculate({...interestInputs,rate,normalRate:rate},viewOptions("interestGraph")),nominal:calculate({...interestInputs,rate,normalRate:rate})}));
+  const rates=sampleRates(interestMax,[...currentRates,...matches.filter(m=>m.rate!==null).map(m=>m.rate)]).map(rate=>({rate,result:calculate({...interestInputs,balloonInputMode:"rate",normalInputMode:"rate",rate,normalRate:rate},viewOptions("interestGraph")),nominal:calculate({...interestInputs,balloonInputMode:"rate",normalInputMode:"rate",rate,normalRate:rate})}));
   const loanSeries=active.map(v=>({...v,points:rates.map(sample=>({x:sample.rate,y:comparisonValue(sample.result[v.key],split),nominalY:comparisonValue(sample.nominal[v.key],split),label:percent(sample.rate)+' loan interest',current:v.kind==='balloon'?sample.rate===s.rate:v.kind==='normal'&&sample.rate===s.normalRate}))}));
   $("interestGraph").innerHTML=chartLegend(active)+lineChart('Loan interest sensitivity',loanSeries,'Nominal annual loan interest',basis+' · '+comparisonBasis('interestGraph'),percent)+sensitivityWinners(rates,active,split,percent);
  }
@@ -125,10 +125,49 @@ export function createCharts({document,window,views,onShowTooltip}){
   chartData.set('cost-waterfall',{type:'cells',cells,columns:4});
   return graphFrame('Cost waterfall',body,960,active.length*rowHeight+40).replace('<svg ','<svg tabindex="0" data-chart-key="cost-waterfall" ');
  }
+ function loanDebtSeries(s,loans){
+  return loans.map(v=>{
+   const schedule=loanSchedule(s,v.kind);
+   const points=Array.from({length:schedule.ownership+1},(_,month)=>({x:month,y:month===0?schedule.principal:schedule.rows[Math.min(month,schedule.rows.length)-1].balance,label:'Month '+month+' · after regular payment and any balloon'}));
+   return {...v,name:v.name+' · remaining debt',onlyWithin:true,step:true,points};
+  });
+ }
+ function loanPaymentChart(s,active){
+  const loans=active.filter(v=>['balloon','normal'].includes(v.kind)).map(v=>({...v,schedule:loanSchedule(s,v.kind)}));
+  if(!loans.length){chartData.delete('loan-payment-breakdown');return '<p class="hint">Include a loan in Setup to see principal and interest repayments.</p>';}
+  const maxMonths=Math.max(...loans.map(v=>v.schedule.rows.length)),maxPayment=Math.max(1,...loans.map(v=>v.schedule.payment));
+  const left=100,width=810,rowHeight=230,cells=[],slot=width/maxMonths;
+  const values=month=>({title:'Month '+month+' · loan repayments',unit:'Nominal Kč · excludes deposit, insurance and fees',rows:loans.flatMap(v=>{
+   const row=v.schedule.rows.find(row=>row.month===month);
+   if(!row)return [];
+   return [{name:v.name+' · principal',value:row.principal},{name:v.name+' · interest',value:row.interest},{name:v.name+' · interest paid so far',value:row.totalInterest},{name:v.name+' · remaining debt',value:row.balance},
+    ...(row.balloon?[{name:v.name+' · final balloon',value:row.balloon}]:[]),...(row.settlement?[{name:v.name+' · sale settlement',value:row.settlement}]:[])].map(row=>({...row,kind:v.kind}));
+  })});
+  let body='';
+  loans.forEach((v,index)=>{
+   const top=55+index*rowHeight,base=top+130,y=value=>base-value/maxPayment*120,last=v.schedule.rows.at(-1);
+   const extra=last.balloon?'Month '+last.month+' balloon: '+money(last.balloon):last.settlement?'Month '+last.month+' sale settlement: '+money(last.settlement):'No separate final payment';
+   body+='<g data-option="'+v.kind+'"><text class="chart-label" x="'+left+'" y="'+(top-28)+'">'+v.name+' · '+money(v.schedule.payment)+' / month</text><text class="chart-axis" x="'+left+'" y="'+(top-8)+'">'+extra+' · shown separately from the bars</text>';
+   for(let i=0;i<=2;i++){const amount=maxPayment*i/2;body+='<path class="chart-grid" d="M'+left+' '+y(amount)+'H'+(left+width)+'"/><text class="chart-axis" x="'+(left-10)+'" y="'+(y(amount)+4)+'" text-anchor="end">'+num(amount/1000)+'k</text>';}
+   for(const row of v.schedule.rows){
+    const x=left+(row.month-1)*slot,w=Math.max(1,slot*.78),cell=cells.length;
+    body+='<g tabindex="0" data-point-x="'+cell+'" aria-label="'+v.name+', month '+row.month+', principal '+money(row.principal)+', interest '+money(row.interest)+'"><rect x="'+x+'" y="'+y(row.principal)+'" width="'+w+'" height="'+Math.max(0,row.principal/maxPayment*120)+'" fill="currentColor"/><rect x="'+x+'" y="'+y(row.payment)+'" width="'+w+'" height="'+Math.max(0,row.interest/maxPayment*120)+'" fill="currentColor" fill-opacity=".3"/></g>';
+    cells.push({x,y:top,w:slot,h:145,values:values(row.month)});
+   }
+   for(const month of [...new Set([1,Math.ceil(maxMonths/2),maxMonths])])body+='<text class="chart-axis" x="'+(left+(month-.5)*slot)+'" y="'+(base+22)+'" text-anchor="middle">'+month+'</text>';
+   body+='<text class="chart-axis" x="910" y="'+(base+43)+'" text-anchor="end">Month · '+v.schedule.months+' repayment / '+v.schedule.ownership+' ownership</text></g>';
+  });
+  chartData.set('loan-payment-breakdown',{type:'cells',cells,columns:1});
+  return '<div class="chart-key"><span>Solid: principal repaid</span><span>Light: interest</span></div>'+graphFrame('Monthly principal and interest repayments',body,960,loans.length*rowHeight).replace('<svg ','<svg tabindex="0" data-chart-key="loan-payment-breakdown" ');
+ }
  function carValueTimeline(s,active){
+  const loans=active.filter(v=>['balloon','normal'].includes(v.kind)),debt=loanDebtSeries(s,loans);
   if(s.resaleMode!=='relative'){
-   chartData.delete('car-value-timeline');
-   return '<p class="hint">Choose Relative depreciation in Setup to see historical prices and a projected value timeline. A direct resale estimate gives no depreciation path to plot.</p>';
+   if(!debt.length){chartData.delete('car-value-timeline');return '<p class="hint">Choose Relative depreciation or include a loan to see values and remaining debt.</p>';}
+   const values=loans.map(v=>({...v,name:v.name+' · entered car value',pointsOnly:true,onlyWithin:true,points:[{x:0,y:s.price,label:'Purchase price'},{x:s[v.months],y:s[v.resale],label:'Entered end value at month '+s[v.months]}]}));
+   const series=[...debt,...values],svg=lineChart('Car value timeline',series,'Month','Nominal value / debt · Kč',num);
+   chartData.get('car-value-timeline').equity={s,loans};
+   return chartLegend(series)+svg+'<p class="hint">Value dots show only purchase and entered end values. No depreciation curve is assumed. Choose Relative depreciation to estimate values between them.</p>';
   }
   const owners=active.filter(v=>v.kind!=='lease'||s.leaseEnd!=='return');
   if(!owners.length){chartData.delete('car-value-timeline');return '<p class="hint">Include a purchase option or a lease buyout to see projected car values.</p>';}
@@ -136,7 +175,10 @@ export function createCharts({document,window,views,onShowTooltip}){
    const end=Math.max(...owners.map(v=>s[v.months])),times=[...new Set([0,end,...owners.map(v=>s[v.months]),...Array.from({length:25},(_,i)=>end*i/24)])].sort((a,b)=>a-b);
    const series=[{name:'Modelled nominal value',kind:'nominal-value',points:times.map(x=>({x,y:relativeResaleEstimate(s,x).nominalValue,label:'Month '+num(x)+' since purchase'}))},
     {name:'Value in purchase-date money',kind:'real-value',dashed:true,points:times.map(x=>({x,y:relativeResaleEstimate(s,x).todayValue,label:'Month '+num(x)+' since purchase'}))}];
-   return chartLegend(series)+lineChart('Car value timeline',series,'Months since purchase','Car value · Kč incl. VAT',value=>num(value))+'<p class="hint">A constant depreciation curve between the input values, not measured historical prices. Inflation-adjusted values use purchasing power at purchase.</p>';
+   series.push(...debt);
+   const svg=lineChart('Car value timeline',series,'Months since purchase','Value / debt · Kč',value=>num(value));
+   chartData.get('car-value-timeline').equity={s,loans};
+   return chartLegend(series)+svg+'<p class="hint">A constant depreciation curve between the input values, not measured historical prices. Inflation-adjusted values use purchasing power at purchase.</p>';
   }
   const age=s.historicalMonths,end=Math.max(...owners.map(v=>s[v.months])),forecast=relativeResaleEstimate(s);
   const times=[...new Set([0,end,...owners.map(v=>s[v.months]),...Array.from({length:25},(_,i)=>end*i/24)])].sort((a,b)=>a-b);
@@ -146,9 +188,10 @@ export function createCharts({document,window,views,onShowTooltip}){
    {name:'New car · nominal resale',kind:'nominal-value',onlyWithin:true,points:times.map(x=>({x,y:relativeResaleEstimate(s,x).nominalValue,label:label(x)}))},
    {name:'New car · resale in today’s money',kind:'real-value',dashed:true,onlyWithin:true,points:times.map(x=>({x,y:relativeResaleEstimate(s,x).todayValue,label:label(x)}))}
   ];
+  series.push(...debt);
   let svg=lineChart('Car value timeline',series,'Months from today','Car value · Kč incl. VAT',value=>num(value));
   const data=chartData.get('car-value-timeline');data.step=false;
-  data.timeline={s,owners,forecast};
+  data.timeline={s,owners,forecast};data.equity={s,loans};
   const x=value=>data.left+(value-data.minX)/(data.maxX-data.minX)*data.width;
   let background='<rect class="projection-shade" x="'+x(0)+'" y="'+data.top+'" width="'+(x(end)-x(0))+'" height="'+data.height+'"/><path class="timeline-origin" d="M'+x(0)+' '+data.top+'V'+(data.top+data.height)+'"/>';
   const endGroups=[...new Set(owners.map(v=>s[v.months]))].sort((a,b)=>a-b).map(month=>({month,options:owners.filter(v=>s[v.months]===month)}));
@@ -199,6 +242,7 @@ export function createCharts({document,window,views,onShowTooltip}){
   renderRateGraphs(s,active,split);
   $("waterfallGraph").innerHTML=costWaterfall(s,active,split);
   $("timelineGraph").innerHTML=carValueTimeline(s,active);
+  $("loanPaymentGraph").innerHTML=loanPaymentChart(s,active);
   $("heatmapGraph").innerHTML=inflationReturnHeatmap(s,active,split);
   for(const [key,chart] of [['monthlyGraph','monthly-costs'],['interestGraph','loan-interest-sensitivity'],['resaleGraph','resale-sensitivity']]){
    const data=chartData.get(chart);if(data)data.inflationRate=inflationViews[key]?s.inflationRate:null;
@@ -222,7 +266,7 @@ export function createCharts({document,window,views,onShowTooltip}){
    ]};
   }
   const point=data.series.flatMap(series=>series.points).find(point=>Math.abs(point.x-position)<1e-8);
-  const rows=data.series.filter(series=>!series.onlyWithin||(position>=series.points[0].x&&position<=series.points.at(-1).x)).map(series=>{
+  const rows=data.series.filter(series=>(!series.pointsOnly||series.points.some(p=>Math.abs(p.x-position)<1e-8))&&(!series.onlyWithin||(position>=series.points[0].x&&position<=series.points.at(-1).x))).map(series=>{
    const points=series.points,last=points[points.length-1];
    const exact=points.find(point=>Math.abs(point.x-position)<1e-8);
    let value,nominalValue,note='',approximate=false;
@@ -232,9 +276,9 @@ export function createCharts({document,window,views,onShowTooltip}){
    else{
     const after=points.findIndex(point=>point.x>position),left=points[after-1],right=points[after];
     // Cash moves only on its event dates. Other charts interpolate only if a series lacks this x.
-    value=data.step?left.y:left.y+(right.y-left.y)*(position-left.x)/(right.x-left.x);
-    nominalValue=data.step?left.nominalY:left.nominalY+(right.nominalY-left.nominalY)*(position-left.x)/(right.x-left.x);
-    approximate=!data.step;
+    value=data.step||series.step?left.y:left.y+(right.y-left.y)*(position-left.x)/(right.x-left.x);
+    nominalValue=data.step||series.step?left.nominalY:left.nominalY+(right.nominalY-left.nominalY)*(position-left.x)/(right.x-left.x);
+    approximate=!(data.step||series.step);
    }
    return {name:series.name,kind:series.kind,value,nominalValue,note,approximate};
   });
@@ -245,6 +289,17 @@ export function createCharts({document,window,views,onShowTooltip}){
     const projected=relativeResaleEstimate(s,position);
     rows.push({name:'Real value lost since new purchase',kind:'history',value:s.price-projected.todayValue,note:'Real value retained '+ratePercent(projected.todayValue/(s.price||1)*100)});
     rows.push({name:'Future inflation added to resale',kind:'real-value',value:projected.nominalValue-projected.todayValue});
+   }
+  }
+  if(data.equity&&position>=0){
+   const {s,loans}=data.equity;
+   for(const v of loans){
+    if(position>s[v.months])continue;
+    const value=s.resaleMode==='relative'?relativeResaleEstimate(s,position).nominalValue:position===0?s.price:position===s[v.months]?s[v.resale]:null;
+    if(value===null)continue;
+    const schedule=loanSchedule(s,v.kind),month=Math.floor(position),row=month===0?null:schedule.rows[Math.min(month,schedule.rows.length)-1],balance=row?row.balance:schedule.principal;
+    rows.push({name:v.name+' · equity before sale taxes / fees',kind:v.kind,value:value-balance,note:'Car value minus debt after scheduled payments; an early-sale settlement is still owed.'});
+    if(row?.balloon&&position===row.month)rows.push({name:v.name+' · balloon paid this month',kind:v.kind,value:row.balloon});
    }
   }
   return {title:data.timeline&&position===0?'Today · comparable car and new purchase':point?.label||String(position),unit:data.yLabel,rows};

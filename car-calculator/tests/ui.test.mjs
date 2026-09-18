@@ -313,10 +313,10 @@ for(const state of [defaults,{...split,loanEnd:'keep',leaseEnd:'buyKeep',leaseBu
 }
 vm.runInContext('write({...defaults,opportunityRate:0,opportunityRateBasis:"nominal",leaseVatDelay:4});update()',context);
 assert.equal(tableRows('opportunityRows').length,1);
-assert.ok(elements.monthlyRows.innerHTML.includes('Monthly bill less eventual VAT refund'));
-assert.ok(elements.monthlyRows.innerHTML.includes('Refund 4 months after invoice'));
+assert.ok(elements.monthlyRows.innerHTML.includes('Monthly bill after VAT deduction'));
+assert.ok(elements.monthlyRows.innerHTML.includes('VAT deducted with each payment'));
 assert.ok(!elements.vatTimeline.innerHTML.includes('VAT collected within sale price'));
-assert.ok(elements.vatTimeline.innerHTML.includes('Refunds outstanding at end of term'));
+assert.ok(!elements.vatTimeline.innerHTML.includes('Refunds outstanding at end of term'));
 vm.runInContext('write({...defaults});update()',context);
 assert.ok(!elements.vatTimeline.innerHTML.includes('Refunds outstanding at end of term'));
 const cleanCash={...clean,balloonEnabled:false,normalEnabled:false,leaseEnabled:false};
@@ -571,7 +571,7 @@ console.log('PASS: automatic twice-yearly seasonal costs, six-month timing, inde
 // Lease VAT settings belong to the lease card and retain hidden drafts across VAT toggles.
 for(const vatEnabled of [true,false])for(const leaseEnabled of [true,false]){
  vm.runInContext('write({...defaults,vatEnabled:'+vatEnabled+',leaseEnabled:'+leaseEnabled+',leaseVatDelay:2,leaseTaxablePct:75});update()',context);
- for(const key of ['leaseVatDelay','leaseTaxablePct']){
+ for(const key of ['leaseTaxablePct']){
   assert.equal(elements[key+'Field'].hidden,!vatEnabled);
   assert.equal(elements[key].disabled,!vatEnabled||!leaseEnabled);
  }
@@ -675,8 +675,8 @@ const actualVat=stateExpression('vatTableValues(read(),calculate(read()),true)')
 const pv=(amount,month)=>amount/1.025**(month/12);
 near(actualVat.balloonLoan.purchase,pv(nominalDetail.purchaseRefund,3));
 near(actualVat.lease.buyout,pv(nominalDetail.buyoutRefund,39));
-near(actualVat.lease.initial,pv(nominalDetail.leaseInitialVat,2));
-near(actualVat.lease.regular,Array.from({length:36},(_,m)=>pv(nominalDetail.leaseVatPerPayment,m+2)).reduce((a,b)=>a+b,0)/36);
+near(actualVat.lease.initial,pv(nominalDetail.leaseInitialVat,0));
+near(actualVat.lease.regular,Array.from({length:36},(_,m)=>pv(nominalDetail.leaseVatPerPayment,m)).reduce((a,b)=>a+b,0)/36);
 for(const v of variants){
  const o=nominalDetail[v.key];
  near(actualVat[v.key].grossSale,pv(o.resale,o.months));
@@ -768,7 +768,7 @@ for(const opportunity of [false,true])for(const todayMoney of [false,true]){
 }
 assert.equal(stateExpression('encodeSettings(readSettings())'),financialBefore);
 vm.runInContext('write({...defaults,normalEnabled:false,leaseEnabled:false,cashEnabled:false});update()',context);
-assert.equal(vm.runInContext('chartData.has("car-value-timeline")',context),false);
+assert.equal(vm.runInContext('chartData.has("car-value-timeline")',context),true);
 assert.match(elements.timelineGraph.innerHTML,/Choose Relative depreciation/);
 assert.equal(stateExpression('chartData.get("cost-waterfall").cells').length,4);
 assert.ok(stateExpression('chartData.get("inflation-return-map").grid').every(cell=>cell.costs.length===1&&cell.leaders[0]==='balloonLoan'));

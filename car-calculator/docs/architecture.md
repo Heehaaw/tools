@@ -71,7 +71,7 @@ The cost table presents the invoice and inflation benefit on deferred principal 
 | --- | --- |
 | Add an option or input | `variants`, `defaults`, `migrateInputs`, `effectiveInputs`, `validate` |
 | Relative or historical resale | `historicalInflationTotal`, `historicalInflationRate`, `relativeResaleEstimate` |
-| Loan schedule / early exit | `monthlyPayment`, `loanPlan`, `calculate` |
+| Loan schedule / early exit | `monthlyPayment`, `annualRateFromPayment`, `loanPlan`, `loanSchedule`, `calculate` |
 | Payment dates, VAT, tax, running costs | `calculate`, particularly its nested `option` function |
 | Inflation and opportunity valuation | `cashFlowValue`, `nominalOpportunityRate` |
 | Separate-term comparison | `comparisonValue`, `hasDifferentPeriods` |

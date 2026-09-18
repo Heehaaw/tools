@@ -75,3 +75,13 @@ The dates are a mathematical fixture, not an assertion about observed Czech infl
 ## Delivery checks
 
 Follow the project AGENTS build/test/diff commands. Check local documentation links and keep root/project Pages links identical when changing published paths. Confirm the artifact opens offline. Report the checks actually performed, and any unverified limitations. Commit or publish only when requested.
+
+### Balloon quote modes
+
+`tests/balloon-quote.test.mjs` checks quote-to-rate inference, zero-interest and interest-only loans, independent repayment periods, invalid quotes, old JSON defaults, inactive drafts, mode switching and sensitivity calculations. In the browser, verify insurance is left of Other balloon loan costs, switch the radio modes, and check that interest stays left, payment stays right, and only the selected input is editable. The disabled value must update when the editable input changes; choosing the other mode adopts its displayed value.
+
+`tests/vat-settings.test.mjs` checks VAT-inclusive quote migration, shared-rate calculations, VAT-off visibility and incomplete legacy drafts.
+
+`tests/standard-quote.test.mjs` covers standard-loan payment inference, independent repayment periods, saved drafts and independence between both loan input modes. Both cards keep interest on the left and monthly payment on the right, below their insurance and other costs.
+
+`tests/loan-graphs.test.mjs` reconciles amortization with the main model across zero/positive interest, early exits and ownership beyond maturity. It checks debt/equity tooltips, direct-mode value points, quoted-payment loans, shared monthly breakdowns, terminal payments and excluded options.

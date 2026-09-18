@@ -95,3 +95,15 @@ Scenarios saved before the return-basis controls load with a nominal after-tax r
 Add fields with defaults that preserve older intent. Where current defaults would alter an older scenario, migrate missing fields explicitly. Keep retired stored values when needed for round trips; do not rename or repurpose persisted keys casually. Deliberate incompatible changes need a version and an explicit migration.
 
 Cover old single and collection exports, explicit zero, null drafts, inactive inputs, failure recovery and export/reimport. Never overwrite original storage after a failed load. Keep stable card keys when changing visible headings so collapse preferences survive.
+
+### Balloon quote input
+
+`balloonInputMode` is `rate` (default for existing scenarios) or `payment`. `balloonMonthlyPayment` stores the regular quote excluding insurance and fees and defaults to 0. Both it and `rate` retain their raw values, including blank drafts, during calculation and rendering. The two visible fields stay in place; the disabled field displays the calculated value without replacing its saved raw input. Choosing the other radio mode explicitly adopts that displayed value as the newly editable input. Effective payment-mode calculations derive `rate` without persisting it over the entered rate. Disabled balloon loans ignore the quote. The v1/v2 envelopes remain unchanged.
+
+### Retired lease quote VAT basis
+
+The lease quote is now always entered including VAT, and `vatPct` lives in the global VAT card. The legacy `kintoVatMode` key remains readable. Migration converts `net` monthly quotes using their saved VAT rate, then stores `gross`, so repeated migrations cannot add VAT twice. Incomplete net quotes retain their basis until the missing rate is supplied; the form explains how to finish the conversion. VAT-off calculations ignore inactive global VAT numeric drafts while preserving their raw values.
+
+`leaseVatDelay` is retained only for compatibility and raw round trips. Effective calculations always use zero: regular and initial lease VAT is deducted in the payment month. Positive delays in older scenarios therefore no longer affect costs. Purchase/buyout refund timing is unchanged.
+
+The standard loan uses the same quote modes through `normalInputMode` (`rate` by default) and `normalMonthlyPayment` (0 by default), paired with `normalRate`. Its rate solver assumes no balloon and uses the standard loan’s repayment period. The two loans retain independent modes and raw values.

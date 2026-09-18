@@ -24,6 +24,8 @@ export function validateSettings(state){
    if(!Number.isFinite(value)||value<0)throw new Error("Enter a non-negative number or leave the field empty.");
   }else if(typeof value!==typeof fallback)throw new Error("Invalid setting: "+key);
  }
+ if(!["rate","payment"].includes(state.normalInputMode))throw new Error("Choose interest rate or monthly payment for the standard loan.");
+ if(!["rate","payment"].includes(state.balloonInputMode))throw new Error("Choose interest rate or monthly payment for the balloon loan.");
  if(!["direct","relative"].includes(state.resaleMode))throw new Error("Choose direct resale or relative depreciation.");
  if(!["real","nominal"].includes(state.opportunityRateBasis))throw new Error("Choose a valid return basis.");
  if(state.carName.length>100)throw new Error("Keep the scenario name under 100 characters.");

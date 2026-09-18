@@ -21,7 +21,7 @@ export function createApp({document,window,storage}){
  function update(){
   charts.hideGraphTooltip();results.hideResultExplanation();
   const s=effectiveInputs(form.read());form.updateSelection(s);$("kInsuranceField").hidden=s.kintoInsuranceIncluded;
-  $("buyoutField").hidden=s.leaseEnd==="return";$("buyoutVatField").hidden=s.leaseEnd==="return";
+  $("buyoutField").hidden=s.leaseEnd==="return";$("buyoutVatField").hidden=!s.vatEnabled||s.leaseEnd==="return";
   const missing=Object.entries(defaults).filter(([key,value])=>typeof value==="number"&&!Number.isFinite(s[key])&&$(key).value.trim()==="");
   if(!variants.some(v=>s[v.enabled])){
    $("error").textContent="Select at least one option in Setup to see results and graphs.";$("error").hidden=false;$("resultContent").hidden=true;$("graphContent").hidden=true;return null;

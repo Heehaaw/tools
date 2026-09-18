@@ -1,4 +1,4 @@
-import {defaults,variants,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate} from "./model.mjs";
+import {defaults,variants,migrateInputs,monthlyPayment,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate} from "./model.mjs";
 import {money,num,ratePercent,ungroupNumber,parseNumber,formatNumberInput} from "./format.mjs";
 import {createYearEditor} from "./year-editor.mjs";
 
@@ -6,11 +6,15 @@ import {createYearEditor} from "./year-editor.mjs";
 export function createForm({document,views,onChange}){
  const $=id=>document.getElementById(id);
  const {applyTimeLabels}=views;
+ // A calculated display must not overwrite an inactive saved input during ordinary renders.
+ const loanQuotes=[{kind:"balloon",rate:"rate",down:"downPct"},{kind:"normal",rate:"normalRate",down:"normalDownPct"}];
+ const calculatedLoanFields=new Map();
  const additionalEditor=createYearEditor({document,prefix:"additionalYear",dialogId:"additionalCostsDialog",openerId:"editAdditionalYears",closeIds:["closeAdditionalYears","doneAdditionalYears"],datasetKey:"additionalYear",unit:"Kč / year incl. VAT",staticFields:true,describe:(value,duration)=>money(value*duration/12)+(duration<12?" · "+duration+"/12 year":" in this year")});
  const historicalEditor=createYearEditor({document,prefix:"historicalInflationYear",dialogId:"historicalInflationDialog",openerId:"editHistoricalInflation",closeIds:["closeHistoricalInflation","doneHistoricalInflation"],gridId:"historicalInflationYearGrid",datasetKey:"historicalInflationYear",unit:"% p.a.",maxYears:100,baseMax:20,step:.1,limit:100,describe:(value,duration)=>ratePercent(((1+value/100)**(duration/12)-1)*100)+(duration<12?" · "+duration+"/12 year":" in this year")});
 
  function read(){
   const state=Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,Array.isArray(v)?JSON.parse($(k).value||"[]"):typeof v==="boolean"?$(k).checked:typeof v==="number"?($(k).value.trim()===""?NaN:parseNumber($(k).value)):$(k).value]));
+  for(const {key,raw} of calculatedLoanFields.values())state[key]=raw===null?NaN:raw;
   // Hidden, unused charges are zero for calculation, but stay blank in saved drafts.
   if(state.leaseEnd==="return"&&$("leaseBuyout").value.trim()==="")state.leaseBuyout=0;
   if(state.kintoInsuranceIncluded&&$("kintoInsurance").value.trim()==="")state.kintoInsurance=0;
@@ -31,6 +35,8 @@ export function createForm({document,views,onChange}){
  }
 
  function write(s){
+  s=migrateInputs(s);
+  calculatedLoanFields.clear();
   additionalEditor.close();historicalEditor.close();
   $("prefillStatus").textContent="";
   for(const [k,v] of Object.entries(s)){if(Array.isArray(v))$(k).value=JSON.stringify(v);else if(typeof v==="boolean")$(k).checked=v;else $(k).value=v===null?"":typeof v==="number"?formatNumberInput(v):v;}
@@ -38,7 +44,8 @@ export function createForm({document,views,onChange}){
  }
 
  function readSettings(){
-  return Object.fromEntries(Object.entries(read()).map(([key,value])=>[key,typeof defaults[key]==="number"&&$(key).value.trim()===""?null:value]));
+  const rawCalculated=new Map([...calculatedLoanFields.values()].map(({key,raw})=>[key,raw]));
+  return Object.fromEntries(Object.entries(read()).map(([key,value])=>[key,rawCalculated.has(key)?rawCalculated.get(key):typeof defaults[key]==="number"&&$(key).value.trim()===""?null:value]));
  }
 
  function additionalPeriod(s){
@@ -95,7 +102,25 @@ export function createForm({document,views,onChange}){
    const timing=repay<keep?"Repayments stop at month "+repay+"; insurance and running costs continue.":repay>keep?(s.loanEnd==="sell"?"Selling at month "+keep+" pays off the remaining principal. Add any settlement fee to Other loan costs.":"At month "+keep+", remaining debt reduces the retained car value. Later payments and interest are outside this comparison."):"Repayments end when ownership ends.";
    $(v.kind+"LoanTermNote").textContent=Number.isFinite(keep)&&Number.isFinite(repay)?"Keep for "+keep+" months · repay over "+repay+" months. "+timing+(v.kind==="balloon"&&s.balloonPct>0?" The balloon is due at month "+repay+" if the loan reaches maturity.":""):"Enter ownership and repayment periods in whole months.";
   }
-  for(const key of ["leaseVatDelay","leaseTaxablePct"]){
+  for(const {kind,rate,down} of loanQuotes){
+   const paymentMode=$(kind+"InputMode").value==="payment",payment=kind+"MonthlyPayment",enabled=s[kind+"Enabled"];
+   $(kind+"ModeRate").checked=!paymentMode;$(kind+"ModePayment").checked=paymentMode;
+   $(kind+"RateField").hidden=false;$(kind+"PaymentField").hidden=false;
+   $(rate).disabled=!enabled||paymentMode;$(payment).disabled=!enabled||!paymentMode;
+   const derivedKey=paymentMode?rate:payment;
+   if(calculatedLoanFields.get(kind)?.key!==derivedKey)calculatedLoanFields.set(kind,{key:derivedKey,raw:readSettings()[derivedKey]});
+   const balloon=kind==="balloon"?s.price*s.balloonPct/100:0;
+   const derived=paymentMode?s[rate]:monthlyPayment(s.price*(1-s[down]/100),balloon,s[rate],s[kind+"LoanMonths"]);
+   $(derivedKey).value=Number.isFinite(derived)?formatNumberInput(Number(derived.toFixed(paymentMode?4:2))):"";
+   $(kind+"QuoteNote").textContent=paymentMode?"Interest is calculated from the monthly payment, excluding insurance and fees.":"Monthly payment is calculated from the interest rate."+(kind==="balloon"?" The balloon is additional to the last instalment.":" Excludes insurance and fees.");
+  }
+  $("globalVatFields").hidden=!s.vatEnabled;$("vatSettingsHint").hidden=!s.vatEnabled;
+  $("purchaseVatField").hidden=!s.vatEnabled;$("buyoutVatField").hidden=!s.vatEnabled||s.leaseEnd==="return";
+  for(const key of ["vatPct","recoveryPct","purchaseVatDelay","purchaseVatCap","purchaseVatEligible","buyoutVatEligible"])$(key).disabled=!s.vatEnabled;
+  const pendingNet=$("kintoVatMode").value==="net";
+  $("legacyLeaseQuoteNote").hidden=!pendingNet;
+  $("legacyLeaseQuoteNote").textContent=pendingNet?"This saved quote excludes VAT. Enable VAT and enter its rate in the global settings to convert the quote to an inclusive amount.":"";
+  for(const key of ["leaseTaxablePct"]){
    $(key+"Field").hidden=!s.vatEnabled;
    $(key).disabled=!s.vatEnabled||!s.leaseEnabled;
   }
@@ -116,7 +141,7 @@ export function createForm({document,views,onChange}){
   $("help-resale").textContent=past?"Actual sale proceeds including VAT, after selling fees, or the retained market value at the ownership end. This reduces ownership cost. Winter tyres are counted separately.":"Your expected selling price including VAT, after selling fees. This reduces ownership cost. If kept, it is estimated retained value. Winter tyres are counted separately.";
   $("historicalPricesHint").textContent=past?"Use the original price and end value of the historical car. Set Price paid at purchase above to the same original price to replay that car exactly. Its age follows the ownership period automatically. Cumulative inflation must cover that whole period. Other purchase prices or individual option periods model a scaled comparison.":"The two prices are initially copied from your purchase and direct resale estimates as starting suggestions. Replace them with a comparable car’s actual original new price and its used resale value today. The purchase price above is the new car’s price today. Enter actual prices on the same VAT basis and use comparable trim, condition and mileage.";
   $("relativeMethodHint").textContent=past?"The derived annual inflation reconciles cumulative inflation with the ownership period. Matching the original purchase price reproduces the entered end value. Other periods use a constant compounded depreciation rate; they are estimates, not observed sale prices.":"Different ownership periods use the same compounded annual real depreciation rate. This is a simple extrapolation, not a forecast of market prices. Choose comparable mileage yourself; mileage does not adjust resale automatically. Future nominal resale uses the annual inflation estimate above, even when the results’ today’s-money switches are off.";
-  $("timelineHint").textContent=past?"Replay the ownership period from purchase to the end value. Solid and dashed lines show nominal value and purchasing power at purchase. The curve assumes constant compounded depreciation, not measured price history. Values include VAT, before settlement of VAT, sale taxes or remaining debt.":"Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.";
+  $("timelineHint").textContent=!relative?"Loan balances follow the repayment schedule. Value dots show the purchase price and entered end value, with no assumed path between them. Choose Relative depreciation for an estimated value curve.":past?"Replay the ownership period from purchase to the end value. Solid and dashed lines show nominal value and purchasing power at purchase. The curve assumes constant compounded depreciation, not measured price history. Values include VAT, before settlement of VAT, sale taxes or remaining debt.":"Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.";
   $("help-resaleMode").textContent=past?"Direct resale uses the known sale or retained value unchanged. Relative depreciation replays the historical value change; matching the original price and age reproduces the known end value. Other prices or periods remain modelled comparisons. Inactive inputs are preserved.":"Direct mode uses your expected future selling price as entered. Relative depreciation estimates future resale from a comparable car’s historical prices, age and inflation. Switching methods preserves inactive inputs.";
   $("heatmapHint").textContent=past?"What if inflation or the alternative investment return had differed? Known or modelled end values, quotes and running costs stay fixed. This is sensitivity analysis, not a reconstruction of actual inflation. Different ownership terms are compared per month.":"Explore future inflation against alternative investment returns. Historical prices, historical inflation, finance quotes and running costs stay fixed. Relative mode recalculates future nominal resale; direct resale estimates stay fixed. Different terms are compared per month. With opportunity cost off, investment return has no effect. Cells are sampled scenarios, not exact break-even boundaries. Hover, tap or use arrow keys to compare all selected options.";
   $("resaleMode-direct").checked=!relative;$("resaleMode-relative").checked=relative;
@@ -187,7 +212,7 @@ export function createForm({document,views,onChange}){
   // DOM order follows the setup cards from top to bottom and left to right.
   for(const [target,value] of suggestions){
    const targetIndex=controls.findIndex(control=>control.id===target);
-   if(targetIndex<=sourceIndex||$(target).value.trim()!=="")continue;
+   if(targetIndex<=sourceIndex||$(target).disabled||$(target).value.trim()!=="")continue;
    $(target).value=formatNumberInput(value);
    const label=document.querySelector('label[for="'+target+'"] .field-title');
    filled.push((label?.textContent||target)+": "+value);
@@ -197,12 +222,22 @@ export function createForm({document,views,onChange}){
 
  function handleInput(event){
   const target=event?.target;
+  for(const {kind} of loanQuotes)if(target?.name===kind+"QuoteMethod"&&target.checked&&target.value!==$(kind+"InputMode").value){
+   // Choosing the other source promotes its displayed result to an editable quote.
+   calculatedLoanFields.delete(kind);
+   $(kind+"InputMode").value=target.value;
+  }
   if(target?.name==="additionalMethod"&&target.checked){
    $("additionalCostMode").value=target.value;
    // Seed once; switching back or shortening ownership never erases the yearly schedule.
    if(target.value==="yearly"&&!JSON.parse($("additionalCostYears").value||"[]").length){
     const raw=readSettings();$("additionalCostYears").value=JSON.stringify(Array(Math.ceil(additionalPeriod(raw)/12)).fill(raw.additionalCostAnnual));
    }
+  }
+  // Wait for the completed VAT rate; typing its first digit must not fix the invoice basis.
+  if(event?.type==="change"&&$("kintoVatMode").value==="net"){
+   const migrated=migrateInputs(readSettings());
+   if(migrated.kintoVatMode==="gross"){$("kintoVatMode").value="gross";$("kintoMonthly").value=migrated.kintoMonthly===null?"":formatNumberInput(migrated.kintoMonthly);}
   }
   const raw=readSettings();
   const additionalValues=additionalEditor.editedValues(target,raw.additionalCostYears,raw.additionalCostAnnual);

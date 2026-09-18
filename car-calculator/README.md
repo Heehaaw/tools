@@ -17,7 +17,7 @@ Scenarios autosave in the browser, not inside the HTML. Export the current scena
 1. Select the permanent example, edit it to create a saved scenario, or duplicate an existing scenario.
 2. In Setup, enter the purchase price, ownership period, mileage and end value. Select which financing options to compare. Periods match by default; ownership and loan repayment periods can be split.
 3. Choose direct resale or relative depreciation. Historical inflation can be entered as one cumulative total or as annual rates that compound over the comparable car's age. Enable Past ownership to replay historical prices and costs; its annual inflation is derived from that history and cannot be edited directly.
-4. Enter each quote's deposits, interest, insurance, scheduled running costs and included services. Add an annual or year-specific repair budget when needed. Configure VAT and optional manual income-tax effects where applicable.
+4. Enter each quote's deposits, interest (or either loan’s monthly repayment), insurance, scheduled running costs and included services. Add an annual or year-specific repair budget when needed. Configure VAT and optional manual income-tax effects where applicable.
 5. Open Results or Graphs. Each supported view has independent opportunity-cost and inflation switches. Inflation starts off. Adjusted money means today's purchasing power for a new purchase, or purchase-date purchasing power for Past ownership.
 
 Use actual quote amounts and historical inputs appropriate to your scenario. Example values are planning assumptions, not live offers. Optional tax settings estimate entered rates and deductions; they do not calculate a Czech tax return.
@@ -29,7 +29,7 @@ Use actual quote amounts and historical inputs appropriate to your scenario. Exa
 - Dated VAT, opportunity cost and cash-flow breakdowns, plus buyout, sale and retained-value choices.
 - Annual or year-specific additional repair costs, with partial-year timing and an independent lease-inclusion choice.
 - Direct cumulative or year-by-year historical inflation for relative depreciation and Past ownership.
-- Charts for payments, cash flow, resale, interest, inflation, investment returns and car values.
+- Charts for payments, cash flow, resale, interest, inflation, investment returns, car values versus debt, and monthly principal/interest repayments.
 - Shared graph tooltips with hover, tap and keyboard support; explanations on result text.
 - Browser-persisted dark mode, collapsible cards, view switches and selected scenario.
 - Mobile layout, grouped-number display and incomplete saved drafts.
