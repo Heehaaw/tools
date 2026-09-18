@@ -96,3 +96,7 @@ Historical-inflation tests cover the fourth main-average radio, independent past
 `node tests/local-periods.test.mjs` covers independently linked option/comparable/repayment periods, mixed-term sensitivity, hidden custom-value preservation, local fieldset visibility and migration from the retired global switch.
 
 For annual comparison controls, check that the per-year checkbox is first, the overall card’s large amount swaps basis, cumulative amounts stay visible below it, and hover/focus/tap tooltips retain full-term amounts. Each switch affects only its own section. Check wrapping on mobile with all three controls.
+
+## Release metadata
+
+Build tests verify that the header uses the newest release version/date, links to the Markdown ledger, and remains deterministic without modifying notes. Invalid latest headings fail instead of selecting an older release. Before a requested commit or push, follow the release workflow in AGENTS.md and verify the staged ledger, header and changes agree. Rebuilding or pushing an already recorded release must not add another entry.

@@ -48,14 +48,19 @@ export async function bundleModules(entryFile){
 }
 
 /** Build the shareable file from source; returned HTML also allows deterministic artifact checks. */
-export async function buildStandalone({src=sourceDirectory,output=resolve(projectDirectory,"car-financing-calculator.html")}={}){
- const [template,css,bundle]=await Promise.all([
-  readFile(resolve(src,"index.html"),"utf8"),readFile(resolve(src,"style.css"),"utf8"),bundleModules(resolve(src,"app.mjs"))
+export async function buildStandalone({src=sourceDirectory,output=resolve(projectDirectory,"car-financing-calculator.html"),releaseNotes=resolve(projectDirectory,"RELEASE_NOTES.md")}={}){
+ const [template,css,bundle,notes]=await Promise.all([
+  readFile(resolve(src,"index.html"),"utf8"),readFile(resolve(src,"style.css"),"utf8"),bundleModules(resolve(src,"app.mjs")),readFile(releaseNotes,"utf8")
  ]);
+ // The ledger is the single source of release metadata; rebuilding never invents a new date.
+ const heading=notes.match(/^## (.+)$/m)?.[1];
+ const release=heading?.match(/^(\d{4}\.\d{2}\.\d{2}\.[1-9]\d*) \((\d{4}-\d{2}-\d{2})\)$/);
+ if(!release||release[1].slice(0,10).replaceAll(".","-")!==release[2]||!Number.isFinite(Date.parse(release[2]))||new Date(release[2]).toISOString().slice(0,10)!==release[2])throw new Error("Newest release heading must be YYYY.MM.DD.N (YYYY-MM-DD) with a matching valid date.");
+ const releasedTemplate=template.replaceAll("{{RELEASE_VERSION}}",release[1]).replaceAll("{{RELEASE_DATE}}",release[2]);
  const stylesheet='<link rel="stylesheet" href="./style.css">',entry='<script type="module" src="./app.mjs"></script>';
  if(!template.includes(stylesheet)||!template.includes(entry))throw new Error("The source template is missing a stylesheet or script entry point.");
  // Escape raw-text closing tags so a string in a module cannot terminate its containing HTML element.
- const html=template.replace(stylesheet,()=>"<style>"+css.replace(/<\/style/gi,"<\\/style")+"</style>")
+ const html=releasedTemplate.replace(stylesheet,()=>"<style>"+css.replace(/<\/style/gi,"<\\/style")+"</style>")
   .replace(entry,()=>'<script type="module">\n'+bundle.replace(/<\/script/gi,"<\\/script")+'\n</script>');
  if(output!==null)await writeFile(output,html);
  return html;

@@ -18,7 +18,8 @@
 | `src/app.mjs` | Controller construction, callbacks, `initialize()` and the shared `update()` path | Feature-specific mutable state |
 | `src/index.html` | Controls, accessible labels, page sections and initial help text | Generated results and business calculations |
 | `src/style.css` | Layout, option colours, money-basis accent and themes | State or calculation logic |
-| `build.mjs` | Validated module-graph bundling and deterministic standalone HTML assembly | Runtime network dependencies |
+| `build.mjs` | Validated module-graph bundling, ledger version/date injection and deterministic standalone HTML assembly | Runtime network dependencies |
+| `RELEASE_NOTES.md` | Dated semantic releases; newest heading supplies build metadata | Saved scenario schema or runtime state |
 | `test.mjs`, `tests/` | Focused build/controller/model checks plus execution of the built page in a minimal DOM | Claims about actual browser layout |
 
 Paths in this table are relative to the project directory. The application has no installed dependencies, external chart library or required server. The generated HTML is the distribution artifact; edit source files and rebuild it.

@@ -107,3 +107,42 @@ test('raw script closing tags cannot escape the generated inline script',async()
   await rm(directory,{recursive:true,force:true});
  }
 });
+
+test('release header uses the newest ledger entry without runtime dependencies or changing the ledger',async()=>{
+ const directory=await fixture({
+  'index.html':'<link rel="stylesheet" href="./style.css"><a href="https://github.com/Heehaaw/tools/blob/main/car-calculator/RELEASE_NOTES.md">v{{RELEASE_VERSION}}<time datetime="{{RELEASE_DATE}}">{{RELEASE_DATE}}</time></a><script type="module" src="./app.mjs"></script>',
+  'style.css':'body{color:black}',
+  'app.mjs':'export const ready=true;',
+  'RELEASE_NOTES.md':'# Release notes\n\n## 2026.09.18.4 (2026-09-18)\n\n- New release.\n\n## 2026.09.17.2 (2026-09-17)\n\n- Earlier release.\n'
+ });
+ try{
+  const path=join(directory,'RELEASE_NOTES.md'),before=await readFile(path,'utf8');
+  const options={src:directory,output:null,releaseNotes:path};
+  const first=await buildStandalone(options),second=await buildStandalone(options);
+  assert.equal(first,second);
+  assert.match(first,/v2026\.09\.18\.4<time datetime="2026-09-18">2026-09-18<\/time>/);
+  assert.doesNotMatch(first,/\{\{RELEASE_/);
+  assert.equal(await readFile(path,'utf8'),before);
+  const artifact=await readFile(join(projectDirectory,'car-financing-calculator.html'),'utf8');
+  const notes=await readFile(join(projectDirectory,'RELEASE_NOTES.md'),'utf8');
+  const [,version,date]=notes.match(/^## ([\d.]+) \((\d{4}-\d{2}-\d{2})\)$/m);
+  assert.ok(artifact.includes('Release notes · v'+version));
+  assert.ok(artifact.includes('<time datetime="'+date+'">'+date+'</time>'));
+  assert.ok(artifact.includes('https://github.com/Heehaaw/tools/blob/main/car-calculator/RELEASE_NOTES.md'));
+ }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+test('invalid latest release metadata fails rather than silently using an older release',async()=>{
+ const directory=await fixture({
+  'index.html':'<link rel="stylesheet" href="./style.css"><script type="module" src="./app.mjs"></script>',
+  'style.css':'body{color:black}',
+  'app.mjs':'export const ready=true;'
+ });
+ try{
+  const path=join(directory,'RELEASE_NOTES.md');
+  for(const heading of ['Unreleased','2026.09.18.1 (2026-09-17)','2026.02.31.1 (2026-02-31)','2026.09.18.0 (2026-09-18)']){
+   await writeFile(path,'# Release notes\n\n## '+heading+'\n\n## 2026.01.01.1 (2026-01-01)\n');
+   await assert.rejects(buildStandalone({src:directory,output:null,releaseNotes:path}),/Newest release heading must be/);
+  }
+ }finally{await rm(directory,{recursive:true,force:true});}
+});

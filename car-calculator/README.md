@@ -6,6 +6,8 @@
 
 Compare a balloon loan, standard loan, operating lease or outright purchase, including resale, running costs, VAT, inflation and opportunity cost. Plan a purchase or replay past ownership.
 
+[Release notes](RELEASE_NOTES.md) list dated changes and their source commits. The link beside AUTO / FINANCE CALCULATOR opens this ledger on GitHub; the calculator itself still works offline.
+
 ## Open and share
 
 Open [car-financing-calculator.html](car-financing-calculator.html) directly in a browser. It works offline without installation or a server. Share that one HTML file.
@@ -45,3 +47,7 @@ Annual comparisons divide each option’s full cost by its own ownership years, 
 | [Financial model](docs/model.md) | Formulas, timing, assumptions, graphs and historical ownership |
 | [Scenarios and compatibility](docs/storage.md) | JSON formats, browser keys, migrations and failure recovery |
 | [Verification guide](docs/testing.md) | Focused build, controller, feature, model and UI tests plus browser checks |
+
+## Preparing a release
+
+When asked to commit or push, collect the changes since the last recorded release into [RELEASE_NOTES.md](RELEASE_NOTES.md). Infer the effects from commit messages and checked diffs, including pending changes. Use a new dated `YYYY.MM.DD.N` entry, rebuild the HTML so its header gets the same version/date, run the checks, and commit the notes with the changes. A later push of an already recorded commit reuses that release. See [AGENTS.md](AGENTS.md#release-workflow-for-requested-commits-and-pushes) for the full workflow.

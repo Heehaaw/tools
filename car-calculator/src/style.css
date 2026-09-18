@@ -472,3 +472,5 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 .period-toggle{grid-column:1/-1;margin:8px 0;min-width:0}
 .period-settings{grid-column:1/-1;min-width:0;margin:0 0 12px;padding:2px 0;border:0}
 .period-settings>.fields>.field:only-child{grid-column:1/-1}
+
+.brand-group{display:flex;align-items:center;flex-wrap:wrap;gap:10px 20px;min-width:0}.release-link{display:block;color:var(--muted);font-size:12px;line-height:1.5;text-decoration:none}.release-link time{display:block}.release-link:hover{color:var(--blue);text-decoration:underline}.release-link:focus-visible{outline:2px solid var(--blue);outline-offset:4px}
