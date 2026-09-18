@@ -36,7 +36,7 @@ The source import graph is deliberately shallow and acyclic:
 | `shell.mjs` | `model.mjs` |
 | `app.mjs` | All controllers plus `model.mjs` |
 
-Runtime factory injection supplies `views` to the form, results and charts, `form` to scenarios, and coordinator callbacks to every controller that can trigger rendering or dismiss another controller's tooltip. The form creates two year-editor instances: one binds the static repair-cost controls and one generates historical-inflation controls as needed. The editors operate on form-owned hidden arrays and do not own a second copy of scenario state. Those object references do not add source imports or a second state store.
+Runtime factory injection supplies `views` to the form, results and charts, `form` to scenarios, and coordinator callbacks to every controller that can trigger rendering or dismiss another controller's tooltip. The form creates three year-editor instances: one binds the static repair-cost controls, while the other two generate historical-comparable and ownership-inflation controls as needed. The editors operate on form-owned hidden arrays and do not own a second copy of scenario state. Those object references do not add source imports or a second state store.
 
 ## Data flow
 
@@ -76,11 +76,12 @@ The cost table presents the invoice and inflation benefit on deferred principal 
 | Inflation and opportunity valuation | `cashFlowValue`, `nominalOpportunityRate` |
 | Separate-term comparison | `comparisonValue`, `hasDifferentPeriods` |
 | Resale sensitivity | `withResale`, `resaleTaxBreakpoints`, `resaleComparisons` |
+| Ownership inflation entries | `ownershipInflationTotal`, `ownershipInflationRate`, `validateOwnershipInflation` |
 | Interest matching | `interestComparisons` |
 | Inflation/return heatmap | `inflationReturnGrid` |
 | Display sampling and ranking | `resaleSamples`, `ranked` |
 
-`withResale` first resolves relative estimates, then varies nominal resale in direct mode. Do not feed a sensitivity override back into the historical estimator. With split terms, comparisons use costs per month rather than pretending every option has the same duration.
+`withResale` first resolves relative estimates, then varies nominal resale in direct mode. Do not feed a sensitivity override back into the historical estimator. Results and cost-comparison graphs pass their independent annual/full-term preference to resale and interest solvers. The solvers retain the previous automatic monthly normalisation for callers that omit the optional basis; when explicitly normalised, presentation multiplies that monthly value by 12. `inflationReturnGrid` accepts the same optional basis. Cash-flow calculations and exported inputs remain unchanged.
 
 ## UI entry points
 
@@ -89,6 +90,7 @@ Each stateful browser module exports a factory. One calculator instance gets one
 | Change | Functions / definitions |
 | --- | --- |
 | Application lifecycle and calculation dispatch | `createApp`, `initialize`, `update` in `app.mjs` |
+| Per-view annual/full-term basis | `annualViews`, `initializeAnnualViews` in `views.mjs`; result and chart rendering apply each option’s own months |
 | Per-view cost basis | `createViews`, `viewOptions`, `viewInputs` in `views.mjs` |
 | Historical money labels | `timeWording`, `applyTimeLabels` in `views.mjs` |
 | Numeric parsing and display | `parseNumber`, `formatNumberInput`, `money` in `format.mjs` |
@@ -102,6 +104,8 @@ Each stateful browser module exports a factory. One calculator instance gets one
 | Theme, cards and tabs | `createShell`, `selectTab` in `shell.mjs` |
 
 `chartData` holds interaction metadata for line, bar and cell-based charts. Shared horizontal positions expose all relevant series in one tooltip. Keep hover, tap, keyboard and Escape behaviour when adding a chart. Register its view toggles alongside the existing keys when appropriate. Stable option colours come from `data-option`; inflation-adjusted money has a separate accent.
+
+Two independent panel cards sit directly below the Your comparison card: Period and assumptions (`period-assumptions`) and Purchase and resale (`purchase-resale`). Their explicit card keys keep collapse state independent of field order. The cards share a responsive grid and stack on narrower screens; the shell wraps them like other panels.
 
 `applyTimeLabels` changes presentation wording and remembers original text so mode switches are reversible. It excludes editable values, scenario names and the historical-input section, whose present-day conversions have their own meaning. It must not rewrite saved data or financial values.
 

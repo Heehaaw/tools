@@ -56,6 +56,9 @@ node tests/build.test.mjs
 node tests/components.test.mjs
 node tests/additional-costs.test.mjs
 node tests/historical-inflation.test.mjs
+node tests/ownership-inflation.test.mjs
+node tests/local-periods.test.mjs
+node tests/annual-views.test.mjs
 node tests/balloon-quote.test.mjs
 node tests/standard-quote.test.mjs
 node tests/loan-graphs.test.mjs

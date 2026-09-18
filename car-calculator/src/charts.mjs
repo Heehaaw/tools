@@ -1,4 +1,4 @@
-import {loanSchedule,inflationReturnGrid,relativeResaleEstimate,nominalOpportunityRate,calculate,cashFlowValue,resaleComparisons,interestComparisons,comparisonValue,withResale,resaleSamples} from "./model.mjs";
+import {loanSchedule,inflationReturnGrid,relativeResaleEstimate,nominalOpportunityRate,calculate,cashFlowValue,resaleComparisons,interestComparisons,withResale,resaleSamples} from "./model.mjs";
 import {money,num,ratePercent,returnBasisLabel} from "./format.mjs";
 
 /** Render charts and own shared hover, touch and keyboard interaction state. */
@@ -6,7 +6,9 @@ export function createCharts({document,window,views,onShowTooltip}){
  const $=id=>document.getElementById(id);
  const chartData=new Map();
  let activeGraph=null;
- const {opportunityViews,inflationViews,viewOptions,viewInputs,moneyBasis,comparisonBasis,applyTimeLabels}=views;
+ const {annualViews,opportunityViews,inflationViews,viewOptions,viewInputs,moneyBasis,comparisonBasis,applyTimeLabels}=views;
+ const graphValue=(result,key)=>result.adjusted*(annualViews[key]?12/result.months:1);
+ const graphBasis=key=>annualViews[key]?'Kč / year effective':'Kč over full term';
  function graphFrame(title,body,width=960,height=340){
   return '<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="'+title+'"><title>'+title+'</title>'+body+'</svg>';
  }
@@ -73,41 +75,41 @@ export function createCharts({document,window,views,onShowTooltip}){
   chartData.set('monthly-costs',{type:'bars',active,bills,c,nominalBills,averageBills,nominal:inflationViews.monthlyGraph?calculate(viewInputs(s,'monthlyGraph')):c,top:38,rowHeight:94});
   return legend+graphFrame('Monthly bills and effective monthly costs on a shared percentage scale',body,960,height).replace('<svg ','<svg tabindex="0" data-chart-key="monthly-costs" ');
  }
- function sensitivityWinners(samples,active,split,formatX){
+ function sensitivityWinners(samples,active,key,formatX){
   const endpoints=[samples[0],samples[samples.length-1]];
   return '<div class="chart-insights">'+endpoints.map(sample=>{
-   const ranking=active.map(v=>({...v,cost:comparisonValue(sample.result[v.key],split)})).sort((a,b)=>a.cost-b.cost);
+   const ranking=active.map(v=>({...v,cost:graphValue(sample.result[v.key],key)})).sort((a,b)=>a.cost-b.cost);
    const leaders=ranking.filter(v=>Math.abs(v.cost-ranking[0].cost)<.5);
-   return '<p><strong>At '+formatX(sample.rate)+'</strong> '+leaders.map(v=>'<span data-option="'+v.kind+'">'+v.name+'</span>').join(' + ')+(leaders.length>1?' tie':' costs least')+' · '+money(ranking[0].cost)+(split?' / month':' total')+'</p>';
+   return '<p><strong>At '+formatX(sample.rate)+'</strong> '+leaders.map(v=>'<span data-option="'+v.kind+'">'+v.name+'</span>').join(' + ')+(leaders.length>1?' tie':' costs least')+' · '+money(ranking[0].cost)+(annualViews[key]?' / year':' total')+'</p>';
   }).join('')+'</div>';
  }
- function renderRateGraphs(s,active,split){
-  const basis=split?'Kč / month effective':'Kč over full term';
+ function renderRateGraphs(s,active){
   const percent=value=>new Intl.NumberFormat('en',{maximumFractionDigits:2}).format(value)+'%';
   const sampleRates=(max,extra)=>[...new Set([...Array.from({length:25},(_,i)=>max*i/24),...extra.filter(rate=>rate>=0&&rate<=max)])].sort((a,b)=>a-b);
   const returnMax=Math.min(s.opportunityRateBasis==="nominal"?300:100,Math.max(12,Math.ceil(s.opportunityRate*1.5)));
   const returns=sampleRates(returnMax,[s.opportunityRate]).map(rate=>({rate,result:calculate({...s,opportunityRate:rate})}));
-  const returnSeries=active.map(v=>({...v,points:returns.map(sample=>({x:sample.rate,y:comparisonValue(sample.result[v.key],split),label:percent(sample.rate)+' annual return · '+returnBasisLabel(s),current:sample.rate===s.opportunityRate}))}));
-  $("returnGraph").innerHTML=chartLegend(active)+lineChart('Opportunity return sensitivity',returnSeries,'Annual return · '+returnBasisLabel(s),basis,percent)+sensitivityWinners(returns,active,split,percent);
-  const interestInputs=viewInputs(s,'interestGraph'),matches=interestComparisons(interestInputs,viewOptions("interestGraph"));
+  const returnSeries=active.map(v=>({...v,annual:annualViews.returnGraph,months:s[v.months],points:returns.map(sample=>({x:sample.rate,y:graphValue(sample.result[v.key],"returnGraph"),label:percent(sample.rate)+' annual return · '+returnBasisLabel(s),current:sample.rate===s.opportunityRate}))}));
+  $("returnGraph").innerHTML=chartLegend(active)+lineChart('Opportunity return sensitivity',returnSeries,'Annual return · '+returnBasisLabel(s),graphBasis('returnGraph'),percent)+sensitivityWinners(returns,active,'returnGraph',percent);
+  const interestInputs=viewInputs(s,'interestGraph'),matches=interestComparisons(interestInputs,viewOptions("interestGraph"),annualViews.interestGraph);
   const loans=active.filter(v=>v.kind==='balloon'||v.kind==='normal');
   if(!loans.length){$("interestGraph").innerHTML='<p class="hint">Include a loan in Setup to explore interest rates.</p>';return;}
   const currentRates=loans.map(v=>v.kind==='balloon'?s.rate:s.normalRate);
   const interestMax=Math.min(100,Math.max(12,Math.ceil(Math.max(...currentRates)*1.5)));
   // Loans are independent: sampling both at x leaves lease and cash benchmarks unchanged.
   const rates=sampleRates(interestMax,[...currentRates,...matches.filter(m=>m.rate!==null).map(m=>m.rate)]).map(rate=>({rate,result:calculate({...interestInputs,balloonInputMode:"rate",normalInputMode:"rate",rate,normalRate:rate},viewOptions("interestGraph")),nominal:calculate({...interestInputs,balloonInputMode:"rate",normalInputMode:"rate",rate,normalRate:rate})}));
-  const loanSeries=active.map(v=>({...v,points:rates.map(sample=>({x:sample.rate,y:comparisonValue(sample.result[v.key],split),nominalY:comparisonValue(sample.nominal[v.key],split),label:percent(sample.rate)+' loan interest',current:v.kind==='balloon'?sample.rate===s.rate:v.kind==='normal'&&sample.rate===s.normalRate}))}));
-  $("interestGraph").innerHTML=chartLegend(active)+lineChart('Loan interest sensitivity',loanSeries,'Nominal annual loan interest',basis+' · '+comparisonBasis('interestGraph'),percent)+sensitivityWinners(rates,active,split,percent);
+  const loanSeries=active.map(v=>({...v,annual:annualViews.interestGraph,months:s[v.months],points:rates.map(sample=>({x:sample.rate,y:graphValue(sample.result[v.key],"interestGraph"),nominalY:graphValue(sample.nominal[v.key],"interestGraph"),label:percent(sample.rate)+' loan interest',current:v.kind==='balloon'?sample.rate===s.rate:v.kind==='normal'&&sample.rate===s.normalRate}))}));
+  $("interestGraph").innerHTML=chartLegend(active)+lineChart('Loan interest sensitivity',loanSeries,'Nominal annual loan interest',graphBasis('interestGraph')+' · '+comparisonBasis('interestGraph'),percent)+sensitivityWinners(rates,active,'interestGraph',percent);
  }
- function costWaterfall(s,active,split){
+ function costWaterfall(s,active){
+  const annual=annualViews.waterfallGraph;
   const result=calculate(s,viewOptions('waterfallGraph')),cells=[],left=220,width=650,rowHeight=200;
   const values=active.map(v=>{
-   const o=result[v.key],divisor=split?o.months:1;
+   const o=result[v.key],divisor=annual?o.months/12:1;
    return {v,o,amounts:[o.nominal,o.inflationAdjustment,o.opportunity,o.adjusted].map(value=>value/divisor)};
   });
   const ends=values.flatMap(({amounts:a})=>[a[0],a[0]+a[1],a[3]]),low=Math.min(0,...ends),high=Math.max(0,...ends);
   const labels=['Nominal cost','Inflation effect','Opportunity cost','Final cost'];
-  let body='<text class="chart-axis" x="'+left+'" y="18">'+(split?'Kč / month':'Kč over each full term')+' · hover a stage for all options</text>';
+  let body='<text class="chart-axis" x="'+left+'" y="18">'+(annual?'Kč / year':'Kč over each full term')+' · hover a stage for all options</text>';
   values.forEach(({v,o,amounts:a},row)=>{
    const top=40+row*rowHeight,y=value=>top+125-(value-low)/(high-low||1)*110;
    const starts=[0,a[0],a[0]+a[1],0],stops=[a[0],a[0]+a[1],a[3],a[3]];
@@ -118,8 +120,8 @@ export function createCharts({document,window,views,onShowTooltip}){
     if(stage<2)body+='<path class="chart-grid" stroke-dasharray="3 3" d="M'+(x+105)+' '+y(stops[stage])+'H'+(x+165)+'"/>';
     const stageNote=stage===1?(inflationViews.waterfallGraph?'Difference from discounting each dated cash flow; resale credits lose purchasing power too.':'Excluded. Turn on today’s money to include inflation.'):
      stage===2?(opportunityViews.waterfallGraph?'Additional timing cost on the selected inflation basis.':'Excluded by the opportunity-cost switch.'):
-     stage===3?comparisonBasis('waterfallGraph'):'Actual nominal ownership cost before opportunity and inflation adjustments.';
-    cells.push({x,y:top-12,w:105,h:180,values:{inflationRate:inflationViews.waterfallGraph&&stage>0?s.inflationRate:null,title:labels[stage],unit:(split?'Kč / month':'Kč over each option’s term')+' · '+stageNote,rows:values.map(other=>({name:other.v.name,kind:other.v.kind,value:other.amounts[stage]}))}});
+     stage===3?comparisonBasis('waterfallGraph'):'Nominal ownership cost before opportunity and inflation adjustments.';
+    cells.push({x,y:top-12,w:105,h:180,values:{inflationRate:inflationViews.waterfallGraph&&stage>0?s.inflationRate:null,title:labels[stage],unit:(annual?'Kč / year':'Kč over each option’s term')+' · '+stageNote,rows:values.map(other=>({name:other.v.name,kind:other.v.kind,value:other.amounts[stage],note:"Full-term amount: "+money(other.amounts[stage]*(annual?other.o.months/12:1))+" over "+other.o.months+" months"}))}});
    });body+='</g>';
   });
   chartData.set('cost-waterfall',{type:'cells',cells,columns:4});
@@ -200,13 +202,14 @@ export function createCharts({document,window,views,onShowTooltip}){
   const endLegend='<div class="chart-key">End markers: '+endGroups.map(group=>'<span>'+group.options.map(v=>'<span data-option="'+v.kind+'">'+v.name+'</span>').join(' + ')+' · month '+group.month+'</span>').join('')+'</div>';
   return chartLegend(series)+svg+endLegend;
  }
- function inflationReturnHeatmap(s,active,split){
+ function inflationReturnHeatmap(s,active){
+  const annual=annualViews.heatmapGraph;
   const range=(current,minimum,max)=>{
    const end=Math.min(max,Math.max(minimum,Math.ceil(current*1.5)));
    return [...new Set([...Array.from({length:9},(_,i)=>end*i/8),current])].sort((a,b)=>a-b);
   };
   const inflations=range(s.inflationRate,6,100),returns=range(nominalOpportunityRate(s),12,300).reverse();
-  const grid=inflationReturnGrid(s,inflations,returns,viewOptions('heatmapGraph')),maxGap=Math.max(1,...grid.map(cell=>cell.gap));
+  const grid=inflationReturnGrid(s,inflations,returns,viewOptions('heatmapGraph'),annual).map(cell=>({...cell,gap:cell.gap*(annual?12:1),costs:cell.costs.map(v=>({...v,value:v.value*(annual?12:1)}))})),maxGap=Math.max(1,...grid.map(cell=>cell.gap));
   const left=110,top=48,width=790,height=335,cw=width/inflations.length,ch=height/returns.length,cells=[];
   let body='<text class="chart-axis" x="'+left+'" y="18">Alternative return · % p.a. after tax, before inflation</text>';
   grid.forEach((cell,index)=>{
@@ -215,7 +218,7 @@ export function createCharts({document,window,views,onShowTooltip}){
    const outcome=tied?'Tie: '+cell.costs.filter(v=>cell.leaders.includes(v.key)).map(v=>v.name).join(' + '):winner.name+' wins';
    body+='<rect tabindex="0" data-point-x="'+index+'" data-option="'+(tied?'tie':winner.kind)+'" x="'+(x+1)+'" y="'+(y+1)+'" width="'+(cw-2)+'" height="'+(ch-2)+'" rx="3" fill="currentColor" fill-opacity="'+(.22+.78*cell.gap/maxGap)+'" aria-label="'+title+'. '+outcome+'"/>';
    if(cell.inflation===s.inflationRate&&cell.rate===nominalOpportunityRate(s))body+='<circle class="heatmap-current" cx="'+(x+cw/2)+'" cy="'+(y+ch/2)+'" r="8"/>';
-   cells.push({x,y,w:cw,h:ch,values:{inflationRate:inflationViews.heatmapGraph?cell.inflation:null,title:title+' · '+outcome,unit:(split?'Kč / month':'Kč over each full term')+' · '+(opportunityViews.heatmapGraph?'includes opportunity cost':'opportunity cost excluded')+' · '+moneyBasis('heatmapGraph')+(active.length>1?' · lead '+money(cell.gap)+(split?' / month':' total'):''),rows:cell.costs.map(v=>({name:v.name,kind:v.kind,value:v.value,note:v.months+' months · '+(v.kind==='lease'&&s.leaseEnd==='return'?'Car returned; no resale credit':'End car value '+money(v.resale))}))}});
+   cells.push({x,y,w:cw,h:ch,values:{inflationRate:inflationViews.heatmapGraph?cell.inflation:null,title:title+' · '+outcome,unit:(annual?'Kč / year':'Kč over each full term')+' · '+(opportunityViews.heatmapGraph?'includes opportunity cost':'opportunity cost excluded')+' · '+moneyBasis('heatmapGraph')+(active.length>1?' · lead '+money(cell.gap)+(annual?' / year':' total'):''),rows:cell.costs.map(v=>({name:v.name,kind:v.kind,value:v.value,note:'Full-term cost: '+money(v.total)+' over '+v.months+' months · '+(v.kind==='lease'&&s.leaseEnd==='return'?'Car returned; no resale credit':'End car value '+money(v.resale))}))}});
   });
   inflations.forEach((rate,i)=>body+='<text class="chart-axis" x="'+(left+(i+.5)*cw)+'" y="'+(top+height+26)+'" text-anchor="middle">'+ratePercent(rate)+'</text>');
   returns.forEach((rate,i)=>body+='<text class="chart-axis" x="'+(left-14)+'" y="'+(top+(i+.5)*ch+4)+'" text-anchor="end">'+ratePercent(rate)+'</text>');
@@ -224,9 +227,8 @@ export function createCharts({document,window,views,onShowTooltip}){
   return chartLegend(active)+'<div class="chart-key">Stronger colour = larger lead over the next cheapest option. Ring = your assumptions. Grey = tie.</div>'+graphFrame('Which option wins across inflation and return assumptions',body,960,455).replace('<svg ','<svg tabindex="0" data-chart-key="inflation-return-map" ');
  }
 
- function renderGraphs(s,c,active,split){
-  const basis=split?'Kč / month effective':'Kč over full term';
-  $("graphNote").textContent=(split?'Different periods: sensitivity charts use effective monthly costs. ':'Same periods: sensitivity charts use full-term costs. ')+"Only selected options are shown. Hover or tap a chart for values; focus it and use arrow keys to explore, or Escape to close. Cash-flow lines use actual elapsed months.";
+ function renderGraphs(s,c,active){
+  $("graphNote").textContent='Cost comparison charts default to average annual costs; each has its own per-year switch. Full-term amounts remain in tooltips. '+"Only selected options are shown. Hover or tap a chart for values; focus it and use arrow keys to explore, or Escape to close. Cash-flow lines use actual elapsed months.";
   const cashSeries=active.map(v=>{
    const events=c[v.key].events.filter(e=>e.type==='cash'),times=[...new Set([0,...events.map(e=>e.month)])].sort((a,b)=>a-b);
    let total=0;
@@ -234,16 +236,16 @@ export function createCharts({document,window,views,onShowTooltip}){
    return {...v,points};
   });
   $("cashGraph").innerHTML=chartLegend(active)+lineChart('Cumulative cash spent',cashSeries,'Month','Net cash spent · Kč');
-  const resaleInputs=viewInputs(s,'resaleGraph'),resalePoints=resaleSamples(resaleInputs,resaleComparisons(resaleInputs,viewOptions("resaleGraph")));
+  const resaleInputs=viewInputs(s,'resaleGraph'),resalePoints=resaleSamples(resaleInputs,resaleComparisons(resaleInputs,viewOptions("resaleGraph"),annualViews.resaleGraph));
   const samples=resalePoints.map(resale=>({resale,result:calculate(withResale(resaleInputs,resale),viewOptions("resaleGraph")),nominal:calculate(withResale(resaleInputs,resale))}));
-  const resaleSeries=active.map(v=>({...v,points:samples.map(({resale,result,nominal})=>({x:s.matchPeriods?resale:resale-s.resale,y:comparisonValue(result[v.key],split),nominalY:comparisonValue(nominal[v.key],split),label:(s.matchPeriods?'Resale ':'Resale change ')+money(s.matchPeriods?resale:resale-s.resale)}))}));
-  $("resaleGraph").innerHTML=chartLegend(active)+lineChart('Resale sensitivity',resaleSeries,s.matchPeriods?'Gross resale · Kč':'Change in each resale · Kč',basis+' · '+comparisonBasis('resaleGraph'));
+  const resaleSeries=active.map(v=>({...v,annual:annualViews.resaleGraph,months:s[v.months],points:samples.map(({resale,result,nominal})=>({x:s.matchPeriods?resale:resale-s.resale,y:graphValue(result[v.key],"resaleGraph"),nominalY:graphValue(nominal[v.key],"resaleGraph"),label:(s.matchPeriods?'Resale ':'Resale change ')+money(s.matchPeriods?resale:resale-s.resale)}))}));
+  $("resaleGraph").innerHTML=chartLegend(active)+lineChart('Resale sensitivity',resaleSeries,s.matchPeriods?'Gross resale · Kč':'Change in each resale · Kč',graphBasis('resaleGraph')+' · '+comparisonBasis('resaleGraph'));
   $("monthlyGraph").innerHTML=monthlyCostChart(s,calculate(viewInputs(s,'monthlyGraph'),viewOptions('monthlyGraph')),active);
-  renderRateGraphs(s,active,split);
-  $("waterfallGraph").innerHTML=costWaterfall(s,active,split);
+  renderRateGraphs(s,active);
+  $("waterfallGraph").innerHTML=costWaterfall(s,active);
   $("timelineGraph").innerHTML=carValueTimeline(s,active);
   $("loanPaymentGraph").innerHTML=loanPaymentChart(s,active);
-  $("heatmapGraph").innerHTML=inflationReturnHeatmap(s,active,split);
+  $("heatmapGraph").innerHTML=inflationReturnHeatmap(s,active);
   for(const [key,chart] of [['monthlyGraph','monthly-costs'],['interestGraph','loan-interest-sensitivity'],['resaleGraph','resale-sensitivity']]){
    const data=chartData.get(chart);if(data)data.inflationRate=inflationViews[key]?s.inflationRate:null;
    $(key).dataset.inflationAdjusted=String(inflationViews[key]);
@@ -280,6 +282,7 @@ export function createCharts({document,window,views,onShowTooltip}){
     nominalValue=data.step||series.step?left.nominalY:left.nominalY+(right.nominalY-left.nominalY)*(position-left.x)/(right.x-left.x);
     approximate=!(data.step||series.step);
    }
+   if(typeof series.annual==='boolean')note='Full-term cost: '+money(value*(series.annual?series.months/12:1))+' over '+series.months+' months'+(approximate?' · interpolated':'');
    return {name:series.name,kind:series.kind,value,nominalValue,note,approximate};
   });
   if(data.timeline){

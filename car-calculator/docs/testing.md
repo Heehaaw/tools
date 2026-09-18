@@ -17,8 +17,9 @@ Use the focused entry points while iterating:
 | --- | --- |
 | `node tests/build.test.mjs` | Deterministic artifact parity, self-contained CSS/JS, isolated module closures, aliases, dependency order, cycles, missing exports, external imports and raw closing-tag escaping |
 | `node tests/components.test.mjs` | Browserless module imports, independent view/scenario factory state, storage-failure recovery and idempotent app initialisation |
-| `node tests/additional-costs.test.mjs` | Additional-cost persistence validation, draft round trips, array isolation, form modes, yearly seeding and partial-year presentation |
-| `node tests/historical-inflation.test.mjs` | Historical-inflation migration, draft validation, scenario/form array isolation and yearly schedule persistence |
+| `node tests/additional-costs.test.mjs` | Additional-cost persistence validation, draft round trips, array isolation, form modes, yearly seeding, separate cost-period cutoffs, dated VAT/opportunity effects and partial-year presentation |
+| `node tests/historical-inflation.test.mjs` | Historical-inflation migration, linked annual/total fields, partial-year equivalence, draft validation and yearly schedule persistence |
+| `node tests/annual-views.test.mjs` | Independent default-on annual preferences, storage, unequal-term component reconciliation, full-term tooltips, matching rates/resale and graph scales |
 | `node tests/model.test.mjs` | Pure financial calculations and model invariants without a DOM |
 | `node tests/ui.test.mjs` | The generated offline application, controller APIs, persistence, tables, charts and interactions in the minimal DOM/storage harness |
 
@@ -35,7 +36,7 @@ Use the focused entry points while iterating:
 | Additional-cost annual schedules, year overrides, lease inclusion, VAT and opportunity timing | `tests/model.test.mjs` | `annual and year-specific additional costs` |
 | Additional-cost migration, drafts, array isolation and form controls | `tests/additional-costs.test.mjs` | `settings codecs`, `form bridge seeds yearly costs` |
 | Historical-inflation calculation, partial years, fallback and equivalent annual rate | `tests/model.test.mjs` | `cumulative and chronological historical inflation` |
-| Historical-inflation migration, drafts, array isolation and form workflow | `tests/historical-inflation.test.mjs` | `settings codecs migrate old cumulative inflation`, `imported inflation schedule stays isolated`, `form bridge preserves cumulative inflation` |
+| Historical-inflation migration, drafts, array isolation and form workflow | `tests/historical-inflation.test.mjs` | `settings codecs migrate old cumulative inflation`, `imported inflation schedule stays isolated`, `historical linked fields preserve raw inputs`, `historical annual average matches total and yearly modes` |
 | Depreciation, month-based age, heatmap and historical replay | `tests/model.test.mjs` | `relative depreciation`, `inflation and return heatmap`, `historical ownership replay` |
 | Scenario lifecycle, examples, imports and compatibility | `tests/ui.test.mjs` | `permanent example`, `collection reimport` |
 | Blank and explicit-zero drafts, formatting and form modes | `tests/ui.test.mjs` | `incomplete single-scenario`, `thin-space formatting`, `visible exclusive mode choices` |
@@ -85,3 +86,13 @@ Follow the project AGENTS build/test/diff commands. Check local documentation li
 `tests/standard-quote.test.mjs` covers standard-loan payment inference, independent repayment periods, saved drafts and independence between both loan input modes. Both cards keep interest on the left and monthly payment on the right, below their insurance and other costs.
 
 `tests/loan-graphs.test.mjs` reconciles amortization with the main model across zero/positive interest, early exits and ownership beyond maturity. It checks debt/equity tooltips, direct-mode value points, quoted-payment loans, shared monthly breakdowns, terminal payments and excluded options.
+
+`tests/ownership-inflation.test.mjs` checks equivalence of annual/cumulative/yearly entry, fractional final years, zero inflation, active blank years, historical ownership precedence, relative resale, sensitivity overrides, older saved settings and isolated yearly arrays. Controller checks cover initial seeding, mode switching, dialog opening, preserved inactive inputs and year retention after shortening the period.
+
+The ownership-inflation suite also checks shared past-relative inflation, independent comparable ages, inactive historical drafts, source visibility and one-time migration of older annual/total/yearly historical scenarios with unchanged costs.
+
+Historical-inflation tests cover the fourth main-average radio, independent past-period annual/total/yearly inputs, inactive drafts, matched-period overrides and separate remembered past/future entry methods.
+
+`node tests/local-periods.test.mjs` covers independently linked option/comparable/repayment periods, mixed-term sensitivity, hidden custom-value preservation, local fieldset visibility and migration from the retired global switch.
+
+For annual comparison controls, check that the per-year checkbox is first, the overall card’s large amount swaps basis, cumulative amounts stay visible below it, and hover/focus/tap tooltips retain full-term amounts. Each switch affects only its own section. Check wrapping on mobile with all three controls.

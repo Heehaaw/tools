@@ -1,4 +1,4 @@
-import {defaults,migrateInputs,validate,validateAdditionalCosts,validateHistoricalInflation} from "./model.mjs";
+import {defaults,migrateInputs,validate,validateAdditionalCosts,validateHistoricalInflation,validateOwnershipInflation} from "./model.mjs";
 
 const arraySettingKeys=Object.keys(defaults).filter(key=>Array.isArray(defaults[key]));
 // Scenario boundaries copy mutable inputs so controllers, forms and exports cannot share them.
@@ -14,6 +14,7 @@ function sameSettings(left,right){
 
 // Pure readers validate the whole input before the controller mutates stored scenarios.
 export function validateSettings(state){
+ validateOwnershipInflation(state,{allowDrafts:true});
  validateAdditionalCosts(state,{allowDrafts:true});
  validateHistoricalInflation(state,{allowDrafts:true});
  for(const [key,fallback] of Object.entries(defaults)){
@@ -34,10 +35,11 @@ export function validateSettings(state){
  if(effective.leaseEnd==="return"&&effective.leaseBuyout===null)effective.leaseBuyout=0;
  if(effective.kintoInsuranceIncluded&&effective.kintoInsurance===null)effective.kintoInsurance=0;
  // Cleared historical inputs remain navigable and saveable as incomplete drafts.
- const historicalDraft=effective.resaleMode==="relative"&&(effective.historicalNewPrice===0||(!effective.pastOwnership&&!effective.historicalMatchPeriod&&effective.historicalMonths===0));
+ const historicalDraft=effective.resaleMode==="relative"&&(effective.historicalNewPrice===0||(!(effective.pastOwnership?effective.pastHistoricalMatchPeriod:effective.historicalMatchPeriod)&&effective.historicalMonths===0));
  const additionalCostDraft=effective.additionalCostYears.includes(null);
  const historicalInflationDraft=effective.historicalInflationYears.includes(null);
- if(!Object.values(effective).includes(null)&&!additionalCostDraft&&!historicalInflationDraft&&!historicalDraft)validate(effective);
+ const ownershipInflationDraft=effective.inflationYears.includes(null);
+ if(!Object.values(effective).includes(null)&&!additionalCostDraft&&!historicalInflationDraft&&!ownershipInflationDraft&&!historicalDraft)validate(effective);
 }
 
 export function decodeSettings(text){
@@ -185,7 +187,7 @@ export function createScenarios({document,storage,form,onUpdate}){
   $("clearAll").addEventListener("click",()=>{
    const active=selectedInputs();
    const state=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,Array.isArray(value)?[]:typeof value==="number"?null:typeof value==="boolean"?false:value]));
-   for(const key of ["balloonEnabled","normalEnabled","leaseEnabled","cashEnabled","matchPeriods","balloonMatchOwnership","normalMatchOwnership"])state[key]=true;
+   for(const key of ["balloonEnabled","normalEnabled","leaseEnabled","cashEnabled","matchPeriods","balloonMatchPeriod","normalMatchPeriod","leaseMatchPeriod","cashMatchPeriod","pastHistoricalMatchPeriod","historicalMatchPeriod","balloonMatchOwnership","normalMatchOwnership"])state[key]=true;
    state.carName=$("carName").value||active.carName;
    write(state);update();const persisted=saveSettings(state);
    $("prefillStatus").textContent="Numeric fields cleared. Select your VAT and coverage choices, then fill the form from the top. Related empty fields are suggested when you finish editing.";

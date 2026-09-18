@@ -4,6 +4,9 @@ import {defaults,variants,relativeResaleEstimate,nominalOpportunityRate,calculat
 // Component tests mutate their harness, so the stateful UI suite loads an isolated module instance.
 import {html,ids,elements,saved,context} from './ui-harness.mjs?ui-suite';
 
+// Keep the existing full-term regression expectations explicit; annual views have their own suite.
+for(const key of Object.keys(context.__testApp.views.annualViews)){elements['annual-'+key].checked=false;elements['annual-'+key].listeners.change();}
+
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,a+' != '+b);
 const clean={...defaults,price:1210000,resale:605000,serviceCost:0,tyrePurchase:0,tyreResale:0,tyreVisitCost:0,tyreStorage:0,cashInsurance:0,cashExtra:0,opportunityRate:0,opportunityRateBasis:"nominal"};
 
@@ -101,7 +104,7 @@ for(const [months,totals] of [[36,[717965.6381176563,716600.6524378423,589526.41
   near(calculate(migrated)[v.key].adjusted,totals[i]+(v.kind==='lease'?0:newVisits-oldVisits));
  }
 }
-const split={...defaults,matchPeriods:false,balloonMonths:24,normalMonths:48,leaseMonths:36,cashMonths:60,balloonResale:1100000,normalResale:880000,leaseResale:1000000,cashResale:750000};
+const split={...defaults,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:48,leaseMonths:36,cashMonths:60,balloonResale:1100000,normalResale:880000,leaseResale:1000000,cashResale:750000};
 const splitCost=calculate(split);
 // Every inclusion combination must agree across rankings, tables, solvers and graphs.
 for(let mask=0;mask<16;mask++){
@@ -132,8 +135,8 @@ vm.runInContext('write('+JSON.stringify(stored)+');saveSettings(currentValidSett
 const restored=vm.runInContext('decodeSettings(encodeSettings(readSettings()))',context);
 for(const [key,value] of Object.entries(stored))assert.deepEqual(Array.isArray(value)?[...restored[key]]:restored[key],value,key);
 vm.runInContext('write('+JSON.stringify(split)+');update()',context);
-assert.ok(elements.versusBasis.textContent.includes('monthly'));
-assert.ok(elements.sensitivityBasis.textContent.includes('Monthly'));
+assert.ok(elements.versusBasis.textContent.includes('Full-term'));
+assert.ok(elements.sensitivityBasis.textContent.includes('Full-term'));
 for(const [prefix,key] of [['easy','balloonLoan'],['normal','standardLoan'],['kinto','lease'],['cash','cashPurchase']]){
  assert.equal(elements[prefix+'Annual'].textContent,expectedMoney(splitCost[key].adjusted*12/splitCost[key].months)+' / year effective');
 }
@@ -195,11 +198,11 @@ for(const state of [defaults,{...split,vatEnabled:false}]){
   assert.ok(elements.monthlyGraph.innerHTML.includes(expected[v.key].months+' months'));
   for(const opportunityRate of [0,state.opportunityRate]){
    const cost=calculate({...state,opportunityRate})[v.key];
-   assert.ok(elements.returnGraph.innerHTML.includes(v.name+' · '+opportunityRate+'% annual return · after tax, '+(state.opportunityRateBasis==='real'?'after inflation':'before inflation')+' · '+expectedMoney(comparisonValue(cost,splitTerms))));
+   assert.ok(elements.returnGraph.innerHTML.includes(v.name+' · '+opportunityRate+'% annual return · after tax, '+(state.opportunityRateBasis==='real'?'after inflation':'before inflation')+' · '+expectedMoney(comparisonValue(cost,false))));
   }
   for(const rate of [0,12]){
    const cost=calculate({...state,rate,normalRate:rate})[v.key];
-   assert.ok(elements.interestGraph.innerHTML.includes(v.name+' · '+rate+'% loan interest · '+expectedMoney(comparisonValue(cost,splitTerms))));
+   assert.ok(elements.interestGraph.innerHTML.includes(v.name+' · '+rate+'% loan interest · '+expectedMoney(comparisonValue(cost,false))));
   }
  }
  assert.equal((elements.returnGraph.innerHTML.match(/r="4\.5"/g)||[]).length,4);
@@ -303,7 +306,13 @@ for(const state of [defaults,{...split,loanEnd:'keep',leaseEnd:'buyKeep',leaseBu
   const sum=parts.reduce((total,row)=>total+cellAmount(row.cells[v.kind]),0);
   assert.ok(Math.abs(sum-expected[v.key].nominal)<=parts.length*.5,'Visible breakdown reconciles for '+v.kind);
   const cashRows=tableRows('cashflow');
-  const cashSum=cashRows.filter(row=>['Net cash spent through each term','Less retained car and tyre value','Less VAT refunds due after each term'].includes(row.label)).reduce((total,row)=>total+cellAmount(row.cells[v.kind]),0);
+  const hasAdjustments=variants.some(option=>state[option.enabled]&&(Math.abs(expected[option.key].retainedValue)>1e-8||Math.abs(expected[option.key].futureRefund)>1e-8));
+  assert.equal(cashRows.some(row=>row.label==='Net cash spent through each term'),hasAdjustments);
+  const reconciliation=hasAdjustments?['Net cash spent through each term','Less retained car and tyre value','Less VAT refunds due after each term']:['Economic cost before opportunity'];
+  const cashSum=cashRows.filter(row=>reconciliation.includes(row.label)).reduce((total,row)=>total+cellAmount(row.cells[v.kind]),0);
+  const endEvents=expected[v.key].events.filter(e=>e.type==='cash'&&Math.abs(e.month-expected[v.key].months)<1e-8);
+  assert.equal(cellAmount(cashRows.find(row=>row.label==='Net cash flow at end').cells[v.kind]),Math.round(endEvents.reduce((total,e)=>total+e.amount,0)));
+  if(v.kind!=='lease'||state.leaseEnd!=='return')assert.equal(cellAmount(cashRows.find(row=>row.label==='Car resale / retained value at end').cells[v.kind]),Math.round(expected[v.key].resale));
   assert.ok(Math.abs(cashSum-expected[v.key].nominal)<=1.5,'Cash reconciliation '+v.kind);
  }
  assert.ok(!elements.costRows.innerHTML.includes('Insurance incl. GAP'));
@@ -323,7 +332,7 @@ const cleanCash={...clean,balloonEnabled:false,normalEnabled:false,leaseEnabled:
 vm.runInContext('write('+JSON.stringify(cleanCash)+');update()',context);
 const cashSnapshots=tableRows('cashflow');
 assert.equal(cellAmount(cashSnapshots.find(r=>r.label==='Net cash paid at start').cells.cash),1210000);
-assert.equal(cellAmount(cashSnapshots.find(r=>r.label==='Net cash paid at end date').cells.cash),-500000);
+assert.equal(cellAmount(cashSnapshots.find(r=>r.label==='Net cash flow at end').cells.cash),-500000);
 console.log('PASS: visible cost components and cash reconciliation, honest insurance and rate labels, zero/irrelevant rows omitted, delayed VAT labelling, and actual start/end cash snapshots.');
 
 // The built-in example is separate from persistent user data and forks exactly once on an edit.
@@ -531,7 +540,7 @@ const longOwnership={...defaults,months:72,balloonMatchOwnership:false,normalMat
 const longResult=calculate(longOwnership);
 const shortOwnership={...defaults,months:36,balloonMatchOwnership:false,normalMatchOwnership:false,balloonLoanMonths:72,normalLoanMonths:60};
 vm.runInContext('write('+JSON.stringify(longOwnership)+');update()',context);
-assert.equal(elements.balloonLoanTermField.hidden,false);assert.equal(elements.normalLoanTermField.hidden,false);
+assert.equal(elements.balloonRepaymentSettings.hidden,false);assert.equal(elements.normalRepaymentSettings.hidden,false);
 assert.match(elements.balloonLoanTermNote.textContent,/Repayments stop at month 36/);
 assert.ok(tableRows('monthlyRows').some(r=>r.label==='Monthly bill after loan ends'));
 assert.ok(tableRows('cashflow').some(r=>r.label==='Balloon paid / lease buyout'&&r.cells.balloon.includes('Month 36')));
@@ -542,7 +551,7 @@ assert.equal(longExport.balloonLoanMonths,36);assert.equal(longExport.normalLoan
 const termDraft=stateExpression('decodeSettings(encodeSettings({...readSettings(),balloonLoanMonths:null,normalLoanMonths:0}))');
 assert.equal(termDraft.balloonLoanMonths,null);assert.equal(termDraft.normalLoanMonths,0);
 vm.runInContext('write({...readSettings(),balloonMatchOwnership:true});update()',context);
-assert.equal(elements.balloonLoanTermField.hidden,true);assert.equal(elements.balloonLoanMonths.disabled,true);
+assert.equal(elements.balloonRepaymentSettings.hidden,true);assert.equal(elements.balloonLoanMonths.disabled,true);
 assert.equal(stateExpression('readSettings()').balloonLoanMonths,36);
 vm.runInContext('write('+JSON.stringify(shortOwnership)+');update()',context);
 assert.ok(tableRows('cashflow').some(r=>r.label==='Remaining loan at comparison end'&&r.cells.normal.includes('Paid off on sale')));
@@ -613,7 +622,7 @@ console.log('PASS: all cost components follow the inflation basis, principal/int
 
 const relativeInput={...defaults,resaleMode:'relative',historicalMatchPeriod:false,historicalNewPrice:1200000,historicalUsedPrice:1000000,historicalYears:3,historicalInflationPct:10,resale:765432};
 const retention=1000000/(1200000*1.10),forecast=1334000*retention*1.025**3;
-const relativeSplit={...relativeInput,matchPeriods:false,balloonMonths:24,normalMonths:48,cashMonths:60,leaseMonths:36,leaseEnd:'buySell',leaseBuyout:800000};
+const relativeSplit={...relativeInput,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:48,cashMonths:60,leaseMonths:36,leaseEnd:'buySell',leaseBuyout:800000};
 vm.runInContext('write('+JSON.stringify(relativeInput)+');update()',context);
 assert.equal(elements.directResaleField.hidden,true);assert.equal(elements.relativeResaleSettings.hidden,false);assert.equal(elements.resale.disabled,true);
 assert.equal(elements.relativeResaleValue.textContent,expectedMoney(forecast));
@@ -661,7 +670,7 @@ assert.equal(migrateInputs({...oldUnused,historicalNewPrice:1200000}).relativeRe
 console.log('PASS: first-entry historical price suggestions, explicit zero/blank preservation and older relative scenario migration.');
 
 assert.equal(elements['inflation-opportunityBreakdown'].checked,false);assert.equal(elements['inflation-vat'].checked,false);
-const detailSettings={...defaults,matchPeriods:false,balloonMonths:24,normalMonths:48,cashMonths:60,leaseMonths:36,leaseEnd:'buySell',leaseBuyout:800000,kintoInitial:12100,leaseVatDelay:2,kintoTyres:false};
+const detailSettings={...defaults,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:48,cashMonths:60,leaseMonths:36,leaseEnd:'buySell',leaseBuyout:800000,kintoInitial:12100,leaseVatDelay:2,kintoTyres:false};
 vm.runInContext('write('+JSON.stringify(detailSettings)+');update()',context);
 const nominalVatTable=elements.vatTimeline.innerHTML,unchangedCost=elements.costRows.innerHTML;
 setInflation('opportunityBreakdown',true);
@@ -709,10 +718,9 @@ for(const years of [0,null]){
  assert.equal(stateExpression('decodeSettings(encodeSettings(readSettings()))').historicalMonths,years);
 }
 vm.runInContext('write('+JSON.stringify(linkedHistory)+');update()',context);
-assert.equal(elements.historicalMonthsField.hidden,true);assert.equal(elements.historicalMonths.disabled,true);
-assert.match(elements.historicalPeriodNote.textContent,/60 months/);
+assert.equal(elements.historicalPeriodSettings.hidden,true);assert.equal(elements.historicalMonths.disabled,true);
 vm.runInContext('write({...readSettings(),historicalMatchPeriod:false});update()',context);
-assert.equal(elements.historicalMonthsField.hidden,false);assert.equal(elements.historicalMonths.disabled,false);
+assert.equal(elements.historicalPeriodSettings.hidden,false);assert.equal(elements.historicalMonths.disabled,false);
 assert.equal(stateExpression('readSettings()').historicalMonths,24);
 vm.runInContext('write({...readSettings(),historicalMonths:null,historicalMatchPeriod:true});update()',context);
 assert.equal(elements.error.hidden,true);assert.equal(stateExpression('decodeSettings(encodeSettings(readSettings()))').historicalMonths,null);
@@ -747,7 +755,7 @@ for(const opportunity of [false,true])for(const todayMoney of [false,true]){
  const calculated=calculate(relativeSplit,{opportunity,todayMoney});
  for(const v of variants){
   const amounts=cells.slice(0,4).map(cell=>cell.values.rows.find(row=>row.kind===v.kind).value);
-  near(amounts[0]+amounts[1]+amounts[2],amounts[3]);near(amounts[3],calculated[v.key].adjusted/calculated[v.key].months);
+  near(amounts[0]+amounts[1]+amounts[2],amounts[3]);near(amounts[3],calculated[v.key].adjusted);
  }
 }
 const timeline=stateExpression('chartData.get("car-value-timeline")');
@@ -776,15 +784,16 @@ console.log('PASS: new waterfall reconciliation, historical/projected timeline, 
 
 
 // Historical replay renders the model's derived inflation and exact resale.
-const historicalReplay={...clean,pastOwnership:true,resaleMode:'relative',price:340000,historicalNewPrice:340000,historicalUsedPrice:240000,historicalInflationPct:45.6,months:72,historicalMatchPeriod:true,vatEnabled:false,inflationRate:2.5};
-const independentReplay={...historicalReplay,historicalMatchPeriod:false,historicalMonths:84};
+const historicalReplay={...clean,pastOwnership:true,resaleMode:'relative',price:340000,historicalNewPrice:340000,historicalUsedPrice:240000,historicalInflationPct:45.6,months:72,historicalMatchPeriod:true,vatEnabled:false,inflationRate:2.5,inflationMode:'total',inflationTotalPct:45.6};
+const independentReplay={...historicalReplay,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,historicalMatchPeriod:false,historicalMonths:84};
 vm.runInContext('write('+JSON.stringify(historicalReplay)+');update()',context);
 assert.equal(elements.error.hidden,true);
-assert.equal(elements.inflationRate.hidden,true);assert.equal(elements.inflationRate.disabled,true);
-assert.equal(elements.inflationRateDerived.hidden,false);
-assert.equal(elements.historicalPeriodControls.hidden,true);
-assert.equal(elements.historicalMonthsField.hidden,true);
-assert.match(elements.inflationDerivation.textContent,/45.6%.*72 months/);
+assert.equal(elements.inflationRate.hidden,false);assert.equal(elements.inflationRate.disabled,true);
+assert.equal(elements.ownershipInflationOptions.hidden,false);assert.equal(elements.inflationTotalPct.disabled,false);
+assert.equal(elements.historicalInflationSection.hidden,true);
+assert.equal(elements.historicalSeparatePeriod.checked,false);
+assert.equal(elements.historicalPeriodSettings.hidden,true);
+assert.equal(elements.inflationTotalPct.value,'45.6');
 assert.equal(elements.relativeResaleValue.textContent,expectedMoney(240000));
 assert.match(elements.relativeResaleToday.textContent,/purchase-date money/);
 assert.equal(elements.purchasePriceTitle.textContent,'Price paid at purchase');
@@ -793,27 +802,29 @@ assert.match(elements.timelineGraph.innerHTML,/Months since purchase/);
 const replayRoundTrip=stateExpression('decodeSettings(encodeSettings(readSettings()))');
 assert.equal(replayRoundTrip.pastOwnership,true);assert.equal(replayRoundTrip.inflationRate,2.5);
 vm.runInContext('$("pastOwnership").checked=false;update()',context);
-assert.equal(elements.inflationRate.hidden,false);assert.equal(elements.inflationRate.disabled,false);
-assert.equal(elements.inflationRate.value,'2.5');assert.equal(elements.purchasePriceTitle.textContent,'Purchase price');
-vm.runInContext('write('+JSON.stringify({...historicalReplay,historicalInflationPct:null})+');update()',context);
+assert.equal(elements.inflationRate.hidden,false);assert.equal(elements.inflationRate.disabled,true);
+assert.equal(elements.inflationTotalPct.value,'45.6');assert.equal(elements.purchasePriceTitle.textContent,'Purchase price');
+vm.runInContext('write('+JSON.stringify({...historicalReplay,inflationTotalPct:null})+');update()',context);
 assert.equal(elements.error.hidden,false);
-assert.equal(stateExpression('decodeSettings(encodeSettings(readSettings()))').historicalInflationPct,null);
+assert.equal(stateExpression('decodeSettings(encodeSettings(readSettings()))').inflationTotalPct,null);
 vm.runInContext('$("resaleMode").value="direct";update()',context);
-assert.equal(elements.error.hidden,true);assert.equal(elements.inflationRate.disabled,false);
+assert.equal(elements.error.hidden,false);assert.equal(elements.inflationTotalPct.disabled,false);
 vm.runInContext('write('+JSON.stringify(historicalReplay)+');update()',context);
 for(const cell of stateExpression('chartData.get("inflation-return-map").grid'))for(const option of cell.costs)near(option.resale,240000);
-console.log('PASS: historical ownership replay, exact resale, purchase-date costs, locked derived rate, restored forecast rate, saved modes and incomplete drafts.');
+console.log('PASS: historical ownership replay, exact resale, purchase-date costs, editable main inflation, preserved main source, saved modes and incomplete drafts.');
 
 vm.runInContext('write('+JSON.stringify(independentReplay)+');update()',context);
-assert.equal(elements.relativeResaleValue.textContent,expectedMoney(240000));
+assert.equal(elements.relativeResaleValue.textContent,expectedMoney(relativeResaleEstimate(independentReplay).nominalValue));
+assert.equal(elements.historicalPeriodSettings.hidden,false);assert.equal(elements.historicalMonths.disabled,false);
+assert.equal(elements.historicalInflationLinkedNote.hidden,false);
 assert.equal(stateExpression('decodeSettings(encodeSettings(readSettings()))').historicalMonths,84);
 assert.equal(stateExpression('readSettings()').historicalMatchPeriod,false);
 vm.runInContext('$("pastOwnership").checked=false;update()',context);
-assert.equal(elements.historicalPeriodControls.hidden,false);
-assert.equal(elements.historicalMonthsField.hidden,false);
+assert.equal(elements.historicalSeparatePeriod.checked,true);
+assert.equal(elements.historicalPeriodSettings.hidden,false);
 assert.equal(elements.historicalMonths.value,'84');
-console.log('PASS: past ownership always matches historical age while preserving the hidden forward-planning age and link setting.');
+console.log('PASS: unmatched past ownership permits a separate comparable age and derives its cumulative inflation from the main rate.');
 
 vm.runInContext('write({...defaults,pastOwnership:true,historicalMatchPeriod:false,historicalMonths:84,months:72});handleInput({type:"change",target:{id:"resaleMode-relative",name:"resaleMethod",checked:true,value:"relative"}})',context);
-assert.equal(stateExpression('readSettings()').historicalInflationPct,15);
+assert.equal(stateExpression('readSettings()').historicalInflationPct,0);
 assert.equal(stateExpression('readSettings()').historicalMonths,84);

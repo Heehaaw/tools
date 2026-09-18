@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {defaults} from '../src/model.mjs';
+import {defaults,calculate,variants} from '../src/model.mjs';
 import {createScenarios,decodeSettings,encodeSettings,validateSettings} from '../src/scenarios.mjs';
 import {context as uiContext,elements as uiElements} from './ui-harness.mjs?additional-costs';
 
@@ -44,9 +44,11 @@ function fakeForm(initial=defaults){
 
 test('settings codecs migrate old data and preserve annual and yearly drafts',()=>{
  const oldInputs={...defaults};
- for(const key of ['additionalCostMode','additionalCostAnnual','additionalCostYears','leaseAdditionalCosts'])delete oldInputs[key];
+ for(const key of ['additionalSeparatePeriod','additionalCostMonths','additionalCostMode','additionalCostAnnual','additionalCostYears','leaseAdditionalCosts'])delete oldInputs[key];
  const migrated=decodeSettings(envelope(oldInputs));
 
+ assert.equal(migrated.additionalSeparatePeriod,false);
+ assert.equal(migrated.additionalCostMonths,36);
  assert.equal(migrated.additionalCostMode,'annual');
  assert.equal(migrated.additionalCostAnnual,0);
  assert.deepEqual(migrated.additionalCostYears,[]);
@@ -185,4 +187,60 @@ test('the form bridge seeds yearly costs once and preserves hidden drafts',()=>{
  assert.equal(uiElements.additionalCostTitle.textContent,'Actual additional costs');
  assert.equal(uiElements.additionalCostsDialog.open,false);
  assert.equal(uiElements.additionalDialogTitle.textContent,'Actual yearly additional costs');
+});
+
+
+test('separate cost periods stop dated expenses and VAT while valuation runs to ownership end',()=>{
+ const raw={...defaults,months:36,additionalSeparatePeriod:true,additionalCostMonths:18,additionalCostAnnual:12100,leaseAdditionalCosts:true,normalMatchPeriod:false,normalMonths:9,cashMatchPeriod:false,cashMonths:48};
+ const expectedMonths={balloonLoan:[12,18],standardLoan:[9],lease:[12,18],cashPurchase:[12,18]};
+ const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
+ for(const opportunity of [false,true])for(const todayMoney of [false,true]){
+  const result=calculate(raw,{opportunity,todayMoney}),baseline=calculate({...raw,additionalCostAnnual:0},{opportunity,todayMoney});
+  for(const v of variants){
+   const r=result[v.key],events=r.events.filter(e=>e.category==='additional');
+   assert.deepEqual(events.map(e=>e.month),expectedMonths[v.key]);
+   close(r.additionalCosts,12100*Math.min(r.months,18)/12);
+   let expected=0;
+   for(const e of events){
+    const net=e.amount/1.21;
+    const value=opportunity?net*1.085**((r.months-e.month)/12):net;
+    expected+=value/(todayMoney?1.025**((opportunity?r.months:e.month)/12):1);
+    const vatDelta=r.events.filter(x=>x.category==='vat'&&x.month===e.month).reduce((sum,x)=>sum+x.amount,0)-baseline[v.key].events.filter(x=>x.category==='vat'&&x.month===e.month).reduce((sum,x)=>sum+x.amount,0);
+    close(vatDelta,net-e.amount);
+   }
+   close(r.adjusted-baseline[v.key].adjusted,expected);
+  }
+ }
+ const yearly={...raw,additionalCostMode:'yearly',additionalCostAnnual:null,additionalCostYears:[12100,24200,null]};
+ assert.equal(calculate(yearly).cashPurchase.additionalCosts,24200);
+ assert.equal(calculate({...yearly,leaseAdditionalCosts:false}).lease.additionalCosts,0);
+ assert.throws(()=>calculate({...yearly,additionalCostMonths:30}));
+ for(const months of [0,1.5,121])assert.throws(()=>calculate({...raw,additionalCostMonths:months}));
+ assert.doesNotThrow(()=>calculate({...raw,additionalSeparatePeriod:false,additionalCostMonths:null}));
+});
+
+test('additional-cost period controls preserve custom months and inactive yearly drafts',()=>{
+ const app=uiContext.__testApp;
+ const toggle=checked=>{uiElements.additionalSeparatePeriod.checked=checked;app.form.handleInput({type:'change',target:{id:'additionalSeparatePeriod',checked}});};
+ app.form.write({...defaults,pastOwnership:true,additionalCostMode:'yearly',additionalCostAnnual:0,additionalCostYears:[12000,24000,null],additionalCostMonths:18});app.update();
+ assert.equal(uiElements.additionalPeriodSettings.hidden,true);
+ assert.equal(uiElements.additionalCostMonths.disabled,true);
+ toggle(true);
+ assert.equal(uiElements.additionalPeriodSettings.hidden,false);
+ assert.equal(uiElements.additionalCostMonths.disabled,false);
+ assert.equal(uiElements.error.hidden,true);
+ assert.equal(uiElements.additionalYear3.hidden,true);
+ assert.match(uiElements.additionalYearPeriod2.textContent,/Months 13–18/);
+ assert.match(uiElements.additionalYearlyTotal.textContent,/24.?000 Kč.*18 months/);
+ toggle(false);
+ assert.equal(uiElements.additionalPeriodSettings.hidden,true);
+ assert.equal(uiElements.additionalYear3.hidden,false);
+ assert.equal(app.form.readSettings().additionalCostMonths,18);
+ toggle(true);
+ const restored=decodeSettings(encodeSettings(app.form.readSettings()));
+ assert.equal(restored.additionalSeparatePeriod,true);
+ assert.equal(restored.additionalCostMonths,18);
+ assert.deepEqual(restored.additionalCostYears,[12000,24000,null]);
+ const draft={...restored,additionalCostMonths:null};
+ assert.equal(decodeSettings(encodeSettings(draft)).additionalCostMonths,null);
 });

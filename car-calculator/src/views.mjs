@@ -1,6 +1,22 @@
 /** Own per-view preferences and money-basis wording for one calculator instance. */
 export function createViews({document,storage,onChange}){
  const $=id=>document.getElementById(id);
+ const ANNUAL_VIEW_KEY="car-financing-calculator.annual-views.v1";
+ const annualViews=Object.fromEntries(['summary','versus','interest','cost','opportunityBreakdown','resale','returnGraph','interestGraph','resaleGraph','waterfallGraph','heatmapGraph'].map(key=>[key,key!=="opportunityBreakdown"]));
+ function initializeAnnualViews(){
+  let stored={};
+  try{const value=JSON.parse(storage.getItem(ANNUAL_VIEW_KEY)||"{}");if(value&&typeof value==='object'&&!Array.isArray(value))stored=value;}catch{}
+  for(const key of Object.keys(annualViews)){
+   annualViews[key]=typeof stored[key]==='boolean'?stored[key]:key!=="opportunityBreakdown";
+   const control=$("annual-"+key);control.checked=annualViews[key];
+   control.addEventListener("change",()=>{
+    annualViews[key]=control.checked;
+    try{storage.setItem(ANNUAL_VIEW_KEY,JSON.stringify(annualViews));}
+    catch{$("storageStatus").textContent="Comparison choices apply for this session. Browser storage is unavailable.";}
+    onChange();
+   });
+  }
+ }
  const OPPORTUNITY_VIEW_KEY="car-financing-calculator.opportunity-views.v1";
  const opportunityViews=Object.fromEntries(['summary','versus','monthly','interest','cost','resale','monthlyGraph','interestGraph','resaleGraph','waterfallGraph','heatmapGraph'].map(key=>[key,true]));
  const INFLATION_VIEW_KEY="car-financing-calculator.inflation-views.v1";
@@ -66,6 +82,6 @@ export function createViews({document,storage,onChange}){
    });
   }
  }
- function initialize(){initializeOpportunityViews();initializeInflationViews();}
- return {initialize,initializeOpportunityViews,initializeInflationViews,opportunityViews,inflationViews,viewOptions,viewInputs,moneyBasis,comparisonBasis,opportunityBasis,timeWording,applyTimeLabels};
+ function initialize(){initializeAnnualViews();initializeOpportunityViews();initializeInflationViews();}
+ return {initialize,initializeAnnualViews,annualViews,initializeOpportunityViews,initializeInflationViews,opportunityViews,inflationViews,viewOptions,viewInputs,moneyBasis,comparisonBasis,opportunityBasis,timeWording,applyTimeLabels};
 }

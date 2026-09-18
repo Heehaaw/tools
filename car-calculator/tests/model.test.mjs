@@ -34,7 +34,7 @@ for(const state of [defaults,{...defaults,leaseEnd:'buySell',leaseBuyout:900000}
 console.log('PASS: foundational financial calculations and all six resale break-even pairs.');
 
 // Split periods and solvers stay independent of browser state.
-const split={...defaults,matchPeriods:false,balloonMonths:24,normalMonths:48,leaseMonths:36,cashMonths:60,balloonResale:1100000,normalResale:880000,leaseResale:1000000,cashResale:750000};
+const split={...defaults,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:48,leaseMonths:36,cashMonths:60,balloonResale:1100000,normalResale:880000,leaseResale:1000000,cashResale:750000};
 const splitCost=calculate(split);
 assert.equal(hasDifferentPeriods(split),true);
 for(const v of variants){
@@ -110,7 +110,7 @@ assert.equal(migrateInputs(taxLegacy).incomeTaxEnabled,false);
 for(const v of variants)near(calculate(taxLegacy)[v.key].adjusted,base[v.key].adjusted);
 assert.throws(()=>calculate({...taxState,incomeTaxRate:101}));
 assert.throws(()=>calculate({...taxState,matchSaleTaxRate:false,saleTaxRate:101}));
-const multipleCrossings={...defaults,vatEnabled:false,matchPeriods:false,balloonMonths:24,cashMonths:60,normalEnabled:false,leaseEnabled:false,incomeTaxEnabled:true,incomeTaxRate:90,balloonTaxValue:2000000,cashTaxValue:4000000};
+const multipleCrossings={...defaults,vatEnabled:false,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,cashMonths:60,normalEnabled:false,leaseEnabled:false,incomeTaxEnabled:true,incomeTaxRate:90,balloonTaxValue:2000000,cashTaxValue:4000000};
 const crossings=resaleComparisons(multipleCrossings);assert.equal(crossings.length,3);
 for(const pair of crossings){
  const at=calculate(withResale(multipleCrossings,pair.resale));near(at.balloonLoan.adjusted/24,at.cashPurchase.adjusted/60);
@@ -181,7 +181,7 @@ for(const rate of [0,1e-10,5.99,100]){
   assert.ok(kept.events.some(e=>e.category==='capital'&&e.type==='asset'&&Math.abs(e.amount-balance)<1e-6));
  }
 }
-for(const scenario of [longOwnership,shortOwnership,{...shortOwnership,loanEnd:'keep'},{...longOwnership,matchPeriods:false,balloonMonths:24,normalMonths:60}]){
+for(const scenario of [longOwnership,shortOwnership,{...shortOwnership,loanEnd:'keep'},{...longOwnership,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:60}]){
  for(const opportunity of [false,true])for(const todayMoney of [false,true]){
   const valued=calculate(scenario,{opportunity,todayMoney});
   for(const v of variants){
@@ -195,7 +195,7 @@ for(const scenario of [longOwnership,shortOwnership,{...shortOwnership,loanEnd:'
   }
  }
 }
-const oldTerms={...defaults,matchPeriods:false,balloonMonths:24,normalMonths:48};
+const oldTerms={...defaults,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:48};
 for(const key of ['balloonMatchOwnership','normalMatchOwnership','balloonLoanMonths','normalLoanMonths'])delete oldTerms[key];
 const migratedTerms=migrateInputs(oldTerms);
 assert.equal(migratedTerms.balloonMatchOwnership,true);assert.equal(migratedTerms.balloonLoanMonths,24);assert.equal(migratedTerms.normalLoanMonths,48);
@@ -207,7 +207,7 @@ near(calculate({...shortOwnership,downPct:100,balloonPct:0,normalDownPct:100}).n
 console.log('PASS: independent repayment and ownership periods, early exits, kept debt, migration and rate boundaries.');
 
 for(const months of [1,6,7,12,24,37,72]){
- const result=calculate({...defaults,months:36,matchPeriods:false,balloonMonths:months,normalMonths:months,leaseMonths:months,cashMonths:months,kintoTyres:false,balloonMatchOwnership:false,balloonLoanMonths:12});
+ const result=calculate({...defaults,months:36,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:months,normalMonths:months,leaseMonths:months,cashMonths:months,kintoTyres:false,balloonMatchOwnership:false,balloonLoanMonths:12});
  for(const v of variants){
   const option=result[v.key],visits=option.events.filter(e=>e.category==='tyres'&&e.amount===defaults.tyreVisitCost+defaults.tyreStorage);
   assert.equal(option.tyreVisits,Math.ceil(months/6));
@@ -258,7 +258,7 @@ for(const months of [12,36,72]){
  const result=calculate({...relativeInput,months});
  near(result.cashPurchase.resale,1334000*retention**(months/36)*1.025**(months/12));
 }
-const relativeSplit={...relativeInput,matchPeriods:false,balloonMonths:24,normalMonths:48,cashMonths:60,leaseMonths:36,leaseEnd:'buySell',leaseBuyout:800000};
+const relativeSplit={...relativeInput,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:24,normalMonths:48,cashMonths:60,leaseMonths:36,leaseEnd:'buySell',leaseBuyout:800000};
 for(const input of [relativeInput,relativeSplit,{...relativeSplit,incomeTaxEnabled:true,incomeTaxRate:20,balloonTaxValue:800000,normalTaxValue:600000}]){
  const stateBefore=JSON.stringify(input),resolved=effectiveInputs(input),direct={...resolved,resaleMode:'direct'};
  for(const todayMoney of [false,true])for(const opportunity of [false,true]){
@@ -315,7 +315,7 @@ for(const input of [defaults,{...relativeSplit,incomeTaxEnabled:true,incomeTaxRa
 console.log('PASS: inflation and return heatmap cells match full calculations and keep inputs unchanged.');
 
 // Historical replay derives inflation while retaining the month-zero cash-flow model.
-const historicalReplay={...clean,pastOwnership:true,resaleMode:'relative',price:340000,historicalNewPrice:340000,historicalUsedPrice:240000,historicalInflationPct:45.6,months:72,historicalMatchPeriod:true,vatEnabled:false,inflationRate:2.5};
+const historicalReplay={...clean,pastOwnership:true,resaleMode:'relative',price:340000,historicalNewPrice:340000,historicalUsedPrice:240000,historicalInflationPct:45.6,months:72,historicalMatchPeriod:true,vatEnabled:false,inflationRate:2.5,inflationMode:'total',inflationTotalPct:45.6};
 for(const months of [72,80,84]){
  const replay={...historicalReplay,months},effective=effectiveInputs(replay);
  near((1+effective.inflationRate/100)**(months/12),1.456);
@@ -330,15 +330,15 @@ for(const months of [72,80,84]){
  }
 }
 assert.equal(migrateInputs({price:123000}).pastOwnership,false);
-assert.equal(effectiveInputs({...historicalReplay,pastOwnership:false}).inflationRate,2.5);
-assert.equal(effectiveInputs({...historicalReplay,resaleMode:'direct'}).inflationRate,2.5);
-assert.ok(Number.isNaN(effectiveInputs({...historicalReplay,historicalInflationPct:null}).inflationRate));
-near(effectiveInputs({...historicalReplay,historicalInflationPct:0}).inflationRate,0);
-const independentReplay={...historicalReplay,historicalMatchPeriod:false,historicalMonths:84};
+near(effectiveInputs({...historicalReplay,pastOwnership:false}).inflationRate,(1.456**(1/6)-1)*100);
+near(effectiveInputs({...historicalReplay,resaleMode:'direct'}).inflationRate,(1.456**(1/6)-1)*100);
+assert.ok(Number.isNaN(effectiveInputs({...historicalReplay,inflationTotalPct:null}).inflationRate));
+near(effectiveInputs({...historicalReplay,inflationTotalPct:0}).inflationRate,0);
+const independentReplay={...historicalReplay,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,historicalMatchPeriod:false,historicalMonths:84};
 near((1+effectiveInputs(independentReplay).inflationRate/100)**6,1.456);
-assert.equal(effectiveInputs(independentReplay).historicalMonths,72);
+assert.equal(effectiveInputs(independentReplay).historicalMonths,84);
 assert.equal(independentReplay.historicalMonths,84);
-console.log('PASS: historical ownership replay, exact resale, derived inflation and direct-mode equivalence.');
+console.log('PASS: historical ownership replay, exact resale, shared inflation and direct-mode equivalence.');
 
 // Additional costs form their own dated cash-flow category.
 const legacyAdditional={...defaults};
@@ -351,7 +351,7 @@ for(const v of variants){
  assert.equal(legacyAdditionalResult[v.key].events.some(event=>event.category==='additional'),false);
 }
 
-const annualAdditional={...defaults,matchPeriods:false,balloonMonths:30,normalMonths:18,leaseMonths:30,cashMonths:12,additionalCostMode:'annual',additionalCostAnnual:12000,vatEnabled:false,opportunityRate:0,inflationRate:0,easyExtra:777};
+const annualAdditional={...defaults,matchPeriods:false,balloonMatchPeriod:false,normalMatchPeriod:false,leaseMatchPeriod:false,cashMatchPeriod:false,pastHistoricalMatchPeriod:false,balloonMonths:30,normalMonths:18,leaseMonths:30,cashMonths:12,additionalCostMode:'annual',additionalCostAnnual:12000,vatEnabled:false,opportunityRate:0,inflationRate:0,easyExtra:777};
 const annualAdditionalResult=calculate(annualAdditional);
 assert.deepEqual(annualAdditionalResult.balloonLoan.events.filter(event=>event.category==='additional').map(({month,amount})=>({month,amount})),[
  {month:12,amount:12000},{month:24,amount:12000},{month:30,amount:6000}
@@ -383,7 +383,7 @@ assert.deepEqual(yearlyAdditionalResult.cashPurchase.events.filter(event=>event.
 assert.equal(yearlyAdditionalResult.cashPurchase.additionalCosts,54000);
 assert.deepEqual(effectiveInputs({...yearlyAdditional,months:12,additionalCostAnnual:null,additionalCostYears:[12000,null]}).additionalCostYears,[12000,null]);
 assert.doesNotThrow(()=>calculate({...yearlyAdditional,months:12,additionalCostAnnual:null,additionalCostYears:[12000,null]}));
-assert.doesNotThrow(()=>calculate({...yearlyAdditional,months:12,matchPeriods:true,balloonMonths:120,additionalCostAnnual:null,additionalCostYears:[12000]}));
+assert.doesNotThrow(()=>calculate({...yearlyAdditional,months:12,matchPeriods:true,balloonMatchPeriod:true,normalMatchPeriod:true,leaseMatchPeriod:true,cashMatchPeriod:true,pastHistoricalMatchPeriod:true,balloonMonths:120,additionalCostAnnual:null,additionalCostYears:[12000]}));
 assert.throws(()=>calculate({...yearlyAdditional,months:24,additionalCostAnnual:null,additionalCostYears:[12000]}),/fallback/);
 assert.throws(()=>calculate({...yearlyAdditional,months:24,additionalCostYears:[12000,null]}),/active yearly/);
 
@@ -444,7 +444,7 @@ assert.doesNotThrow(()=>calculate({...twoYearInflation,historicalInflationMode:'
 assert.doesNotThrow(()=>validateHistoricalInflation({...twoYearInflation,historicalInflationYears:[10,null]},{allowDrafts:true}));
 
 const equivalentHistoricalRate=Math.expm1(Math.log1p(.456)/6)*100;
-const yearlyReplay={...historicalReplay,historicalInflationMode:'yearly',historicalInflationPct:null,historicalInflationYears:Array(6).fill(equivalentHistoricalRate)};
+const yearlyReplay={...historicalReplay,inflationMode:'yearly',inflationYears:Array(6).fill(equivalentHistoricalRate),historicalInflationMode:'yearly',historicalInflationPct:null,historicalInflationYears:Array(6).fill(equivalentHistoricalRate)};
 near(historicalInflationTotal(yearlyReplay),45.6);
 near(historicalInflationRate(yearlyReplay),equivalentHistoricalRate);
 near(relativeResaleEstimate(yearlyReplay).nominalValue,240000);

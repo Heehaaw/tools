@@ -1,25 +1,25 @@
 
 // --- Input schema and compatibility ---
 export const variants = [
- {key:"balloonLoan",kind:"balloon",deductions:"balloonDeductions",taxValue:"balloonTaxValue",name:"Balloon loan",enabled:"balloonEnabled",months:"balloonMonths",loanMonths:"balloonLoanMonths",matchLoanTerm:"balloonMatchOwnership",resale:"balloonResale",fields:["downPct","balloonPct","rate","easyInsurance","easyExtra"]},
- {key:"standardLoan",kind:"normal",deductions:"normalDeductions",taxValue:"normalTaxValue",name:"Standard loan",enabled:"normalEnabled",months:"normalMonths",loanMonths:"normalLoanMonths",matchLoanTerm:"normalMatchOwnership",resale:"normalResale",fields:["normalDownPct","normalRate","normalInsurance","normalExtra"]},
- {key:"lease",kind:"lease",deductions:"leaseDeductions",taxValue:"leaseTaxValue",name:"Operating lease",enabled:"leaseEnabled",months:"leaseMonths",resale:"leaseResale",fields:["kintoMonthly","kintoInitial","kintoInsurance","kintoExtra","leaseBuyout"]},
- {key:"cashPurchase",kind:"cash",deductions:"cashDeductions",taxValue:"cashTaxValue",name:"Buy outright",enabled:"cashEnabled",months:"cashMonths",resale:"cashResale",fields:["cashInsurance","cashExtra"]}
+ {key:"balloonLoan",kind:"balloon",deductions:"balloonDeductions",taxValue:"balloonTaxValue",name:"Balloon loan",enabled:"balloonEnabled",months:"balloonMonths",matchPeriod:"balloonMatchPeriod",loanMonths:"balloonLoanMonths",matchLoanTerm:"balloonMatchOwnership",resale:"balloonResale",fields:["downPct","balloonPct","rate","easyInsurance","easyExtra"]},
+ {key:"standardLoan",kind:"normal",deductions:"normalDeductions",taxValue:"normalTaxValue",name:"Standard loan",enabled:"normalEnabled",months:"normalMonths",matchPeriod:"normalMatchPeriod",loanMonths:"normalLoanMonths",matchLoanTerm:"normalMatchOwnership",resale:"normalResale",fields:["normalDownPct","normalRate","normalInsurance","normalExtra"]},
+ {key:"lease",kind:"lease",deductions:"leaseDeductions",taxValue:"leaseTaxValue",name:"Operating lease",enabled:"leaseEnabled",months:"leaseMonths",matchPeriod:"leaseMatchPeriod",resale:"leaseResale",fields:["kintoMonthly","kintoInitial","kintoInsurance","kintoExtra","leaseBuyout"]},
+ {key:"cashPurchase",kind:"cash",deductions:"cashDeductions",taxValue:"cashTaxValue",name:"Buy outright",enabled:"cashEnabled",months:"cashMonths",matchPeriod:"cashMatchPeriod",resale:"cashResale",fields:["cashInsurance","cashExtra"]}
 ];
 export const defaults = {
- pastOwnership:false,resaleMode:"direct",relativeResaleSeeded:false,historicalNewPrice:0,historicalUsedPrice:0,historicalYears:3,historicalMonths:36,historicalMatchPeriod:true,historicalInflationMode:"total",historicalInflationPct:0,historicalInflationYears:[],
+ inflationSetup:"shared-v1",legacyInflationInputs:"",pastOwnership:false,resaleMode:"direct",relativeResaleSeeded:false,historicalNewPrice:0,historicalUsedPrice:0,historicalYears:3,historicalMonths:36,historicalMatchPeriod:true,historicalInflationMode:"total",pastHistoricalInflationMode:"main",historicalInflationAnnual:2.5,historicalInflationPct:0,historicalInflationYears:[],
  incomeTaxEnabled:false,incomeTaxRate:0,saleTaxRate:0,matchSaleTaxRate:true,
  balloonDeductions:0,normalDeductions:0,leaseDeductions:0,cashDeductions:0,
  balloonTaxValue:0,normalTaxValue:0,leaseTaxValue:0,cashTaxValue:0,
- opportunityRateBasis:"nominal",inflationRate:2.5,
- balloonInputMode:"rate",balloonMonthlyPayment:0,normalInputMode:"rate",normalMonthlyPayment:0,balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,
+ opportunityRateBasis:"nominal",inflationRate:2.5,inflationMode:"annual",inflationTotalPct:0,inflationTotalSeeded:false,inflationYears:[],
+ balloonInputMode:"rate",balloonMonthlyPayment:0,normalInputMode:"rate",normalMonthlyPayment:0,balloonEnabled:true,normalEnabled:true,leaseEnabled:true,cashEnabled:true,matchPeriods:true,balloonMatchPeriod:true,normalMatchPeriod:true,leaseMatchPeriod:true,cashMatchPeriod:true,pastHistoricalMatchPeriod:true,
  balloonMatchOwnership:true,normalMatchOwnership:true,balloonLoanMonths:36,normalLoanMonths:36,
  balloonMonths:36,normalMonths:36,leaseMonths:36,cashMonths:36,
  balloonResale:1000000,normalResale:1000000,leaseResale:1000000,cashResale:1000000,
  cashInsurance:3700, cashExtra:0, vatEnabled:true, recoveryPct:100, purchaseVatEligible:true, purchaseVatDelay:3, leaseVatDelay:0, purchaseVatCap:420000, opportunityRate:8.5, loanEnd:"sell", leaseEnd:"return", leaseBuyout:0, buyoutVatEligible:true, leaseTaxablePct:100, carName:"Toyota RAV4 Executive PHEV AWD", normalDownPct:20, normalRate:5.99, normalInsurance:3700, normalExtra:0, months:36, annualKm:20000, price:1334000, downPct:20, balloonPct:46, rate:5.99, easyInsurance:3700,
  resale:1000000, easyExtra:0, kintoMonthly:16788, kintoVatMode:"gross", vatPct:21, kintoInitial:0,
  kintoInsuranceIncluded:true, kintoInsurance:3700, kintoMaintenance:false, kintoTyres:true, kintoExtra:0,
- additionalCostMode:"annual", additionalCostAnnual:0, additionalCostYears:[], leaseAdditionalCosts:false,
+ additionalSeparatePeriod:false, additionalCostMonths:36, additionalCostMode:"annual", additionalCostAnnual:0, additionalCostYears:[], leaseAdditionalCosts:false,
  serviceCost:12000, serviceKm:15000, serviceMonths:12, tyrePurchase:22000, tyreResale:3000,
  tyreVisits:6, tyreVisitCost:1880, tyreStorage:1100
 };
@@ -36,34 +36,64 @@ export function migrateInputs(inputs){
  // Never share the schema default or a caller-owned year array with an effective scenario.
  state.additionalCostYears=Object.hasOwn(inputs,"additionalCostYears")?(Array.isArray(inputs.additionalCostYears)?[...inputs.additionalCostYears]:inputs.additionalCostYears):[...defaults.additionalCostYears];
  state.historicalInflationYears=Object.hasOwn(inputs,"historicalInflationYears")?(Array.isArray(inputs.historicalInflationYears)?[...inputs.historicalInflationYears]:inputs.historicalInflationYears):[...defaults.historicalInflationYears];
+ state.inflationYears=Object.hasOwn(inputs,"inflationYears")?(Array.isArray(inputs.inflationYears)?[...inputs.inflationYears]:inputs.inflationYears):[...defaults.inflationYears];
  // Keep old independent ages, including zero/null drafts, when migrating years to months.
  if(!Object.hasOwn(inputs,"historicalMonths"))state.historicalMonths=Object.hasOwn(inputs,"historicalYears")?(inputs.historicalYears===null?null:inputs.historicalYears*12):state.months;
  if(!Object.hasOwn(inputs,"historicalMatchPeriod"))state.historicalMatchPeriod=!Object.hasOwn(inputs,"historicalYears");
  // Preserve historical drafts from older versions; seed only an unused relative mode.
  if(!Object.hasOwn(inputs,"relativeResaleSeeded"))state.relativeResaleSeeded=inputs.resaleMode==="relative"||["historicalNewPrice","historicalUsedPrice"].some(key=>Object.hasOwn(inputs,key)&&inputs[key]!==0);
+ if(!Object.hasOwn(inputs,"inflationRate"))state.inflationRate=0;
+ // Older past-relative scenarios took inflation from the comparable history. Promote that source once.
+ if(!Object.hasOwn(inputs,"inflationSetup")&&state.pastOwnership&&state.resaleMode==="relative"){
+  state.legacyInflationInputs=JSON.stringify(Object.fromEntries(["inflationRate","inflationMode","inflationTotalPct","inflationTotalSeeded","inflationYears","historicalMonths"].map(key=>[key,state[key]])));
+  state.inflationMode=state.historicalInflationMode;
+  if(state.inflationMode==="annual")state.inflationRate=state.historicalInflationAnnual;
+  else if(state.inflationMode==="total"){state.inflationTotalPct=state.historicalInflationPct;state.inflationTotalSeeded=true;}
+  else if(Array.isArray(state.historicalInflationYears))state.inflationYears=state.historicalInflationYears.slice(0,10);
+  // The old replay always used the ownership period, even when a hidden independent age was saved.
+  if(!state.matchPeriods)state.historicalMonths=state.months;
+ }
  // Previous scenarios used nominal returns; never reinterpret their saved percentage.
  if(!Object.hasOwn(inputs,"opportunityRateBasis"))state.opportunityRateBasis="nominal";
- if(!Object.hasOwn(inputs,"inflationRate"))state.inflationRate=0;
+ if(!Object.hasOwn(inputs,"pastHistoricalMatchPeriod"))state.pastHistoricalMatchPeriod=state.matchPeriods;
  for(const v of variants){
+  if(!Object.hasOwn(inputs,v.matchPeriod))state[v.matchPeriod]=state.matchPeriods;
   if(!Object.hasOwn(inputs,v.months))state[v.months]=state.months;
   if(!Object.hasOwn(inputs,v.resale))state[v.resale]=state.resale;
-  if(v.loanMonths&&!Object.hasOwn(inputs,v.loanMonths))state[v.loanMonths]=state.matchPeriods?state.months:state[v.months];
+  if(v.loanMonths&&!Object.hasOwn(inputs,v.loanMonths))state[v.loanMonths]=state[v.matchPeriod]?state.months:state[v.months];
  }
  return state;
 }
 // --- Effective assumptions and validation ---
 function historicalAgeMonths(s){
- if(s.pastOwnership||s.historicalMatchPeriod)return s.months;
+ if(s.pastOwnership)return (s.pastHistoricalMatchPeriod??s.matchPeriods)?s.months:s.historicalMonths;
+ if(s.historicalMatchPeriod)return s.months;
  if(Object.hasOwn(s,"historicalMonths"))return s.historicalMonths;
  return s.historicalYears===null?null:s.historicalYears*12;
 }
 
-/** Resolve cumulative inflation from a direct total or chronological annual rates. */
+/** The historical entry method is remembered independently for past and future comparisons. */
+export function historicalInflationEntryMode(s){return s.pastOwnership?(s.pastHistoricalInflationMode??"main"):(s.historicalInflationMode??"total");}
+function historicalUsesMain(s){return s.pastOwnership&&(s.pastHistoricalMatchPeriod??s.matchPeriods)||historicalInflationEntryMode(s)==="main";}
+
+/** Resolve historical inflation from its own inputs or the main annual equivalent. */
 export function historicalInflationTotal(s){
- const mode=s.historicalInflationMode??defaults.historicalInflationMode;
+ if(s.pastOwnership&&(s.pastHistoricalMatchPeriod??s.matchPeriods))return ownershipInflationTotal(s);
+ const mode=historicalInflationEntryMode(s);
+ if(mode==="main"){
+  const months=historicalAgeMonths(s),rate=ownershipInflationRate(s);
+  return Number.isFinite(months)&&months>0&&Number.isFinite(rate)&&rate>=0?Math.expm1(Math.log1p(rate/100)*months/12)*100:NaN;
+ }
  if(mode==="total")return s.historicalInflationPct;
+ if(mode==="annual"){
+  const months=historicalAgeMonths(s),rate=s.historicalInflationAnnual;
+  return Number.isFinite(months)&&months>0&&Number.isFinite(rate)&&rate>=0&&rate<=100?((1+rate/100)**(months/12)-1)*100:NaN;
+ }
  if(mode!=="yearly")return NaN;
  const months=historicalAgeMonths(s),years=Array.isArray(s.historicalInflationYears)?s.historicalInflationYears:[];
+ return compoundInflation(months,years);
+}
+function compoundInflation(months,years){
  if(!Number.isFinite(months)||months<0||months>1200)return NaN;
  let factor=1;
  for(let start=0;start<months;start+=12){
@@ -76,15 +106,42 @@ export function historicalInflationTotal(s){
 
 /** Equivalent annual inflation over the comparable car's complete historical period. */
 export function historicalInflationRate(s){
+ if(historicalUsesMain(s))return ownershipInflationRate(s);
  const months=historicalAgeMonths(s),total=historicalInflationTotal(s);
- return Number.isFinite(months)&&months>0&&Number.isFinite(total)&&total>=0?
-  Math.expm1(Math.log1p(total/100)*12/months)*100:NaN;
+ if(!Number.isFinite(months)||months<=0||!Number.isFinite(total)||total<0)return NaN;
+ // Keep an entered average exact; recomputing it can cross the 100% validation boundary through rounding.
+ if(historicalInflationEntryMode(s)==="annual")return s.historicalInflationAnnual;
+ return Math.expm1(Math.log1p(total/100)*12/months)*100;
+}
+/** Compounded ownership inflation for the shared comparison period. */
+export function ownershipInflationTotal(s){
+ const mode=s.inflationMode??"annual",months=s.months;
+ if(!Number.isFinite(months)||months<=0||months>120)return NaN;
+ if(mode==="annual")return Number.isFinite(s.inflationRate)&&s.inflationRate>=0?Math.expm1(Math.log1p(s.inflationRate/100)*months/12)*100:NaN;
+ if(mode==="total")return s.inflationTotalPct;
+ return mode==="yearly"&&Array.isArray(s.inflationYears)?compoundInflation(months,s.inflationYears):NaN;
+}
+/** Equivalent annual rate from the main ownership-inflation controls. */
+export function ownershipInflationRate(s){
+ if((s.inflationMode??"annual")==="annual")return s.inflationRate;
+ const total=ownershipInflationTotal(s);
+ const rate=Number.isFinite(total)&&total>=0&&Number.isFinite(s.months)&&s.months>0?Math.expm1(Math.log1p(total/100)*12/s.months)*100:NaN;
+ // Fractional-year compounding can round an exact 100% rate just above the supported limit.
+ return rate>100&&rate<100+1e-10?100:rate;
+}
+/** Validate entry modes and yearly schedules without discarding inactive drafts. */
+export function validateOwnershipInflation(s,{allowDrafts=false}={}){
+ if(s.inflationSetup!=="shared-v1")throw new Error("Unsupported inflation setup version.");
+ if(!["annual","total","yearly"].includes(s.inflationMode))throw new Error("Choose annual average, cumulative or yearly ownership inflation.");
+ if(!Array.isArray(s.inflationYears)||s.inflationYears.length>10)throw new Error("Enter up to 10 yearly ownership inflation rates.");
+ for(const rate of s.inflationYears)if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>100))throw new Error("Yearly ownership inflation must be between 0 and 100% or blank.");
+ if(!allowDrafts&&s.inflationMode==="yearly"&&s.inflationYears.slice(0,Math.ceil(s.months/12)).includes(null))throw new Error("Complete each active ownership inflation year.");
 }
 /** Estimate nominal resale from a comparable car's annualised real value retention. */
 export function relativeResaleEstimate(s,months=s.months){
  const ageMonths=historicalAgeMonths(s);
  const ageYears=Number.isFinite(ageMonths)?ageMonths/12:NaN;
- const inflationRate=s.pastOwnership?historicalInflationRate({...s,historicalMonths:ageMonths}):s.inflationRate;
+ const inflationRate=ownershipInflationRate(s);
  const historicalTotal=historicalInflationTotal(s);
  const values=[s.price,s.historicalNewPrice,s.historicalUsedPrice,ageYears,historicalTotal,inflationRate,months];
  if(!values.every(value=>Number.isFinite(value)&&value>=0)||s.historicalNewPrice<=0||ageYears<=0)return null;
@@ -98,14 +155,15 @@ export function relativeResaleEstimate(s,months=s.months){
 }
 export function effectiveInputs(inputs){
  const s=migrateInputs(inputs);
+ s.inflationRate=ownershipInflationRate(s);
+ if(s.inflationMode!=="total")s.inflationTotalPct=defaults.inflationTotalPct;
+ if(historicalInflationEntryMode(s)!=="annual"||s.resaleMode!=="relative"||historicalUsesMain(s))s.historicalInflationAnnual=defaults.historicalInflationAnnual;
  if(s.resaleMode!=="relative")for(const key of ["historicalNewPrice","historicalUsedPrice","historicalYears","historicalMonths","historicalInflationPct"])s[key]=defaults[key];
  if(s.resaleMode==="relative"){
-  if(s.pastOwnership||s.historicalMatchPeriod)s.historicalMonths=s.months;
+  s.historicalMonths=historicalAgeMonths(s);
   // The legacy years field is retained in storage, but effective ages now come from months.
   s.historicalYears=Number.isFinite(s.historicalMonths)?s.historicalMonths/12:NaN;
-  if(s.historicalInflationMode==="yearly")s.historicalInflationPct=historicalInflationTotal(s);
-  // Replaying history uses the same inflation interval on both sides of the resale calculation.
-  if(s.pastOwnership)s.inflationRate=historicalInflationRate(s);
+  if(historicalUsesMain(s)||historicalInflationEntryMode(s)!=="total")s.historicalInflationPct=historicalInflationTotal(s);
  }
  // Retain the old saved count for round trips, but always budget two seasonal visits per year.
  s.tyreVisits=Math.ceil(s.months/6);
@@ -118,14 +176,17 @@ export function effectiveInputs(inputs){
  }
  for(const v of variants){
   if(!s[v.enabled])for(const key of v.fields)s[key]=defaults[key];
-  if(s.matchPeriods||!s[v.enabled]){s[v.months]=s.months;s[v.resale]=s.resale;}
+  if(s[v.matchPeriod]||!s[v.enabled]){s[v.months]=s.months;s[v.resale]=s.resale;}
   if(v.loanMonths&&(s[v.matchLoanTerm]||!s[v.enabled]))s[v.loanMonths]=s[v.months];
  }
+ // Retired global matching is only a derived summary in effective inputs. Raw saved values stay unchanged.
+ s.matchPeriods=variants.every(v=>!s[v.enabled]||s[v.matchPeriod]);
  // Resolve quoted payments only after the independent repayment period is known.
  if(s.balloonEnabled&&s.balloonInputMode==="payment")s.rate=annualRateFromPayment(s.price*(1-s.downPct/100),s.price*s.balloonPct/100,s.balloonMonthlyPayment,s.balloonLoanMonths);
  else s.balloonMonthlyPayment=defaults.balloonMonthlyPayment;
  if(s.normalEnabled&&s.normalInputMode==="payment")s.normalRate=annualRateFromPayment(s.price*(1-s.normalDownPct/100),0,s.normalMonthlyPayment,s.normalLoanMonths);
  else s.normalMonthlyPayment=defaults.normalMonthlyPayment;
+ if(!s.additionalSeparatePeriod)s.additionalCostMonths=defaults.additionalCostMonths;
  if(s.additionalCostMode==="yearly"){
   const years=Array.isArray(s.additionalCostYears)?s.additionalCostYears:[];
   const needsFallback=Array.from({length:activeAdditionalCostYearCount(s)},(_,index)=>!Object.hasOwn(years,index)).some(Boolean);
@@ -155,21 +216,22 @@ export function nominalOpportunityRate(s){
  return s.opportunityRateBasis==="real"?((1+s.opportunityRate/100)*(1+s.inflationRate/100)-1)*100:s.opportunityRate;
 }
 export function comparisonValue(result,split=false){return result.adjusted/(split?result.months:1);}
-export function hasDifferentPeriods(s){return new Set(variants.filter(v=>s[v.enabled]).map(v=>s.matchPeriods?s.months:s[v.months])).size>1;}
+export function hasDifferentPeriods(s){s=migrateInputs(s);return new Set(variants.filter(v=>s[v.enabled]).map(v=>s[v.matchPeriod]?s.months:s[v.months])).size>1;}
 
 function activeAdditionalCostYearCount(s){
- return variants.filter(v=>s[v.enabled]&&(v.kind!=="lease"||s.leaseAdditionalCosts)).reduce((count,v)=>Math.max(count,Math.ceil(s[v.months]/12)),0);
+ return variants.filter(v=>s[v.enabled]&&(v.kind!=="lease"||s.leaseAdditionalCosts)).reduce((count,v)=>Math.max(count,Math.ceil((s.additionalSeparatePeriod?Math.min(s[v.months],s.additionalCostMonths):s[v.months])/12)),0);
 }
 
 function validateHistoricalInflationState(s,{allowDrafts=false}={}){
- if(!["total","yearly"].includes(s.historicalInflationMode))throw new Error("Choose total or year-specific historical inflation.");
+ if(!["annual","total","yearly","main"].includes(s.historicalInflationMode)||!["annual","total","yearly","main"].includes(s.pastHistoricalInflationMode))throw new Error("Choose annual average, total or year-specific historical inflation, or use the main annual average.");
+ if(s.historicalInflationAnnual!==null&&(!Number.isFinite(s.historicalInflationAnnual)||s.historicalInflationAnnual<0||s.historicalInflationAnnual>100))throw new Error("Historical annual inflation must be between 0 and 100 or blank.");
  if(!Array.isArray(s.historicalInflationYears)||s.historicalInflationYears.length>100)throw new Error("Enter up to 100 yearly historical inflation rates.");
  for(let index=0;index<s.historicalInflationYears.length;index++){
   if(!Object.hasOwn(s.historicalInflationYears,index))continue;
   const rate=s.historicalInflationYears[index];
   if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>100))throw new Error("Yearly historical inflation rates must be between 0 and 100 or blank.");
  }
- if(allowDrafts||s.resaleMode!=="relative"||s.historicalInflationMode!=="yearly")return;
+ if(allowDrafts||s.resaleMode!=="relative"||historicalUsesMain(s)||historicalInflationEntryMode(s)!=="yearly")return;
  const months=historicalAgeMonths(s);
  if(Number.isFinite(months)&&months>1200)throw new Error("Year-specific historical inflation supports up to 100 years; use total cumulative inflation for a longer comparable age.");
  const activeYears=Number.isFinite(months)&&months>0?Math.ceil(months/12):0;
@@ -190,6 +252,7 @@ function validateAdditionalCostState(s,{allowDrafts=false}={}){
   if(value!==null&&(!Number.isFinite(value)||value<0))throw new Error("Yearly additional costs must be non-negative numbers or blank.");
  }
  if(s.additionalCostAnnual!==null&&(!Number.isFinite(s.additionalCostAnnual)||s.additionalCostAnnual<0))throw new Error("Enter a valid, non-negative annual additional cost.");
+ if(s.additionalSeparatePeriod&&!(allowDrafts&&s.additionalCostMonths===null)&&(!Number.isInteger(s.additionalCostMonths)||s.additionalCostMonths<1||s.additionalCostMonths>120))throw new Error("Use an additional-cost period of 1 to 120 whole months.");
  if(allowDrafts)return;
  if(s.additionalCostMode==="annual"){
   if(!Number.isFinite(s.additionalCostAnnual))throw new Error("Enter an annual additional cost.");
@@ -207,6 +270,7 @@ export function validateAdditionalCosts(inputs,options={}){validateAdditionalCos
 
 export function validate(s){
  s=effectiveInputs(s);
+ validateOwnershipInflation(s);
  if(!["rate","payment"].includes(s.normalInputMode))throw new Error("Choose interest rate or monthly payment for the standard loan.");
  if(s.normalEnabled&&s.normalInputMode==="payment"&&!Number.isFinite(s.normalRate))throw new Error("Enter a valid standard loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
  if(!["rate","payment"].includes(s.balloonInputMode))throw new Error("Choose interest rate or monthly payment for the balloon loan.");
@@ -343,8 +407,10 @@ export function calculate(s,valuation={}){
    add(n,-s.tyreResale,"tyres",keep?"asset":"cash");add(n,saleVat(s.tyreResale),"vat",keep?"asset":"cash");
   }
   let additionalCosts=0;
-  if(!isLease||s.leaseAdditionalCosts)for(let start=0;start<n;start+=12){
-   const period=Math.min(12,n-start),index=start/12;
+  // A separate cost window caps expense dates without shortening ownership or later opportunity cost.
+  const additionalMonths=s.additionalSeparatePeriod?Math.min(n,s.additionalCostMonths):n;
+  if(!isLease||s.leaseAdditionalCosts)for(let start=0;start<additionalMonths;start+=12){
+   const period=Math.min(12,additionalMonths-start),index=start/12;
    const annual=s.additionalCostMode==="annual"?s.additionalCostAnnual:Object.hasOwn(s.additionalCostYears,index)?s.additionalCostYears[index]:s.additionalCostAnnual;
    const amount=annual*period/12;additionalCosts+=amount;
    if(amount){add(start+period,amount,"additional");refund(start+period,inputVat(amount));}
@@ -431,9 +497,10 @@ export function resaleTaxBreakpoints(inputs){
  return variants.filter(v=>s[v.enabled]&&(v.kind==="lease"?s.leaseEnd==="buySell":s.loanEnd==="sell")).map(v=>
   s[v.taxValue]*(s.vatEnabled?1+s.vatPct/100:1)+(s.matchPeriods?0:s.resale-s[v.resale]));
 }
-export function resaleComparisons(s,valuation={}){
+/** Compare resale crossovers on full-term or duration-normalised cost; omitted basis preserves existing callers. */
+export function resaleComparisons(s,valuation={},annualComparison=hasDifferentPeriods(s)){
  s=effectiveInputs(s);
- const split=hasDifferentPeriods(s),value=c=>comparisonValue(c,split);
+ const split=annualComparison,value=c=>comparisonValue(c,split);
  const active=variants.filter(v=>s[v.enabled]),pairs=[];
  const origin=s.matchPeriods?0:Math.max(0,s.resale-Math.min(...active.map(v=>s[v.resale])));
  // Sale tax creates kinks at tax values. Solve each linear segment, including multiple crossings.
@@ -462,10 +529,10 @@ export function resaleComparisons(s,valuation={}){
  return pairs;
 }
 
-/** Find the non-negative nominal loan rate matching a selected benchmark, including opportunity cost. */
-export function interestComparisons(s,valuation={}){
+/** Find the non-negative nominal loan rate matching a selected benchmark, including opportunity cost; annualComparison selects duration-normalised costs. */
+export function interestComparisons(s,valuation={},annualComparison=hasDifferentPeriods(s)){
  s=effectiveInputs(s);
- const split=hasDifferentPeriods(s),base=calculate(s,valuation),rows=[];
+ const split=annualComparison,base=calculate(s,valuation),rows=[];
  for(const loan of variants.slice(0,2).filter(v=>s[v.enabled]))for(const target of variants.slice(2).filter(v=>s[v.enabled])){
   const rateKey=loan.kind==="balloon"?"rate":"normalRate";
   const targetCost=comparisonValue(base[target.key],split);
@@ -488,10 +555,10 @@ export function interestComparisons(s,valuation={}){
 }
 
 /** Compare inflation/return assumptions without changing the scenario's saved inputs. */
-export function inflationReturnGrid(inputs,inflations,returns,options={opportunity:true,todayMoney:false}){
- const s=effectiveInputs(inputs),active=variants.filter(v=>s[v.enabled]),split=hasDifferentPeriods(s);
+export function inflationReturnGrid(inputs,inflations,returns,options={opportunity:true,todayMoney:false},annualComparison=hasDifferentPeriods(inputs)){
+ const s=effectiveInputs(inputs),active=variants.filter(v=>s[v.enabled]),split=annualComparison;
  // Inflation changes projected resale and sale tax. Return only revalues those same dated flows.
- const columns=inflations.map(inflation=>calculate({...s,...(s.pastOwnership?{resaleMode:"direct"}:{}),inflationRate:inflation,opportunityRateBasis:"nominal"}));
+ const columns=inflations.map(inflation=>calculate({...s,...(s.pastOwnership?{resaleMode:"direct"}:{}),inflationMode:"annual",inflationRate:inflation,opportunityRateBasis:"nominal"}));
  return returns.flatMap(rate=>inflations.map((inflation,index)=>{
   const result=columns[index];
   const costs=active.map(v=>{
@@ -505,6 +572,7 @@ export function inflationReturnGrid(inputs,inflations,returns,options={opportuni
 
 /** Display samples and exact crossings on the same nominal resale axis. */
 export function resaleSamples(s,pairs){
+ s=effectiveInputs(s);
  const active=variants.filter(v=>s[v.enabled]);
  const minimum=s.matchPeriods?0:Math.max(0,s.resale-Math.min(...active.map(v=>s[v.resale])));
  return [...new Set([...[-100000,-50000,0,50000,100000].map(offset=>Math.max(minimum,s.resale+offset)),...pairs.filter(p=>p.resale!==null).map(p=>p.resale),...resaleTaxBreakpoints(s).filter(value=>value>=minimum)])].sort((a,b)=>a-b);
