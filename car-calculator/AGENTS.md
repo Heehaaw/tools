@@ -23,7 +23,7 @@ A browser-based comparison of car financing and ownership costs. The application
 | `tests/` | Focused build, controller, feature, model and generated-page UI tests |
 | `car-financing-calculator.html` | Generated, shareable application |
 | `README.md` | User quick start and documentation index |
-| `RELEASE_NOTES.md` | Semantic release ledger and source of the header version/date |
+| `RELEASE_NOTES.md` | Semantic release ledger and source of the dated header version |
 | `docs/architecture.md` | Data flow, function map and build constraints |
 | `docs/model.md` | Financial conventions, formulas and graph semantics |
 | `docs/storage.md` | JSON formats, storage keys, migrations and recovery |
@@ -98,5 +98,9 @@ There is no package install, framework build or required development server. `bu
 2. Add one newest-first entry to `RELEASE_NOTES.md` for the changes being prepared. Use the exact heading `## YYYY.MM.DD.N (YYYY-MM-DD)`, dated in Europe/Prague; start N at 1 each day and increment for another release that day. The first level-two heading supplies build metadata. These are ledger versions; creating Git tags is not required. Historical backfills must identify their source commits and distinguish commit dates from verified deployment dates.
 3. Include already committed but undocumented work when asked only to push. Commit the notes and regenerated artifact before pushing. Conversely, if the requested commit is already recorded and there are no new changes, reuse its version and date; do not create an empty release just for another push. The commit that last changed the newest ledger entry identifies the release without a self-referencing commit hash.
 4. Include the pending changes in their own entry before committing, using the previous recorded commit as a reference if useful. Never create a second notes-only commit just to insert the new commit's own hash. Keep older entries intact except to correct an evidenced mistake.
-5. Run `node build.mjs`, `node test.mjs`, and `git diff --check`. The build reads the newest ledger version/date and injects them beside the calculator brand. Review the staged diff to confirm the notes describe the release and that the header points to the Markdown ledger on GitHub. No runtime fetch or extra offline file is required.
+5. Run `node build.mjs`, `node test.mjs`, and `git diff --check`. The build validates the newest ledger version/date and shows only the dated version beside the calculator brand; do not repeat the date in the header. Review the staged diff to confirm the notes describe the release and that the header points to `./RELEASE_NOTES.md` so local copies open local notes and hosted copies use the same site. No runtime fetch is required; the notes file must accompany the HTML for that link to work offline, while the calculator itself remains self-contained.
 6. Use a semantic commit message. Push only when requested, verify it succeeded, and report the release version and commit. Do not describe a release as deployed just because a push succeeded.
+
+## Licensing and standalone distribution
+
+The root `LICENSE`, `NOTICE`, `COMMERCIAL-LICENSE.md` and `LICENSING.md` define the licensing policy. The builder reads LICENSE and NOTICE and embeds their complete text in the standalone HTML. Preserve that section and rebuild when either file changes. The source template contains placeholders, so edit the root documents rather than a second copy. Keep licensing checks in `tests/build.test.mjs` passing.

@@ -18,7 +18,7 @@
 | `src/app.mjs` | Controller construction, callbacks, `initialize()` and the shared `update()` path | Feature-specific mutable state |
 | `src/index.html` | Controls, accessible labels, page sections and initial help text | Generated results and business calculations |
 | `src/style.css` | Layout, option colours, money-basis accent and themes | State or calculation logic |
-| `build.mjs` | Validated module-graph bundling, ledger version/date injection and deterministic standalone HTML assembly | Runtime network dependencies |
+| `build.mjs` | Validated module-graph bundling, ledger validation and dated version injection and deterministic standalone HTML assembly | Runtime network dependencies |
 | `RELEASE_NOTES.md` | Dated semantic releases; newest heading supplies build metadata | Saved scenario schema or runtime state |
 | `test.mjs`, `tests/` | Focused build/controller/model checks plus execution of the built page in a minimal DOM | Claims about actual browser layout |
 
@@ -123,7 +123,7 @@ The small theme script in `index.html` still runs before paint. The inline appli
 
 `build.mjs` starts at `src/app.mjs`, follows its local module graph and evaluates each dependency once in topological order. It supports static named imports from `.mjs` files inside `src/`, including aliases, and named `const` or `function` exports. The graph must be acyclic. Default, namespace, side-effect, dynamic and external imports, re-exports and other export forms are rejected. Each module runs inside its own closure and exposes a frozen namespace to its dependants, so identical private names in different files do not collide.
 
-The builder embeds that bundle and `style.css` into `index.html`, escapes raw closing tags and writes one deterministic `car-financing-calculator.html`. The distributed file performs no runtime module fetches and needs no network, package installation or server. A new source module is included when it is reachable through supported imports from `app.mjs`; no separate file list belongs in the builder.
+The builder embeds that bundle, `style.css`, and escaped text from the root `LICENSE` and `NOTICE` into `index.html`, escapes raw closing tags and writes one deterministic `car-financing-calculator.html`. The distributed file performs no runtime module fetches and needs no network, package installation or server. A new source module is included when it is reachable through supported imports from `app.mjs`; no separate file list belongs in the builder.
 
 The optional `document.modelContext` hook routes supplied inputs through the same validation, rendering and saving path. Its generated schema accepts numeric/null arrays generically, with ten items for ordinary arrays and 100 rates for `historicalInflationYears`; historical rates are additionally bounded at 100%. Normal calculator use does not depend on that browser capability.
 
@@ -134,3 +134,5 @@ The optional `document.modelContext` hook routes supplied inputs through the sam
 3. For a new event category, update component and opportunity grouping plus cash/VAT presentation as relevant.
 4. Update the corresponding reference document and tooltips in the same change.
 5. Rebuild and follow the [verification guide](testing.md). Preserve existing saved data and unrelated work.
+
+The footer keeps the full license and required notices readable offline. Its native disclosure starts collapsed and remembers the user's choice through the shell's existing detail-state storage. Other disclosures retain their existing default. Legal text is injected at build time and is never fetched at runtime.

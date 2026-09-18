@@ -7,6 +7,7 @@ import {app as browserlessApp,createApp} from '../src/app.mjs';
 import {defaults} from '../src/model.mjs';
 import {createScenarios} from '../src/scenarios.mjs';
 import {createViews} from '../src/views.mjs';
+import {createShell} from '../src/shell.mjs';
 // A distinct module URL keeps lifecycle instrumentation isolated from ui.test.mjs in the full runner.
 import {context,elements} from './ui-harness.mjs?components';
 
@@ -154,4 +155,33 @@ test('app initialization binds controls and registers its model tool once',()=>{
  assert.ok(firstCounts.windowBindings>0);
  assert.equal(firstCounts.toolRegistrations,1);
  assert.deepEqual({elementBindings,documentBindings,windowBindings,toolRegistrations},firstCounts);
+});
+
+
+test('licensing starts collapsed while existing disclosures stay open and saved choices win',()=>{
+ const makeDetail=(title,collapsed)=>({
+  dataset:{},open:false,listeners:{},
+  querySelector:()=>({textContent:title}),
+  hasAttribute:name=>name==='data-default-collapsed'&&collapsed,
+  addEventListener(type,listener){this.listeners[type]=listener;}
+ });
+ function initialize(storage){
+  const license=makeDetail('Licence',true),assumptions=makeDetail('Assumptions',false);
+  const document=fakeDocument();
+  const getElement=document.getElementById;
+  document.getElementById=id=>Object.assign(getElement(id),{setAttribute(){}});
+  document.querySelectorAll=selector=>selector==='details'?[license,assumptions]:[];
+  document.documentElement={dataset:{}};
+  document.addEventListener=()=>{};
+  createShell({document,storage,onNavigate(){}}).initialize();
+  return {license,assumptions};
+ }
+ const storage=memoryStorage(),first=initialize(storage);
+ assert.equal(first.license.open,false);
+ assert.equal(first.assumptions.open,true);
+ first.license.open=true;
+ first.license.listeners.toggle();
+ const restored=initialize(storage);
+ assert.equal(restored.license.open,true);
+ assert.equal(restored.assumptions.open,true);
 });

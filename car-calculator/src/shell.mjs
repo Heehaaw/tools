@@ -45,7 +45,7 @@ export function createShell({document,storage,onNavigate}){
   for(const card of document.querySelectorAll("details")){
    const summary=card.querySelector(":scope > summary");
    const key="details-"+summary.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-");
-   card.dataset.card=key;card.open=typeof saved[key]==="boolean"?saved[key]:true;states[key]=card.open;
+   card.dataset.card=key;card.open=typeof saved[key]==="boolean"?saved[key]:!card.hasAttribute("data-default-collapsed");states[key]=card.open;
    card.addEventListener("toggle",()=>remember(key,card.open));
   }
  }
@@ -92,6 +92,10 @@ export function createShell({document,storage,onNavigate}){
    if(event.key==="Escape"&&document.activeElement?.classList.contains("help-button"))document.activeElement.blur();
   });
   initializeCards();initializeTabs();
+  $("licensingLink").addEventListener("click",()=>{
+   const license=$("software-license");license.open=true;
+   license.querySelector("summary").focus({preventScroll:true});
+  });
  }
  return {initialize,selectTab};
 }

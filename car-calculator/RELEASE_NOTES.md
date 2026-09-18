@@ -4,6 +4,16 @@
 
 Newest first. Versions use `YYYY.MM.DD.N`, with a sequence starting at 1 each day. Dates use Europe/Prague. These identify ledger entries, not Git tags. Entries before 2026.09.18.4 were reconstructed from commit messages and changes; their dates are commit dates, not independently verified deployment dates.
 
+## 2026.09.18.5 (2026-09-18)
+
+- Add a custom source-available license granting free use, modification, hosting and sharing for every noncommercial purpose, for individuals and organizations. Commercial use of the original code or forks containing it requires a separate signed agreement, with fees or royalties negotiated individually.
+- Document the licensing choice, required notices, and rights needed for commercial licensing of outside contributions.
+- Embed the complete license and notices in the standalone HTML so shared copies retain readable offline terms. Add a Licensing link in the header that opens the full-width footer section; remember its expanded state.
+- Make the release-notes link relative so local and hosted copies open their adjacent notes. Show only the dated release version in the header, removing the duplicate date.
+- Verify embedded legal text, safe HTML escaping, and disclosure-state restoration in the build and component checks. Financial calculations and saved scenario formats are unchanged.
+
+Previous recorded commit: [153a79e](https://github.com/Heehaaw/tools/commit/153a79e). This entry is committed with the changes it describes.
+
 ## 2026.09.18.4 (2026-09-18)
 
 - Add this release history beside the README, including the earlier calculator changes.

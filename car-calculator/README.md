@@ -6,7 +6,7 @@
 
 Compare a balloon loan, standard loan, operating lease or outright purchase, including resale, running costs, VAT, inflation and opportunity cost. Plan a purchase or replay past ownership.
 
-[Release notes](RELEASE_NOTES.md) list dated changes and their source commits. The link beside AUTO / FINANCE CALCULATOR opens this ledger on GitHub; the calculator itself still works offline.
+[Release notes](RELEASE_NOTES.md) list dated changes and their source commits. The link beside AUTO / FINANCE CALCULATOR opens the adjacent `RELEASE_NOTES.md` using a relative URL. Keep that file beside the HTML to open the notes locally; the calculator itself still works without it.
 
 ## Open and share
 
@@ -50,4 +50,10 @@ Annual comparisons divide each option’s full cost by its own ownership years, 
 
 ## Preparing a release
 
-When asked to commit or push, collect the changes since the last recorded release into [RELEASE_NOTES.md](RELEASE_NOTES.md). Infer the effects from commit messages and checked diffs, including pending changes. Use a new dated `YYYY.MM.DD.N` entry, rebuild the HTML so its header gets the same version/date, run the checks, and commit the notes with the changes. A later push of an already recorded commit reuses that release. See [AGENTS.md](AGENTS.md#release-workflow-for-requested-commits-and-pushes) for the full workflow.
+When asked to commit or push, collect the changes since the last recorded release into [RELEASE_NOTES.md](RELEASE_NOTES.md). Infer the effects from commit messages and checked diffs, including pending changes. Use a new dated `YYYY.MM.DD.N` entry, rebuild the HTML so its header shows the same dated version without a separate date, run the checks, and commit the notes with the changes. A later push of an already recorded commit reuses that release. See [AGENTS.md](AGENTS.md#release-workflow-for-requested-commits-and-pushes) for the full workflow.
+
+## Licensing
+
+All noncommercial use, modification, hosting and sharing is free for individuals and organizations, without a separate agreement, under the custom [Tools Noncommercial License](../LICENSE). Commercial use requires [Jan Milota's written agreement](../COMMERCIAL-LICENSE.md), including commercial business use and commercial use of forks containing his code. Fees or royalties are agreed individually. See [scope and rationale](../LICENSING.md).
+
+The Licensing link beside the release notes opens the complete license and required notices in the footer, readable offline. Keep them when sharing or modifying it. Your scenario data and calculator results remain yours.
