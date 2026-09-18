@@ -149,30 +149,34 @@ test('invalid latest release metadata fails rather than silently using an older 
 
 
 test('standalone copies carry the complete license and every required notice offline',async()=>{
- const [html,license,notice]=await Promise.all([
+ const [html,license,notice,czechLicense,i18nextLicense]=await Promise.all([
   buildStandalone({output:null}),
   readFile(join(projectDirectory,'../LICENSE'),'utf8'),
-  readFile(join(projectDirectory,'../NOTICE'),'utf8')
+  readFile(join(projectDirectory,'../NOTICE'),'utf8'),
+  readFile(join(projectDirectory,'docs/license.cs.md'),'utf8'),
+  readFile(join(projectDirectory,'src/vendor/i18next.LICENSE'),'utf8')
  ]);
  const decode=value=>value.replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&amp;','&');
- assert.equal(decode(html.match(/<pre id="software-license-text">([\s\S]*?)<\/pre>/)[1]),license);
- assert.equal(decode(html.match(/<pre id="software-license-notice">([\s\S]*?)<\/pre>/)[1]),notice);
- assert.doesNotMatch(html,/\{\{LICENSE_/);
+ assert.equal(decode(html.match(/<pre id="software-license-text" lang="en">([\s\S]*?)<\/pre>/)[1]),license);
+ assert.equal(decode(html.match(/<pre id="software-license-notice" lang="en">([\s\S]*?)<\/pre>/)[1]),notice);
+ assert.equal(decode(html.match(/<pre id="software-license-cs" lang="cs" hidden>([\s\S]*?)<\/pre>/)[1]),czechLicense);
+ assert.equal(decode(html.match(/<pre id="third-party-notices" lang="en">([\s\S]*?)<\/pre>/)[1]),'i18next 26.4.2\n\n'+i18nextLicense);
+ assert.doesNotMatch(html,/\{\{(?:LICENSE_|THIRD_PARTY_NOTICES)/);
  assert.match(html,/<details class="software-license" data-default-collapsed id="software-license">/);
 });
 
 test('license text cannot create markup or execute code in the standalone page',async()=>{
  const text='Terms & notices <example> $& $` </pre><script>untrusted()</script>\n';
  const directory=await fixture({
-  'index.html':'<link rel="stylesheet" href="./style.css"><pre>{{LICENSE_TEXT}}</pre><pre>{{LICENSE_NOTICE}}</pre><script type="module" src="./app.mjs"></script>',
+  'index.html':'<link rel="stylesheet" href="./style.css"><pre>{{LICENSE_TEXT}}</pre><pre>{{LICENSE_NOTICE}}</pre><pre>{{LICENSE_CS}}</pre><script type="module" src="./app.mjs"></script>',
   'style.css':'body{color:black}',
   'app.mjs':'export const ready=true;',
   'LICENSE':text,'NOTICE':text
  });
  try{
-  const html=await buildStandalone({src:directory,output:null,licenseFile:join(directory,'LICENSE'),noticeFile:join(directory,'NOTICE')});
+  const html=await buildStandalone({src:directory,output:null,licenseFile:join(directory,'LICENSE'),noticeFile:join(directory,'NOTICE'),czechLicenseFile:join(directory,'LICENSE')});
   assert.equal(html.match(/<script\b/g)?.length,1);
-  assert.equal(html.match(/<\/pre>/g)?.length,2);
+  assert.equal(html.match(/<\/pre>/g)?.length,3);
   assert.ok(html.includes('Terms &amp; notices &lt;example&gt; $&amp; $` &lt;/pre&gt;&lt;script&gt;untrusted()&lt;/script&gt;'));
   assert.equal(await readFile(join(directory,'LICENSE'),'utf8'),text);
  }finally{await rm(directory,{recursive:true,force:true});}

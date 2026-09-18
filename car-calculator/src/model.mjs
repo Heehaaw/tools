@@ -1,3 +1,4 @@
+import {messageError} from "./message-errors.mjs";
 
 // --- Input schema and compatibility ---
 export const variants = [
@@ -6,7 +7,9 @@ export const variants = [
  {key:"lease",kind:"lease",deductions:"leaseDeductions",taxValue:"leaseTaxValue",name:"Operating lease",enabled:"leaseEnabled",months:"leaseMonths",matchPeriod:"leaseMatchPeriod",resale:"leaseResale",fields:["kintoMonthly","kintoInitial","kintoInsurance","kintoExtra","leaseBuyout"]},
  {key:"cashPurchase",kind:"cash",deductions:"cashDeductions",taxValue:"cashTaxValue",name:"Buy outright",enabled:"cashEnabled",months:"cashMonths",matchPeriod:"cashMatchPeriod",resale:"cashResale",fields:["cashInsurance","cashExtra"]}
 ];
+export const currencies=Object.freeze({CZK:"Kč",EUR:"€",USD:"$",GBP:"£",CHF:"CHF",PLN:"zł"});
 export const defaults = {
+ currency:"CZK",
  inflationSetup:"shared-v1",legacyInflationInputs:"",pastOwnership:false,resaleMode:"direct",relativeResaleSeeded:false,historicalNewPrice:0,historicalUsedPrice:0,historicalYears:3,historicalMonths:36,historicalMatchPeriod:true,historicalInflationMode:"total",pastHistoricalInflationMode:"main",historicalInflationAnnual:2.5,historicalInflationPct:0,historicalInflationYears:[],
  incomeTaxEnabled:false,incomeTaxRate:0,saleTaxRate:0,matchSaleTaxRate:true,
  balloonDeductions:0,normalDeductions:0,leaseDeductions:0,cashDeductions:0,
@@ -131,11 +134,11 @@ export function ownershipInflationRate(s){
 }
 /** Validate entry modes and yearly schedules without discarding inactive drafts. */
 export function validateOwnershipInflation(s,{allowDrafts=false}={}){
- if(s.inflationSetup!=="shared-v1")throw new Error("Unsupported inflation setup version.");
- if(!["annual","total","yearly"].includes(s.inflationMode))throw new Error("Choose annual average, cumulative or yearly ownership inflation.");
- if(!Array.isArray(s.inflationYears)||s.inflationYears.length>10)throw new Error("Enter up to 10 yearly ownership inflation rates.");
- for(const rate of s.inflationYears)if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>100))throw new Error("Yearly ownership inflation must be between 0 and 100% or blank.");
- if(!allowDrafts&&s.inflationMode==="yearly"&&s.inflationYears.slice(0,Math.ceil(s.months/12)).includes(null))throw new Error("Complete each active ownership inflation year.");
+ if(s.inflationSetup!=="shared-v1")throw messageError("errors.unsupportedInflationSetupVersion");
+ if(!["annual","total","yearly"].includes(s.inflationMode))throw messageError("errors.chooseAnnualAverageCumulativeOrYearlyOwnershipInflation");
+ if(!Array.isArray(s.inflationYears)||s.inflationYears.length>10)throw messageError("errors.enterUpTo10YearlyOwnershipInflationRates");
+ for(const rate of s.inflationYears)if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>100))throw messageError("errors.yearlyOwnershipInflationMustBeBetween0And");
+ if(!allowDrafts&&s.inflationMode==="yearly"&&s.inflationYears.slice(0,Math.ceil(s.months/12)).includes(null))throw messageError("errors.completeEachActiveOwnershipInflationYear");
 }
 /** Estimate nominal resale from a comparable car's annualised real value retention. */
 export function relativeResaleEstimate(s,months=s.months){
@@ -225,20 +228,20 @@ function activeAdditionalCostYearCount(s){
 }
 
 function validateHistoricalInflationState(s,{allowDrafts=false}={}){
- if(!["annual","total","yearly","main"].includes(s.historicalInflationMode)||!["annual","total","yearly","main"].includes(s.pastHistoricalInflationMode))throw new Error("Choose annual average, total or year-specific historical inflation, or use the main annual average.");
- if(s.historicalInflationAnnual!==null&&(!Number.isFinite(s.historicalInflationAnnual)||s.historicalInflationAnnual<0||s.historicalInflationAnnual>100))throw new Error("Historical annual inflation must be between 0 and 100 or blank.");
- if(!Array.isArray(s.historicalInflationYears)||s.historicalInflationYears.length>100)throw new Error("Enter up to 100 yearly historical inflation rates.");
+ if(!["annual","total","yearly","main"].includes(s.historicalInflationMode)||!["annual","total","yearly","main"].includes(s.pastHistoricalInflationMode))throw messageError("errors.chooseAnnualAverageTotalOrYearSpecificHistorical");
+ if(s.historicalInflationAnnual!==null&&(!Number.isFinite(s.historicalInflationAnnual)||s.historicalInflationAnnual<0||s.historicalInflationAnnual>100))throw messageError("errors.historicalAnnualInflationMustBeBetween0And");
+ if(!Array.isArray(s.historicalInflationYears)||s.historicalInflationYears.length>100)throw messageError("errors.enterUpTo100YearlyHistoricalInflationRates");
  for(let index=0;index<s.historicalInflationYears.length;index++){
   if(!Object.hasOwn(s.historicalInflationYears,index))continue;
   const rate=s.historicalInflationYears[index];
-  if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>100))throw new Error("Yearly historical inflation rates must be between 0 and 100 or blank.");
+  if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>100))throw messageError("errors.yearlyHistoricalInflationRatesMustBeBetween0");
  }
  if(allowDrafts||s.resaleMode!=="relative"||historicalUsesMain(s)||historicalInflationEntryMode(s)!=="yearly")return;
  const months=historicalAgeMonths(s);
- if(Number.isFinite(months)&&months>1200)throw new Error("Year-specific historical inflation supports up to 100 years; use total cumulative inflation for a longer comparable age.");
+ if(Number.isFinite(months)&&months>1200)throw messageError("errors.yearSpecificHistoricalInflationSupportsUpTo100");
  const activeYears=Number.isFinite(months)&&months>0?Math.ceil(months/12):0;
  for(let index=0;index<activeYears;index++)if(Object.hasOwn(s.historicalInflationYears,index)&&s.historicalInflationYears[index]===null){
-  throw new Error("Fill each active yearly historical inflation rate or remove the blank value.");
+  throw messageError("errors.fillEachActiveYearlyHistoricalInflationRateOr");
  }
 }
 
@@ -246,24 +249,24 @@ function validateHistoricalInflationState(s,{allowDrafts=false}={}){
 export function validateHistoricalInflation(inputs,options={}){validateHistoricalInflationState(effectiveInputs(inputs),options);}
 
 function validateAdditionalCostState(s,{allowDrafts=false}={}){
- if(!["annual","yearly"].includes(s.additionalCostMode))throw new Error("Choose annual or year-specific additional costs.");
- if(!Array.isArray(s.additionalCostYears)||s.additionalCostYears.length>10)throw new Error("Enter up to 10 yearly additional-cost amounts.");
+ if(!["annual","yearly"].includes(s.additionalCostMode))throw messageError("errors.chooseAnnualOrYearSpecificAdditionalCosts");
+ if(!Array.isArray(s.additionalCostYears)||s.additionalCostYears.length>10)throw messageError("errors.enterUpTo10YearlyAdditionalCostAmounts");
  for(let index=0;index<s.additionalCostYears.length;index++){
   if(!Object.hasOwn(s.additionalCostYears,index))continue;
   const value=s.additionalCostYears[index];
-  if(value!==null&&(!Number.isFinite(value)||value<0))throw new Error("Yearly additional costs must be non-negative numbers or blank.");
+  if(value!==null&&(!Number.isFinite(value)||value<0))throw messageError("errors.yearlyAdditionalCostsMustBeNonNegativeNumbers");
  }
- if(s.additionalCostAnnual!==null&&(!Number.isFinite(s.additionalCostAnnual)||s.additionalCostAnnual<0))throw new Error("Enter a valid, non-negative annual additional cost.");
- if(s.additionalSeparatePeriod&&!(allowDrafts&&s.additionalCostMonths===null)&&(!Number.isInteger(s.additionalCostMonths)||s.additionalCostMonths<1||s.additionalCostMonths>120))throw new Error("Use an additional-cost period of 1 to 120 whole months.");
+ if(s.additionalCostAnnual!==null&&(!Number.isFinite(s.additionalCostAnnual)||s.additionalCostAnnual<0))throw messageError("errors.enterAValidNonNegativeAnnualAdditionalCost");
+ if(s.additionalSeparatePeriod&&!(allowDrafts&&s.additionalCostMonths===null)&&(!Number.isInteger(s.additionalCostMonths)||s.additionalCostMonths<1||s.additionalCostMonths>120))throw messageError("errors.useAnAdditionalCostPeriodOf1To");
  if(allowDrafts)return;
  if(s.additionalCostMode==="annual"){
-  if(!Number.isFinite(s.additionalCostAnnual))throw new Error("Enter an annual additional cost.");
+  if(!Number.isFinite(s.additionalCostAnnual))throw messageError("errors.enterAnAnnualAdditionalCost");
   return;
  }
  for(let index=0;index<activeAdditionalCostYearCount(s);index++){
-  if(Object.hasOwn(s.additionalCostYears,index)&&s.additionalCostYears[index]===null)throw new Error("Fill each active yearly additional cost or remove the blank value.");
+  if(Object.hasOwn(s.additionalCostYears,index)&&s.additionalCostYears[index]===null)throw messageError("errors.fillEachActiveYearlyAdditionalCostOrRemove");
   const value=Object.hasOwn(s.additionalCostYears,index)?s.additionalCostYears[index]:s.additionalCostAnnual;
-  if(!Number.isFinite(value)||value<0)throw new Error("Enter an annual fallback for missing active years.");
+  if(!Number.isFinite(value)||value<0)throw messageError("errors.enterAnAnnualFallbackForMissingActiveYears");
  }
 }
 
@@ -276,34 +279,35 @@ export function validateAdditionalCosts(inputs,options={}){
 
 export function validate(s){
  s=effectiveInputs(s);
+ if(!Object.hasOwn(currencies,s.currency))throw messageError("errors.chooseASupportedCurrency");
  validateOwnershipInflation(s);
- if(!["rate","payment"].includes(s.normalInputMode))throw new Error("Choose interest rate or monthly payment for the standard loan.");
- if(s.normalEnabled&&s.normalInputMode==="payment"&&!Number.isFinite(s.normalRate))throw new Error("Enter a valid standard loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
- if(!["rate","payment"].includes(s.balloonInputMode))throw new Error("Choose interest rate or monthly payment for the balloon loan.");
- if(s.balloonEnabled&&s.balloonInputMode==="payment"&&!Number.isFinite(s.rate))throw new Error("Enter a valid balloon loan quote: positive borrowing, a whole repayment period, and a monthly payment supporting an interest rate from 0 to 100% p.a. Exclude insurance and fees.");
+ if(!["rate","payment"].includes(s.normalInputMode))throw messageError("errors.chooseInterestRateOrMonthlyPaymentForThe");
+ if(s.normalEnabled&&s.normalInputMode==="payment"&&!Number.isFinite(s.normalRate))throw messageError("errors.enterAValidStandardLoanQuotePositiveBorrowing");
+ if(!["rate","payment"].includes(s.balloonInputMode))throw messageError("errors.chooseInterestRateOrMonthlyPaymentForThe2");
+ if(s.balloonEnabled&&s.balloonInputMode==="payment"&&!Number.isFinite(s.rate))throw messageError("errors.enterAValidBalloonLoanQuotePositiveBorrowing");
  validateAdditionalCostState(s);
  validateHistoricalInflationState(s);
- if(!["direct","relative"].includes(s.resaleMode))throw new Error("Choose direct resale or relative depreciation.");
- if(s.resaleMode==="relative"&&(s.historicalNewPrice===0||s.historicalYears===0))throw new Error("Enter a positive original new price and age for the historical car.");
+ if(!["direct","relative"].includes(s.resaleMode))throw messageError("errors.chooseDirectResaleOrRelativeDepreciation");
+ if(s.resaleMode==="relative"&&(s.historicalNewPrice===0||s.historicalYears===0))throw messageError("errors.enterAPositiveOriginalNewPriceAndAge");
  for(const [key,fallback] of Object.entries(defaults)){
-  if(typeof fallback==="number"&&(!Number.isFinite(s[key])||s[key]<0))throw new Error("Enter a valid, non-negative number in every numeric field.");
-  if(typeof fallback==="boolean"&&typeof s[key]!=="boolean")throw new Error("Choose an option for each checkbox.");
+  if(typeof fallback==="number"&&(!Number.isFinite(s[key])||s[key]<0))throw messageError("errors.enterAValidNonNegativeNumberInEvery");
+  if(typeof fallback==="boolean"&&typeof s[key]!=="boolean")throw messageError("errors.chooseAnOptionForEachCheckbox");
  }
- if(!["real","nominal"].includes(s.opportunityRateBasis))throw new Error("Choose whether the return is before or after inflation.");
- if(typeof s.carName!=="string"||s.carName.length>100)throw new Error("Keep the car name under 100 characters.");
- if(!["sell","keep"].includes(s.loanEnd)||!["return","buySell","buyKeep"].includes(s.leaseEnd))throw new Error("Choose a valid end-of-term option.");
- if(!["gross","net"].includes(s.kintoVatMode))throw new Error("Choose the lease quote’s VAT basis.");
- if(!Number.isInteger(s.months)||s.months<1||s.months>120)throw new Error("Use a term of 1 to 120 whole months.");
- for(const v of variants)if(!Number.isInteger(s[v.months])||s[v.months]<1||s[v.months]>120)throw new Error("Use terms of 1 to 120 whole months.");
- for(const v of variants.filter(v=>v.loanMonths))if(!Number.isInteger(s[v.loanMonths])||s[v.loanMonths]<1||s[v.loanMonths]>120)throw new Error("Use loan repayment periods of 1 to 120 whole months.");
- if(s.serviceKm<=0||s.serviceMonths<=0)throw new Error("Service intervals must be greater than zero.");
- if(s.downPct+s.balloonPct>100||s.normalDownPct>100)throw new Error("Deposit plus balloon cannot exceed 100% of the price.");
- for(const k of ["rate","normalRate","vatPct","recoveryPct","leaseTaxablePct","inflationRate","incomeTaxRate","saleTaxRate"])if(s[k]>100)throw new Error("Rates and percentages must be between 0 and 100.");
+ if(!["real","nominal"].includes(s.opportunityRateBasis))throw messageError("errors.chooseWhetherTheReturnIsBeforeOrAfter");
+ if(typeof s.carName!=="string"||s.carName.length>100)throw messageError("errors.keepTheCarNameUnder100Characters");
+ if(!["sell","keep"].includes(s.loanEnd)||!["return","buySell","buyKeep"].includes(s.leaseEnd))throw messageError("errors.chooseAValidEndOfTermOption");
+ if(!["gross","net"].includes(s.kintoVatMode))throw messageError("errors.chooseTheLeaseQuoteSVatBasis");
+ if(!Number.isInteger(s.months)||s.months<1||s.months>120)throw messageError("errors.useATermOf1To120Whole");
+ for(const v of variants)if(!Number.isInteger(s[v.months])||s[v.months]<1||s[v.months]>120)throw messageError("errors.useTermsOf1To120WholeMonths");
+ for(const v of variants.filter(v=>v.loanMonths))if(!Number.isInteger(s[v.loanMonths])||s[v.loanMonths]<1||s[v.loanMonths]>120)throw messageError("errors.useLoanRepaymentPeriodsOf1To120");
+ if(s.serviceKm<=0||s.serviceMonths<=0)throw messageError("errors.serviceIntervalsMustBeGreaterThanZero");
+ if(s.downPct+s.balloonPct>100||s.normalDownPct>100)throw messageError("errors.depositPlusBalloonCannotExceed100OfThe");
+ for(const k of ["rate","normalRate","vatPct","recoveryPct","leaseTaxablePct","inflationRate","incomeTaxRate","saleTaxRate"])if(s[k]>100)throw messageError("errors.ratesAndPercentagesMustBeBetween0And");
  // Legacy real returns up to 100% with 100% inflation can convert to 300% nominal.
- if(s.opportunityRate>(s.opportunityRateBasis==="nominal"?300:100))throw new Error("The investment return exceeds the supported range.");
- for(const k of ["tyreVisits","purchaseVatDelay","leaseVatDelay"])if(!Number.isInteger(s[k]))throw new Error("Visits and refund delays must be whole numbers.");
- if(s.tyreResale>s.tyrePurchase)throw new Error("Tyre resale cannot exceed the tyre purchase budget.");
- if(s.leaseEnd!=="return"&&s.leaseBuyout<=0)throw new Error("Enter a positive, agreed lease buyout price.");
+ if(s.opportunityRate>(s.opportunityRateBasis==="nominal"?300:100))throw messageError("errors.theInvestmentReturnExceedsTheSupportedRange");
+ for(const k of ["tyreVisits","purchaseVatDelay","leaseVatDelay"])if(!Number.isInteger(s[k]))throw messageError("errors.visitsAndRefundDelaysMustBeWholeNumbers");
+ if(s.tyreResale>s.tyrePurchase)throw messageError("errors.tyreResaleCannotExceedTheTyrePurchaseBudget");
+ if(s.leaseEnd!=="return"&&s.leaseBuyout<=0)throw messageError("errors.enterAPositiveAgreedLeaseBuyoutPrice");
 }
 // --- Dated cash flows and valuation ---
 /** Equal monthly instalment with a separate balloon alongside the final instalment. */
@@ -336,7 +340,7 @@ function loanPlan(principal,balloon,rate,loanMonths,ownershipMonths){
 /** Monthly loan amortization through ownership, with final and early-exit payments separated. */
 export function loanSchedule(inputs,kind){
  const s=effectiveInputs(inputs);validate(s);
- if(!["balloon","normal"].includes(kind))throw new Error("Choose a balloon or standard loan schedule.");
+ if(!["balloon","normal"].includes(kind))throw messageError("errors.chooseABalloonOrStandardLoanSchedule");
  const normal=kind==="normal",principal=s.price*(1-s[normal?"normalDownPct":"downPct"]/100);
  const balloon=normal?0:s.price*s.balloonPct/100,rate=s[normal?"normalRate":"rate"],months=s[kind+"LoanMonths"],ownership=s[kind+"Months"];
  const payment=monthlyPayment(principal,balloon,rate,months),rows=[];

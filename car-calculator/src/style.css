@@ -290,8 +290,13 @@ table td{padding:14px 16px;vertical-align:top}table td:last-child,table th:last-
 .period-match{margin-bottom:0}
 @media(max-width:700px){.chart-axis{font-size:18px}.chart-label{font-size:20px}}
 
-/* Name occupies its own row; purchase and resale stay together below it. */
-#inputs>.panel:first-of-type .fields>.scenario-name-field{grid-column:1/-1}
+/* Keep the scenario currency fixed on the right while the name takes the remaining row. */
+.scenario-identity-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:6px 16px;align-items:start}
+.scenario-identity-row>.field{min-width:0;grid-row:span 2;grid-template-rows:auto 46px;row-gap:6px}
+.scenario-identity-row .field-label{min-height:0}
+@supports(grid-template-rows:subgrid){.scenario-identity-row>.field{grid-template-rows:subgrid}}
+.scenario-currency-field .field-title{padding-right:0}
+@media(max-width:700px){.scenario-identity-row{grid-template-columns:minmax(0,1fr) 112px;gap:6px 10px}}
 @media(max-width:700px){
  #inputs>.panel:first-of-type .card-body>.fields{grid-template-columns:repeat(2,minmax(0,1fr))}
  #inputs>.panel:first-of-type .fields>.purchase-price-field,#inputs>.panel:first-of-type .fields>.resale-price-field{grid-column:span 1}
@@ -476,3 +481,15 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 .brand-group{display:flex;align-items:center;flex-wrap:wrap;gap:10px 20px;min-width:0}.release-link{display:block;color:var(--muted);font-size:12px;line-height:1.5;text-decoration:none}.release-link:hover{color:var(--blue);text-decoration:underline}.release-link:focus-visible{outline:2px solid var(--blue);outline-offset:4px}
 
 footer{flex-direction:column}.software-license{min-width:0;width:100%}.software-license summary{cursor:pointer}.software-license pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6}.software-license p{line-height:1.6}
+
+
+/* HTML captions inside SVG wrap long translated cost categories within each stage. */
+.chart-stage-label{font-size:13px;line-height:1.35;text-align:center;color:var(--muted);overflow-wrap:normal}
+
+:lang(cs) .field-label .field-unit{white-space:normal}
+
+.header-actions #languageSelect{width:auto;min-width:100px;min-height:38px;margin:0 0 0 auto;padding:8px 10px;align-self:end}
+@media(max-width:700px){.header-actions #languageSelect{grid-column:2;justify-self:end;min-height:42px}}
+
+/* Text-only bindings must inherit the surrounding label typography. */
+label .i18n-text,.i18n-text{display:contents;font:inherit;color:inherit;letter-spacing:inherit}

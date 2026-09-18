@@ -16,6 +16,8 @@ These are the calculator's implemented conventions, not current dealer offers or
 
 ## Model conventions
 
+Each scenario has its own currency code (CZK by default). The currency controls display symbols and is carried in saved/exported inputs; changing it never converts amounts or changes financial calculations. Enter every monetary input, including tax caps, in that currency. Language is independent.
+
 All options initially use the same term, resale estimate and annual mileage. Enable Use a separate period within an option to enter its own term and end resale estimate. Each option links independently; changing the comparable age does not change financing terms. Annual mileage stays shared. Disabled variants are excluded from rankings, tables, break-even calculations and graphs; their inputs are retained. Changing the term does not obtain a new dealer lease quote. All entered prices and lease quotes include VAT. One global VAT rate applies to purchases, resale, taxable lease invoices, maintenance, tyres and additional costs. VAT-specific settings are hidden and ignored when VAT is off; their raw values remain saved.
 
 - Result tables use the entered insurance amounts without assuming GAP coverage. The cost breakdown shows vehicle purchase or buyout and resale credits separately; these presentation changes do not alter model totals. Start and end cash snapshots are already part of net cash spent and must not be added again.

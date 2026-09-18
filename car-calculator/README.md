@@ -14,6 +14,12 @@ Open [car-financing-calculator.html](car-financing-calculator.html) directly in 
 
 Scenarios autosave in the browser, not inside the HTML. Export the current scenario or all scenarios as JSON to back them up or share them alongside the calculator. Import adds scenarios without replacing existing ones. Browser storage can depend on browser and file location, so export before moving the file.
 
+## Language and currency
+
+Choose **English** or **Čeština** at the top. English is the default; your choice is saved in this browser. Czech covers setup, results, graphs, dialogs and explanations. Translations use i18next with bundled English/Czech resources, so the file still works offline. User scenario names stay as entered. The Czech licence is an informational translation alongside the authoritative English text.
+
+The **Currency symbol** selector beside the scenario name in **Your comparison** offers Kč, €, $, £, CHF and zł. It changes display symbols only; it does not convert amounts or tax thresholds. Enter every amount in one currency, including any VAT cap. Currency is saved with each scenario and included in JSON exports. Switching scenarios restores its symbol; duplicates inherit it. The permanent example and older scenarios without a currency use CZK. Changing the example’s currency creates an editable copy. Language remains a separate browser preference.
+
 ## Use the calculator
 
 1. Select the permanent example, edit it to create a saved scenario, or duplicate an existing scenario.

@@ -4,6 +4,17 @@
 
 Newest first. Versions use `YYYY.MM.DD.N`, with a sequence starting at 1 each day. Dates use Europe/Prague. These identify ledger entries, not Git tags. Entries before 2026.09.18.4 were reconstructed from commit messages and changes; their dates are commit dates, not independently verified deployment dates.
 
+## 2026.09.18.6 (2026-09-18)
+
+- Add a Czech interface covering setup, results, graphs, dialogs, tooltips and validation messages. Keep English as the default and remember the selected language in the browser; place the language selector at the right of the header.
+- Use i18next with stable translation keys, named values, Czech plural forms and historical-ownership wording. Bundle the pinned runtime and both catalogues into the standalone HTML, retaining offline use and its separate MIT notice. Include an informational Czech licence translation alongside the authoritative English terms.
+- Save a currency symbol with each scenario, including duplication, switching and JSON import/export. Offer CZK, EUR, USD, GBP, CHF and PLN without converting numeric amounts. Older scenarios and the permanent example default to CZK; editing the example creates a separate saved scenario.
+- Place the currency selector beside the scenario name in Your comparison, with a fixed-width selector on the right, a flexible name field and compact label spacing on desktop and mobile.
+- Preserve financial calculations, scenario names, chart identifiers, keyboard navigation and existing storage formats across language changes. Update persistent notices when switching languages and document the translation and dependency workflow.
+- Extend regression checks for translations, plural forms, unchanged financial results, currency persistence, older exports and embedded licence notices.
+
+Previous recorded commit: [85449a9](https://github.com/Heehaaw/tools/commit/85449a9). This entry is committed with the changes it describes.
+
 ## 2026.09.18.5 (2026-09-18)
 
 - Add a custom source-available license granting free use, modification, hosting and sharing for every noncommercial purpose, for individuals and organizations. Commercial use of the original code or forks containing it requires a separate signed agreement, with fees or royalties negotiated individually.

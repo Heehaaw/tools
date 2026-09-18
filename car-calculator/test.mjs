@@ -1,5 +1,6 @@
 await import('./tests/build.test.mjs');
 await import('./tests/components.test.mjs');
+await import('./tests/localization.test.mjs');
 await import('./tests/additional-costs.test.mjs');
 await import('./tests/historical-inflation.test.mjs');
 await import('./tests/ownership-inflation.test.mjs');

@@ -7,9 +7,14 @@
 | File | Owns | Keep out |
 | --- | --- | --- |
 | `src/model.mjs` | Input definitions, migrations, effective inputs, dated events, valuation, solvers and pure comparison helpers | DOM, browser storage and presentation formatting |
+| `src/i18n.mjs` | Isolated i18next instance, semantic messages and locale/currency formatting | Financial calculations and persistence |
+| `src/localization.mjs` | Browser language and explicit template text/attribute bindings | Model numbers and scenario JSON |
+| `src/locales/en.mjs`, `src/locales/cs.mjs` | Stable-key translation resources | Runtime state |
+| `src/message-errors.mjs` | Stable validation keys with English Error messages | DOM and active language |
+| `src/vendor/` | Pinned i18next runtime and separate MIT licence | Application behavior |
 | `src/format.mjs` | Pure numeric parsing and display labels | DOM and stored state |
 | `src/year-editor.mjs` | Reusable annual-value dialogs, generated/static year controls and local dialog lifecycle | Saved scenario ownership and financial interpretation |
-| `src/views.mjs` | Opportunity/inflation view preferences and reversible historical wording | Financial scenario inputs |
+| `src/views.mjs` | Opportunity/inflation view preferences and translated money-basis labels | Financial scenario inputs |
 | `src/form.mjs` | Raw controls, derived visibility, legacy return normalisation, suggestions and form events | Scenario collection ownership and result rendering |
 | `src/scenarios.mjs` | Draft validation, scenario collection state, persistence, import/export and recovery | Effective calculation inputs and visual preferences |
 | `src/results.mjs` | Result tables, reconciliation, inflation annotations and result tooltips | Scenario mutation and chart interaction state |
@@ -28,14 +33,16 @@ The source import graph is deliberately shallow and acyclic:
 
 | Module | Imports |
 | --- | --- |
-| `model.mjs`, `format.mjs` | None |
-| `year-editor.mjs` | `format.mjs` |
-| `views.mjs` | `format.mjs` |
-| `form.mjs` | `model.mjs`, `format.mjs`, `year-editor.mjs` |
-| `scenarios.mjs` | `model.mjs` |
-| `results.mjs`, `charts.mjs` | `model.mjs`, `format.mjs` |
-| `shell.mjs` | `model.mjs` |
-| `app.mjs` | All controllers plus `model.mjs` |
+| `locales/*.mjs`, `vendor/i18next.mjs`, `format.mjs` | None |
+| `message-errors.mjs` | English catalogue |
+| `model.mjs` | `message-errors.mjs` |
+| `i18n.mjs` | Vendor runtime, both catalogues, currency definitions from model, numeric formatting |
+| `localization.mjs`, `views.mjs` | `i18n.mjs` |
+| `year-editor.mjs` | `i18n.mjs`, `format.mjs` |
+| `form.mjs` | `i18n.mjs`, `model.mjs`, `format.mjs`, `year-editor.mjs` |
+| `scenarios.mjs` | `i18n.mjs`, `model.mjs`, `message-errors.mjs` |
+| `results.mjs`, `charts.mjs`, `shell.mjs` | `i18n.mjs`, `model.mjs` |
+| `app.mjs` | All controllers plus model, translator and message errors |
 
 Runtime factory injection supplies `views` to the form, results and charts, `form` to scenarios, and coordinator callbacks to every controller that can trigger rendering or dismiss another controller's tooltip. The form creates three year-editor instances: one binds the static repair-cost controls, while the other two generate historical-comparable and ownership-inflation controls as needed. The editors operate on form-owned hidden arrays and do not own a second copy of scenario state. Those object references do not add source imports or a second state store.
 
@@ -52,7 +59,7 @@ form edit -> form.readSettings -> validateSettings -> scenario storage
 
 Raw inputs retain inactive values and blanks. Effective inputs resolve linked periods, disabled options, relative resale and derived inflation. Results never become the next saved scenario merely because they were calculated.
 
-`calculate(inputs, {opportunity, todayMoney})` returns four option results plus shared payment and VAT information. Monetary values are numbers in Kč; percentages are stored as percentage points and periods in months. Month zero is the ownership start, also in Past ownership mode. Cash flows are signed costs: positive outflows, negative receipts/credits.
+`calculate(inputs, {opportunity, todayMoney})` returns four option results plus shared payment and VAT information. Monetary values are numbers in one consistently entered currency (Kč in the built-in example); percentages are stored as percentage points and periods in months. Month zero is the ownership start, also in Past ownership mode. Cash flows are signed costs: positive outflows, negative receipts/credits.
 
 Each option's `events` contains `{month, amount, category, type}`. `type` is `cash` or `asset`; keeping a car creates an asset credit rather than sale cash. VAT refunds may occur after the ownership end. Do not truncate them when calculating economic cost.
 
@@ -93,8 +100,8 @@ Each stateful browser module exports a factory. One calculator instance gets one
 | Application lifecycle and calculation dispatch | `createApp`, `initialize`, `update` in `app.mjs` |
 | Per-view annual/full-term basis | `annualViews`, `initializeAnnualViews` in `views.mjs`; result and chart rendering apply each option’s own months |
 | Per-view cost basis | `createViews`, `viewOptions`, `viewInputs` in `views.mjs` |
-| Historical money labels | `timeWording`, `applyTimeLabels` in `views.mjs` |
-| Numeric parsing and display | `parseNumber`, `formatNumberInput`, `money` in `format.mjs` |
+| Historical money labels | Explicit `_past` message contexts selected by `i18n.mjs` |
+| Numeric parsing and display | Parsing/grouping in `format.mjs`; currency and percentage formatting in `i18n.mjs` |
 | Reusable annual-value dialogs | `createYearEditor`, `render`, `editedValues` in `year-editor.mjs` |
 | Form reading, writing and visibility | `createForm`, `read`, `write`, `updateSelection` in `form.mjs` |
 | Autosave trigger and first-use suggestions | `handleInput`, `prefillRelated` in `form.mjs`, coordinated by `app.mjs` |
@@ -108,7 +115,6 @@ Each stateful browser module exports a factory. One calculator instance gets one
 
 Two independent panel cards sit directly below the Your comparison card: Period and assumptions (`period-assumptions`) and Purchase and resale (`purchase-resale`). Their explicit card keys keep collapse state independent of field order. The cards share a responsive grid and stack on narrower screens; the shell wraps them like other panels.
 
-`applyTimeLabels` changes presentation wording and remembers original text so mode switches are reversible. It excludes editable values, scenario names and the historical-input section, whose present-day conversions have their own meaning. It must not rewrite saved data or financial values.
 
 ## Startup and build constraints
 
@@ -117,13 +123,14 @@ The small theme script in `index.html` still runs before paint. The inline appli
 1. Load view preferences and attach form, scenario, result and chart handlers.
 2. Restore the selected scenario. `restoreSettings()` writes raw controls and calls the explicit `app.update()` path for the first render.
 3. Initialise the shell, which updates the theme button, wraps collapsible cards and restores the active tab.
-4. Register the optional model-context tool after the ordinary UI is ready.
+4. Initialise localization, load the browser language and rerender using the restored scenario currency.
+5. Register the optional model-context tool after the ordinary UI is ready.
 
-`app.update()` reads the form, derives effective inputs, updates control visibility, validates/calculates, renders results and charts, then applies historical wording. A form edit uses that same update path before saving the raw draft. Scenario selection, import, reset and the optional tool also call the same coordinator rather than importing renderers into one another.
+`app.update()` configures the translator from the scenario currency and ownership mode, applies static template bindings, reads and derives inputs, updates dynamic controls, validates/calculates, renders results and charts, then refreshes shell labels. A form edit uses that same update path before saving the raw draft. Scenario selection, import, reset and the optional tool also call the same coordinator rather than importing renderers into one another.
 
 `build.mjs` starts at `src/app.mjs`, follows its local module graph and evaluates each dependency once in topological order. It supports static named imports from `.mjs` files inside `src/`, including aliases, and named `const` or `function` exports. The graph must be acyclic. Default, namespace, side-effect, dynamic and external imports, re-exports and other export forms are rejected. Each module runs inside its own closure and exposes a frozen namespace to its dependants, so identical private names in different files do not collide.
 
-The builder embeds that bundle, `style.css`, and escaped text from the root `LICENSE` and `NOTICE` into `index.html`, escapes raw closing tags and writes one deterministic `car-financing-calculator.html`. The distributed file performs no runtime module fetches and needs no network, package installation or server. A new source module is included when it is reachable through supported imports from `app.mjs`; no separate file list belongs in the builder.
+The builder embeds that bundle, `style.css`, and escaped text from the root `LICENSE` and `NOTICE`, the informational Czech licence and the separate i18next MIT notice into `index.html`, escapes raw closing tags and writes one deterministic `car-financing-calculator.html`. The distributed file performs no runtime module fetches and needs no network, package installation or server. A new source module is included when it is reachable through supported imports from `app.mjs`; no separate file list belongs in the builder.
 
 The optional `document.modelContext` hook routes supplied inputs through the same validation, rendering and saving path. Its generated schema accepts numeric/null arrays generically, with ten items for ordinary arrays and 100 rates for `historicalInflationYears`; historical rates are additionally bounded at 100%. Normal calculator use does not depend on that browser capability.
 
@@ -136,3 +143,15 @@ The optional `document.modelContext` hook routes supplied inputs through the sam
 5. Rebuild and follow the [verification guide](testing.md). Preserve existing saved data and unrelated work.
 
 The footer keeps the full license and required notices readable offline. Its native disclosure starts collapsed and remembers the user's choice through the shell's existing detail-state storage. Other disclosures retain their existing default. Legal text is injected at build time and is never fetched at runtime.
+
+## Display localization
+
+`createTranslator` wraps a private i18next 26.4.2 instance with inline English/Czech resources. Factories receive the same instance for one application; isolated tests can use their own. There is no network backend. The vendored runtime and its limited bundler adaptation are documented in `src/vendor/README.md`.
+
+Keys are stable semantic identifiers, not English source sentences. Messages use named interpolation values; i18next selects language-specific plural suffixes from `count`. The `_past` context carries ownership-specific wording, so toggling modes never needs to remember or reverse displayed text. Monetary formatting uses the selected scenario symbol; percentage formatting follows the UI language. Fixed Czech examples and statutory reference amounts keep the ISO code CZK.
+
+`createLocalization` binds only explicitly annotated template elements (`data-i18n`) and attributes (`data-i18n-title`, `data-i18n-aria-label`, etc.). Dynamic controllers render their own keyed messages. Static bindings run before dynamic form labels, so a generic label cannot overwrite a mode-specific one. Generated year controls refresh their labels and accessible names each render. Persistent status notices use `setMessage(element, render)` to retain an explicit keyed renderer and refresh it when language changes. No observer or phrase-matching pass rewrites arbitrary DOM text.
+
+Localization starts after shell initialization, preserving legacy collapse keys derived from English fallback headings. Chart IDs, option kinds, form IDs, enum values and storage keys stay language-independent. Validation errors retain their English `Error.message` for callers and carry `messageKey`/`messageValues` for UI translation. The model never imports the active translator.
+
+Language is a browser preference; currency is a raw scenario input. The currency selector sits to the right of the scenario name in Your comparison, with a fixed-width column and the name filling the rest. Its events use the ordinary form commit path, including autosave and copying the immutable example. Reset and Clear all retain the scenario currency. Translation does not change numbers, user scenario names or exports. The authoritative English legal text is never translated at runtime; the separate informational Czech text is shown in Czech mode. The bundled i18next MIT notice remains readable offline in both languages.

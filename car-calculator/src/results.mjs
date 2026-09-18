@@ -1,12 +1,14 @@
-import {variants,calculate,cashFlowValue,resaleComparisons,interestComparisons,hasDifferentPeriods,withResale,resaleSamples,ranked} from "./model.mjs";
-import {money,num,ratePercent,returnSummary} from "./format.mjs";
+import {createTranslator} from "./i18n.mjs";
+import {variants as modelVariants,calculate,cashFlowValue,resaleComparisons,interestComparisons,hasDifferentPeriods,withResale,resaleSamples,ranked} from "./model.mjs";
 
 /** Render result tables and own their explanations, independently of graph state. */
-export function createResults({document,window,views,onShowTooltip}){
+export function createResults({i18n=createTranslator(),document,window,views,onShowTooltip}){
+ const variants=i18n.variants(modelVariants);
+ const {t,money,num,ratePercent,returnSummary}=i18n;
  const $=id=>document.getElementById(id);
  let visibleKinds=new Set(variants.map(v=>v.kind));
  let activeResultExplanation=null;
- const {annualViews,opportunityViews,inflationViews,viewOptions,viewInputs,moneyBasis,comparisonBasis,timeWording}=views;
+ const {annualViews,opportunityViews,inflationViews,viewOptions,viewInputs,moneyBasis,comparisonBasis}=views;
  function row(label,b,n,l,c,cls=""){
   const cells=[b,n,l,c].map((value,i)=>visibleKinds.has(variants[i].kind)?'<td data-option="'+variants[i].kind+'">'+value+'</td>':"").join("");
   return '<tr class="'+cls+'"><th scope="row">'+label+'</th>'+cells+'</tr>';
@@ -16,7 +18,7 @@ export function createResults({document,window,views,onShowTooltip}){
 
  const resultAmount=(amount,result,key="cost")=>annualViews[key]?amount*12/result.months:amount;
  const resultValue=(result,key="summary")=>resultAmount(result.adjusted,result,key);
- const resultRanking=(c,key="summary")=>ranked(c,annualViews[key]).map(item=>({...item,value:item.value*(annualViews[key]?12:1)}));
+ const resultRanking=(c,key="summary")=>ranked(c,annualViews[key]).map(item=>({...item,name:i18n.variantName(item.key),value:item.value*(annualViews[key]?12:1)}));
  function comparisonAmount(amount,result,note="",key="cost"){
   return '<span class="cell-amount" data-full-term="'+amount+'" data-months="'+result.months+'">'+money(resultAmount(amount,result,key))+'</span>'+(note?'<small>'+note+'</small>':'');
  }
@@ -41,37 +43,37 @@ export function createResults({document,window,views,onShowTooltip}){
   visibleKinds=new Set(variants.filter(v=>s[v.enabled]).map(v=>v.kind));
   $("error").hidden=true;$("resultContent").hidden=false;$("graphContent").hidden=false;
   for(const key of Object.keys(opportunityViews)){
-   $('opportunity-'+key+'-note').textContent=opportunityViews[key]?'Included · '+returnSummary(s):'Opportunity cost excluded';
+   $('opportunity-'+key+'-note').textContent=opportunityViews[key]?t("results.included",{s:returnSummary(s)}):t("results.opportunityCostExcluded");
   }
   for(const key of Object.keys(inflationViews)){
    $('inflation-'+key+'-note').dataset.active=String(inflationViews[key]);
-   $('inflation-'+key+'-note').textContent=inflationViews[key]?"Estimated today’s money · "+ratePercent(s.inflationRate)+" inflation":"Nominal amounts · inflation adjustment off";
+   $('inflation-'+key+'-note').textContent=inflationViews[key]?t("results.estimatedTodaySMoneyInflation",{inflationRate:ratePercent(s.inflationRate)}):t("results.nominalAmountsInflationAdjustmentOff");
   }
-  for(const [key,annual] of Object.entries(annualViews))$('annual-'+key+'-note').textContent=annual?'Annual average · totals in tooltips':'Full-term cost · each option’s own period';
+  for(const [key,annual] of Object.entries(annualViews))$('annual-'+key+'-note').textContent=annual?t("results.annualAverageTotalsInTooltips"):t("results.fullTermCostEachOptionSOwnPeriod");
   const summaryInputs=viewInputs(s,'summary'),summary=calculate(summaryInputs,viewOptions('summary'));
   const viewCost=key=>calculate(viewInputs(s,key),viewOptions(key));
   const monthly=viewCost('monthly'),cost=viewCost('cost'),versus=viewCost('versus');
   const b=c.balloonLoan,n=c.standardLoan,l=c.lease,cash=c.cashPurchase;
-  $("scenarioName").textContent=s.carName||"Your car";
-  const split=hasDifferentPeriods(s),annual=annualViews.summary,unit=annual?" / year effective":" over full term";
+  $("scenarioName").dataset.userText=String(Boolean(s.carName));$("scenarioName").textContent=s.carName||t("scenarios.yourCar");
+  const split=hasDifferentPeriods(s),annual=annualViews.summary,unit=annual?t("results.yearEffective"):t("results.overFullTerm");
   $("resultsOverview").dataset.annual=String(annual);
-  $("costPeriodHeading").textContent=annualViews.cost?"Average cost per year":"Full-term cost";
-  $("opportunityPeriodHeading").textContent=annualViews.opportunityBreakdown?"Foregone return per year":"Foregone return by cash flow";
-  $("costPeriodNote").textContent=annualViews.cost?"Every component below is its full-term amount divided by that option’s ownership years, including purchase and resale. Hover a value for the cumulative amount. This is an annual allocation, not a yearly payment schedule.":"Every component covers its option’s full ownership period.";
+  $("costPeriodHeading").textContent=annualViews.cost?t("ui.averageCostPerYear"):t("results.fullTermCost");
+  $("opportunityPeriodHeading").textContent=annualViews.opportunityBreakdown?t("results.foregoneReturnPerYear"):t("ui.foregoneReturnByCashFlow");
+  $("costPeriodNote").textContent=annualViews.cost?t("results.everyComponentBelowIsItsFullTermAmount"):t("results.everyComponentCoversItsOptionSFullOwnership");
   const active=variants.filter(v=>s[v.enabled]);
   const anyValue=values=>values.some((amount,index)=>s[variants[index].enabled]&&Math.abs(amount)>1e-8);
-  const additionalLabel=s.pastOwnership?"Actual additional costs":"Estimated additional costs";
+  const additionalLabel=s.pastOwnership?t("setup.actualAdditionalCosts"):t("ui.estimatedAdditionalCosts");
   const additionalActive=anyValue(variants.map(v=>c[v.key].additionalCosts));
-  const runningVatLabel=additionalActive?"Maintenance / tyre / additional-cost VAT refunds":"Maintenance / tyre VAT refunds";
-  $("termLabel").textContent=(split?"DIFFERENT PERIODS":c[active[0].key].months+" MONTHS / "+num(c[active[0].key].km)+" KM")+(annual?" · ANNUAL COMPARISON":" · FULL-TERM COMPARISON")+" / "+(s.vatEnabled?"AFTER VAT RECOVERY":"NO VAT RECOVERY");
+  const runningVatLabel=additionalActive?t("results.maintenanceTyreAdditionalCostVatRefunds"):t("results.maintenanceTyreVatRefunds");
+  $("termLabel").textContent=(split?t("results.differentPeriods"):t("results.monthsKm",{months:c[active[0].key].months,km:num(c[active[0].key].km)}))+(annual?t("results.annualComparison"):t("results.fullTermComparison"))+" / "+(s.vatEnabled?t("results.afterVatRecovery"):t("results.noVatRecovery"));
   const sorted=resultRanking(summary),gap=sorted.length>1?sorted[1].value-sorted[0].value:0,tie=sorted.length>1&&gap<.5;
   $("verdict").dataset.winner=tie?"tie":sorted[0].key;
   $("resultsOverview").dataset.winner=$("verdict").dataset.winner;
-  $("winner").textContent=sorted.length===1?sorted[0].name:tie?"The lowest-cost options tie":sorted[0].name+" costs least";
+  $("winner").textContent=sorted.length===1?sorted[0].name:tie?t("results.theLowestCostOptionsTie"):t("results.costsLeast",{name:sorted[0].name});
   $("saving").textContent=money(sorted[0].value)+unit;
-  $("savingNote").textContent=(sorted.length===1?"Only one option selected.":tie?"The selected options tie.":money(gap)+(annual?" / year":"")+" less than "+sorted[1].name.toLowerCase()+".")+" "+(opportunityViews.summary?"Includes opportunity cost at "+returnSummary(s)+".":"Excludes opportunity cost.");
+  $("savingNote").textContent=(sorted.length===1?t("results.onlyOneOptionSelected"):tie?t("results.theSelectedOptionsTie"):t("results.lessThan",{value1:money(gap)+(annual?t("results.year"):""),value2:sorted[1].name.toLowerCase()}))+" "+(opportunityViews.summary?t("results.includesOpportunityCostAt",{s:returnSummary(s)}):t("results.excludesOpportunityCost"));
   for(const [prefix,key,monthlyId] of [["easy","balloonLoan","easyMonthly"],["normal","standardLoan","normalMonthly"],["kinto","lease","kintoEffective"],["cash","cashPurchase","cashMonthly"]]){
-   $(prefix+"Total").textContent=money(resultValue(summary[key]))+(annual?" / year":"");$(monthlyId).textContent=money(summary[key].adjusted/summary[key].months)+" / month effective";
+   $(prefix+"Total").textContent=money(resultValue(summary[key]))+(annual?t("results.year"):"");$(monthlyId).textContent=t("results.monthEffective",{value1:money(summary[key].adjusted/summary[key].months)});
   }
   // Compare the same cash flows before VAT settlement, without dividing VAT-free costs by the VAT rate.
   // Remove VAT events only, preserving the same independently estimated income-tax effects.
@@ -81,88 +83,87 @@ export function createResults({document,window,views,onShowTooltip}){
    return [v.key,{adjusted:result.adjusted-vatEffect}];
   }));
   for(const [prefix,key] of [["easy","balloonLoan"],["normal","standardLoan"],["kinto","lease"],["cash","cashPurchase"]]){
-   $(prefix+"VatBasis").textContent=(annual?"Per year":"Total")+(s.vatEnabled?", net after VAT settlement · ":" including VAT · recovery off · ")+summary[key].months+" months";
-   $(prefix+"Annual").textContent=annual?money(summary[key].adjusted)+" total over "+summary[key].months+" months":money(summary[key].adjusted*12/summary[key].months)+" / year effective";
+   $(prefix+"VatBasis").textContent=t("setup.months",{value1:(annual?t("results.perYear"):t("results.total"))+(s.vatEnabled?t("results.netAfterVatSettlement"):t("results.includingVatRecoveryOff"))+summary[key].months});
+   $(prefix+"Annual").textContent=annual?t("results.totalOverMonths",{adjusted:money(summary[key].adjusted),months:summary[key].months}):t("results.yearEffective2",{value1:money(summary[key].adjusted*12/summary[key].months)});
    const gross=beforeVat[key].adjusted;
-   $(prefix+"Gross").innerHTML='<span class="gross-total">'+money(gross)+' total</span><small>'+money(gross*12/summary[key].months)+' / year<br>'+money(gross/summary[key].months)+' / month</small>';
+   $(prefix+"Gross").innerHTML='<span class="gross-total">'+money(gross)+(t("results.total2")+"</span><small>")+money(gross*12/summary[key].months)+(t("results.year")+"<br>")+money(gross/summary[key].months)+(t("results.month")+"</small>");
   }
-  $("resultsVatNote").textContent="These totals are "+comparisonBasis("summary")+". Annual and monthly amounts spread the full cost over each option’s selected term. Ranking follows the per-year switch in this section; these are separate ownership plans, with no assumed renewals. "+
-   (s.vatEnabled?"Net after VAT includes eligible deductions and sale VAT; any non-recoverable VAT remains in the cost. The comparison below each total excludes VAT refunds and sale VAT payments.":"VAT recovery is off, so both views include VAT without refunds or sale VAT payments.")+(s.incomeTaxEnabled?" Both views include the estimated income-tax savings and sale charges entered in Setup.":"");
+  $("resultsVatNote").textContent=t("results.theseTotalsAreAnnualAndMonthlyAmountsSpread",{value1:comparisonBasis("summary"),description2:s.vatEnabled?t("results.netAfterVatIncludesEligibleDeductionsAndSale"):t("results.vatRecoveryIsOffSoBothViewsInclude"),description3:s.incomeTaxEnabled?t("results.bothViewsIncludeTheEstimatedIncomeTaxSavings"):""});
   const matchRows=interestComparisons(viewInputs(s,'interest'),viewOptions('interest'),annualViews.interest);
   const names=Object.fromEntries(variants.map(v=>[v.key,v]));
   const label=key=>'<span class="option-label" data-option="'+names[key].kind+'">'+names[key].name+'</span>';
-  const rateLabels={"below-zero":"No rate ≥ 0%","above-range":"No match in 0–100%","unaffected":"No match","equal":"Any rate"};
+  const rateLabels={"below-zero":t("results.noRate0"),"above-range":t("results.noMatchIn0100"),"unaffected":t("results.noMatch"),"equal":t("results.anyRate")};
   const interestCost=calculate(viewInputs(s,'interest'),viewOptions('interest'));
   $("interestRows").innerHTML=matchRows.length?matchRows.map(item=>{
    const difference=resultValue(interestCost[item.loan],"interest")-resultValue(interestCost[item.target],"interest");
-   const differenceLabel=Math.abs(difference)<.5?'Same cost':money(Math.abs(difference))+(annualViews.interest?' / year':'')+' '+(difference<0?'less':'more');
-   return '<tr><th scope="row">'+label(item.loan)+'</th><td>'+label(item.target)+'</td><td>'+item.currentRate.toFixed(2)+'%</td><td>'+(item.rate===null?rateLabels[item.status]:item.rate.toFixed(3)+'% p.a.')+'</td><td>'+differenceLabel+'</td></tr>';
-  }).join(''):'<tr><td colspan="5">Select a loan and either outright purchase or lease to calculate a matching rate.</td></tr>';
+   const differenceLabel=Math.abs(difference)<.5?t("results.sameCost"):money(Math.abs(difference))+(annualViews.interest?t("results.year"):'')+' '+t(difference<0?'results.less':'results.more');
+   return '<tr><th scope="row">'+label(item.loan)+'</th><td>'+label(item.target)+'</td><td>'+item.currentRate.toFixed(2)+'%</td><td>'+(item.rate===null?rateLabels[item.status]:t("results.pA",{value1:item.rate.toFixed(3)}))+'</td><td>'+differenceLabel+'</td></tr>';
+  }).join(''):("<tr><td colspan=\"5\">"+t("results.selectALoanAndEitherOutrightPurchaseOr")+"</td></tr>");
   $("monthlyRows").innerHTML=[
-  row("Period / mileage",...variants.map(v=>c[v.key].months+" months / "+num(c[v.key].km)+" km")),
-  (s.balloonEnabled||s.normalEnabled)?row("Loan repayment period",b.loanMonths+" months",n.loanMonths+" months","Lease contract","No loan"):"",
-  (s.balloonEnabled||s.normalEnabled||s.leaseEnabled)?row("Loan payment / lease invoice",money(c.payment),money(c.normalPayment),money(c.kRent),"No repayment"):"",
-  row("Insurance paid separately",money(s.easyInsurance),money(s.normalInsurance),s.kintoInsuranceIncluded?"Included in invoice":money(c.kInsurance),money(s.cashInsurance)),
-  row("Monthly bill incl. insurance",detail(c.insuredPayment,"During "+b.paidMonths+" repayment months"),detail(c.normalPayment+s.normalInsurance,"During "+n.paidMonths+" repayment months"),money(c.kRent+c.kInsurance),money(s.cashInsurance),"emphasis"),
-  (s.balloonEnabled&&b.loanMonths<b.months||s.normalEnabled&&n.loanMonths<n.months)?row("Monthly bill after loan ends",b.loanMonths<b.months?detail(s.easyInsurance,"Months "+(b.loanMonths+1)+"–"+b.months):"Outside ownership period",n.loanMonths<n.months?detail(s.normalInsurance,"Months "+(n.loanMonths+1)+"–"+n.months):"Outside ownership period","—",money(s.cashInsurance)):"",
-  s.leaseEnabled&&c.leaseVatPerPayment?row("VAT refund per lease invoice","—","—",money(c.leaseVatPerPayment),"—"):"",
-  s.leaseEnabled&&c.leaseVatPerPayment?row("Monthly bill after VAT deduction",money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,"VAT deducted with each payment"),money(s.cashInsurance)):"",
-  row("Effective monthly ownership cost",...variants.map(v=>money(monthly[v.key].adjusted/monthly[v.key].months)),"sum")
+  row(t("results.periodMileage"),...variants.map(v=>t("results.monthsKm2",{months:c[v.key].months,km:num(c[v.key].km)}))),
+  (s.balloonEnabled||s.normalEnabled)?row(t("results.loanRepaymentPeriod"),t("results.months",{loanMonths:b.loanMonths}),t("results.months",{loanMonths:n.loanMonths}),t("results.leaseContract"),t("results.noLoan")):"",
+  (s.balloonEnabled||s.normalEnabled||s.leaseEnabled)?row(t("results.loanPaymentLeaseInvoice"),money(c.payment),money(c.normalPayment),money(c.kRent),t("results.noRepayment")):"",
+  row(t("results.insurancePaidSeparately"),money(s.easyInsurance),money(s.normalInsurance),s.kintoInsuranceIncluded?t("results.includedInInvoice"):money(c.kInsurance),money(s.cashInsurance)),
+  row(t("results.monthlyBillInclInsurance"),detail(c.insuredPayment,t("results.duringRepaymentMonths",{paidMonths:b.paidMonths})),detail(c.normalPayment+s.normalInsurance,t("results.duringRepaymentMonths",{paidMonths:n.paidMonths})),money(c.kRent+c.kInsurance),money(s.cashInsurance),"emphasis"),
+  (s.balloonEnabled&&b.loanMonths<b.months||s.normalEnabled&&n.loanMonths<n.months)?row(t("results.monthlyBillAfterLoanEnds"),b.loanMonths<b.months?detail(s.easyInsurance,t("results.months2",{value1:b.loanMonths+1,months:b.months})):t("results.outsideOwnershipPeriod"),n.loanMonths<n.months?detail(s.normalInsurance,t("results.months2",{value1:n.loanMonths+1,months:n.months})):t("results.outsideOwnershipPeriod"),"—",money(s.cashInsurance)):"",
+  s.leaseEnabled&&c.leaseVatPerPayment?row(t("results.vatRefundPerLeaseInvoice"),"—","—",money(c.leaseVatPerPayment),"—"):"",
+  s.leaseEnabled&&c.leaseVatPerPayment?row(t("results.monthlyBillAfterVatDeduction"),money(c.insuredPayment),money(c.normalPayment+s.normalInsurance),detail(c.kRent+c.kInsurance-c.leaseVatPerPayment,t("results.vatDeductedWithEachPayment")),money(s.cashInsurance)):"",
+  row(t("results.effectiveMonthlyOwnershipCost"),...variants.map(v=>money(monthly[v.key].adjusted/monthly[v.key].months)),"sum")
   ].join("");
-  const conversion=s.opportunityRateBasis==="real"?returnSummary(s)+" with "+ratePercent(s.inflationRate)+" inflation gives "+ratePercent(c.nominalReturn)+" p.a. after tax, before inflation.":returnSummary(s)+" is used directly. The inflation estimate also powers each today’s-money toggle.";
-  $("returnConversion").textContent=s.pastOwnership?"Return is the alternative nominal after-tax investment return over the historical period. Costs and resale are nominal amounts at their original dates; inflation switches convert them to purchase-date purchasing power.":conversion+" Enter costs and direct resale estimates in nominal Kč, the amounts expected to be paid or received. Relative resale uses this inflation rate to project a nominal selling price. Each comparison can show their value in today’s money.";
-  $("opportunityIntro").textContent=conversion+" Payments and refunds are carried to each option’s end date using that nominal return.";
+  const conversion=s.opportunityRateBasis==="real"?t("results.withInflationGivesPAAfterTaxBefore",{s:returnSummary(s),inflationRate:ratePercent(s.inflationRate),nominalReturn:ratePercent(c.nominalReturn)}):t("results.isUsedDirectlyTheInflationEstimateAlsoPowers",{s:returnSummary(s)});
+  $("returnConversion").textContent=s.pastOwnership?t("results.returnIsTheAlternativeNominalAfterTaxInvestment"):t("results.enterCostsAndDirectResaleEstimatesInNominal",{conversion:conversion});
+  $("opportunityIntro").textContent=t("results.paymentsAndRefundsAreCarriedToEachOption",{conversion:conversion});
   const opportunityDetail=calculate(s,{opportunity:true,todayMoney:inflationViews.opportunityBreakdown});
   const opportunityGroups=[
-  ["upfront","Deposit / initial payment / outright purchase"],["payments","Regular loan / lease payments"],["insurance","Separately paid insurance"],
-  ["maintenance","Maintenance payments"],["tyres","Tyre purchase and seasonal service"],["additional",additionalLabel],
-  ["vatDuring","VAT refunds during the term"],["vatAfter","VAT refunds after the term"],
-  ["taxSavings","Income-tax and contribution savings"],
-  ["settlement","Final balloon, buyout, sale and sale tax"],["other","Other payments"]
+  ["upfront",t("results.depositInitialPaymentOutrightPurchase")],["payments",t("results.regularLoanLeasePayments")],["insurance",t("results.separatelyPaidInsurance")],
+  ["maintenance",t("results.maintenancePayments")],["tyres",t("results.tyrePurchaseAndSeasonalService")],["additional",additionalLabel],
+  ["vatDuring",t("results.vatRefundsDuringTheTerm")],["vatAfter",t("results.vatRefundsAfterTheTerm")],
+  ["taxSavings",t("results.incomeTaxAndContributionSavings")],
+  ["settlement",t("results.finalBalloonBuyoutSaleAndSaleTax")],["other",t("results.otherPayments")]
   ];
   $("opportunityRows").innerHTML=opportunityGroups.filter(([key])=>anyValue(variants.map(v=>opportunityDetail[v.key].opportunityBreakdown[key]))).map(([key,label])=>comparisonRow(label,variants.map(v=>opportunityDetail[v.key].opportunityBreakdown[key]),opportunityDetail,"","opportunityBreakdown")).join("")+
-  comparisonRow("Total opportunity cost",variants.map(v=>opportunityDetail[v.key].opportunity),opportunityDetail,"sum","opportunityBreakdown");
+  comparisonRow(t("results.totalOpportunityCost"),variants.map(v=>opportunityDetail[v.key].opportunity),opportunityDetail,"sum","opportunityBreakdown");
   $("opportunityExample").hidden=!s.balloonEnabled;
-  $("opportunityExample").innerHTML='<span data-option="balloon">Balloon loan example</span>: the '+money(c.down)+' deposit is paid at month zero. At '+ratePercent(c.nominalReturn)+' nominal annual return over '+b.months+' months, its foregone return is '+money(opportunityDetail.balloonLoan.opportunityBreakdown.upfront)+' '+moneyBasis("opportunityBreakdown")+'.';
-  $("serviceNote").textContent=s.matchPeriods?c.serviceCount+" services · "+money(c.maintenance):active.map(v=>v.name+": "+c[v.key].serviceCount+" services · "+money(c[v.key].maintenance)).join(" | ");
+  $("opportunityExample").innerHTML=("<span data-option=\"balloon\">"+t("results.balloonLoanExample")+"</span>"+t("results.the"))+money(c.down)+t("results.depositIsPaidAtMonthZeroAt")+ratePercent(c.nominalReturn)+t("results.nominalAnnualReturnOver")+b.months+t("results.monthsItsForegoneReturnIs")+money(opportunityDetail.balloonLoan.opportunityBreakdown.upfront)+' '+moneyBasis("opportunityBreakdown")+'.';
+  $("serviceNote").textContent=s.matchPeriods?t("results.services",{services:t("common.services",{count:c.serviceCount}),maintenance:money(c.maintenance)}):active.map(v=>t("results.services2",{name:v.name,services:t("common.services",{count:c[v.key].serviceCount}),maintenance:money(c[v.key].maintenance)})).join(" | ");
   const purchaseSold=s.loanEnd==="sell",leaseSold=s.leaseEnd==="buySell",leaseBought=s.leaseEnd!=="return";
   const anySale=(purchaseSold&&(s.balloonEnabled||s.normalEnabled||s.cashEnabled))||(s.leaseEnabled&&leaseSold);
   const component=(key,field)=>cost[key].costComponents[field];
   const components=field=>variants.map(v=>component(v.key,field));
   const costRow=(label,values,cls="")=>comparisonRow(label,values,cost,cls);
   $("costRows").innerHTML=[
-  costRow("Vehicle purchase / buyout",[s.price,s.price,leaseBought?component("lease","purchase"):"No purchase",s.price]),
-  (s.balloonEnabled||s.normalEnabled)?costRow("Inflation benefit on deferred principal",variants.map(v=>v.loanMonths&&inflationViews.cost&&s.inflationRate>0?component(v.key,"purchase")-s.price:0)):"",
-  costRow("Car resale / retained value credit",components("resale").map((amount,i)=>i===2&&!leaseBought?"Car returned":amount)),
-  (s.balloonEnabled||s.normalEnabled)?costRow("Financing interest",[component("balloonLoan","interest"),component("standardLoan","interest"),"In lease","No loan"]):"",
-  s.leaseEnabled?costRow("Lease invoices + initial payment",["—","—",component("lease","lease"),"—"]):"",
-  costRow("Insurance paid separately",components("insurance").map((amount,i)=>i===2&&s.kintoInsuranceIncluded?"In lease":amount)),
-  costRow("Maintenance",variants.map(v=>v.kind==='lease'&&s.kintoMaintenance?"In lease":comparisonAmount(component(v.key,"maintenance"),cost[v.key],c[v.key].serviceCount+" services over full term"))),
-  costRow("Tyres & service, less resale",components("tyres").map((amount,i)=>i===2&&s.kintoTyres?"In lease":amount)),
+  costRow(t("results.vehiclePurchaseBuyout"),[s.price,s.price,leaseBought?component("lease","purchase"):t("results.noPurchase"),s.price]),
+  (s.balloonEnabled||s.normalEnabled)?costRow(t("results.inflationBenefitOnDeferredPrincipal"),variants.map(v=>v.loanMonths&&inflationViews.cost&&s.inflationRate>0?component(v.key,"purchase")-s.price:0)):"",
+  costRow(t("results.carResaleRetainedValueCredit"),components("resale").map((amount,i)=>i===2&&!leaseBought?t("results.carReturned"):amount)),
+  (s.balloonEnabled||s.normalEnabled)?costRow(t("results.financingInterest"),[component("balloonLoan","interest"),component("standardLoan","interest"),t("results.inLease"),t("results.noLoan")]):"",
+  s.leaseEnabled?costRow(t("results.leaseInvoicesInitialPayment"),["—","—",component("lease","lease"),"—"]):"",
+  costRow(t("results.insurancePaidSeparately"),components("insurance").map((amount,i)=>i===2&&s.kintoInsuranceIncluded?t("results.inLease"):amount)),
+  costRow(t("results.maintenance"),variants.map(v=>v.kind==='lease'&&s.kintoMaintenance?t("results.inLease"):comparisonAmount(component(v.key,"maintenance"),cost[v.key],t("results.servicesOverFullTerm",{services:t("common.services",{count:c[v.key].serviceCount})})))),
+  costRow(t("results.tyresServiceLessResale"),components("tyres").map((amount,i)=>i===2&&s.kintoTyres?t("results.inLease"):amount)),
   costRow(additionalLabel,components("additional")),
-  anyValue([s.easyExtra,s.normalExtra,s.kintoExtra,s.cashExtra])?costRow("Other costs",components("other")):"",
-  s.vatEnabled?costRow("Net VAT adjustment",components("vat")):"",
-  s.incomeTaxEnabled?costRow("Cost before income-tax effects",variants.map(v=>cost[v.key].beforeOpportunity-component(v.key,"taxSavings")-component(v.key,"saleTax")),"subtotal"):"",
-  s.incomeTaxEnabled?costRow("Estimated tax savings during ownership",components("taxSavings")):"",
-  s.incomeTaxEnabled?costRow("Estimated tax and contributions on sale",components("saleTax")):"",
-  costRow("Cost before opportunity",variants.map(v=>cost[v.key].beforeOpportunity)),
-  costRow(inflationViews.cost?"Inflation effect (already included)":"Inflation adjustment (excluded)",variants.map(v=>cost[v.key].inflationAdjustment),"inflation-summary"),
-  costRow(opportunityViews.cost?"Opportunity cost":"Opportunity cost (excluded)",variants.map(v=>cost[v.key].opportunity)),
-  costRow("Total economic cost",variants.map(v=>cost[v.key].adjusted),"sum")].join("");
+  anyValue([s.easyExtra,s.normalExtra,s.kintoExtra,s.cashExtra])?costRow(t("results.otherCosts"),components("other")):"",
+  s.vatEnabled?costRow(t("results.netVatAdjustment"),components("vat")):"",
+  s.incomeTaxEnabled?costRow(t("results.costBeforeIncomeTaxEffects"),variants.map(v=>cost[v.key].beforeOpportunity-component(v.key,"taxSavings")-component(v.key,"saleTax")),"subtotal"):"",
+  s.incomeTaxEnabled?costRow(t("results.estimatedTaxSavingsDuringOwnership"),components("taxSavings")):"",
+  s.incomeTaxEnabled?costRow(t("results.estimatedTaxAndContributionsOnSale"),components("saleTax")):"",
+  costRow(t("results.costBeforeOpportunity"),variants.map(v=>cost[v.key].beforeOpportunity)),
+  costRow(inflationViews.cost?t("results.inflationEffectAlreadyIncluded"):t("results.inflationAdjustmentExcluded"),variants.map(v=>cost[v.key].inflationAdjustment),"inflation-summary"),
+  costRow(opportunityViews.cost?t("ui.opportunityCost"):t("results.opportunityCostExcluded2"),variants.map(v=>cost[v.key].opportunity)),
+  costRow(t("results.totalEconomicCost"),variants.map(v=>cost[v.key].adjusted),"sum")].join("");
 
   const resaleInputs=viewInputs(s,'resale'),pairs=resaleComparisons(resaleInputs,viewOptions("resale"),annualViews.resale),optionKeys=active.map(v=>v.key);
-  $("versusBasis").textContent=(annualViews.versus?"Average annual costs":"Full-term costs")+", with VAT treatment, "+comparisonBasis("versus")+".";
-  for(const v of variants)$("resaleCostBasis-"+v.kind).textContent=annualViews.resale?"Ownership cost / year":"Ownership cost over full term";
-  $("resaleColumnLabel").textContent=s.matchPeriods?"Full resale price":"Change in full resale price";
-  $("resaleColumnTerm").textContent=active.some(v=>s[v.matchPeriod])?(s.matchPeriods?"at month ":"shared term: month ")+s.months:"";
-  $("sensitivityBasis").textContent=(annualViews.resale?"Average annual ownership costs":"Full-term ownership costs")+" with VAT treatment, "+comparisonBasis("resale")+". Resale and retained values are always full gross amounts at each option’s end, never per year. "+(s.matchPeriods?"The first column is the shared selling price.":"The first column changes each option’s end value by the same amount; full end values are available in tooltips.")+" Extra rows show exact break-even points.";
+  $("versusBasis").textContent=t("results.withVatTreatment",{description1:annualViews.versus?t("setup.averageAnnualCosts"):t("results.fullTermCosts"),value2:comparisonBasis("versus")});
+  for(const v of variants)$("resaleCostBasis-"+v.kind).textContent=annualViews.resale?t("ui.ownershipCostYear"):t("results.ownershipCostOverFullTerm");
+  $("resaleColumnLabel").textContent=s.matchPeriods?t("ui.fullResalePrice"):t("results.changeInFullResalePrice");
+  $("resaleColumnTerm").textContent=active.some(v=>s[v.matchPeriod])?(s.matchPeriods?t("results.atMonth"):t("results.sharedTermMonth"))+s.months:"";
+  $("sensitivityBasis").textContent=t("results.withVatTreatmentResaleAndRetainedValuesAre",{description1:annualViews.resale?t("results.averageAnnualOwnershipCosts"):t("results.fullTermOwnershipCosts"),value2:comparisonBasis("resale"),description3:s.matchPeriods?t("results.theFirstColumnIsTheSharedSellingPrice"):t("results.theFirstColumnChangesEachOptionSEnd")});
   $("versusRows").innerHTML=optionKeys.map(left=>{
    const cells=optionKeys.map(right=>{
-    if(left===right)return '<td class="versus-diagonal" aria-label="Same option">—</td>';
+    if(left===right)return '<td class="versus-diagonal" aria-label="'+t('results.sameOption')+'">—</td>';
     const difference=resultValue(versus[left],"versus")-resultValue(versus[right],"versus");
-    if(Math.abs(difference)<.5)return '<td class="versus-tie">Same cost</td>';
+    if(Math.abs(difference)<.5)return ("<td class=\"versus-tie\">"+t("results.sameCost")+"</td>");
     const direction=difference<0?"less":"more";
-    return '<td class="versus-'+direction+'"><span>'+money(Math.abs(difference))+'</span><small>'+direction+'</small></td>';
+    return '<td class="versus-'+direction+'"><span>'+money(Math.abs(difference))+'</span><small>'+t('results.'+direction)+'</small></td>';
    }).join("");
    return '<tr><th scope="row" data-option="'+names[left].kind+'">'+label(left)+'</th>'+cells+'</tr>';
   }).join("");
@@ -174,144 +175,144 @@ export function createResults({document,window,views,onShowTooltip}){
    const matching=pairs.filter(p=>p.resale!==null&&Math.abs(p.resale-resale)<.01);
    const note=matching.map(p=>label(p.left)+" = "+label(p.right)).join("; ");
    const tiedOptions=r.filter(item=>Math.abs(item.value-r[0].value)<.5);
-   const winner=tiedOptions.length>1?tiedOptions.map(item=>'<span data-option="'+item.key+'">'+item.name+'</span>').join(" + ")+" tie":'<span data-option="'+r[0].key+'">'+r[0].name+'</span>';
+   const winner=tiedOptions.length>1?t("results.tie",{value1:tiedOptions.map(item=>'<span data-option="'+item.key+'">'+item.name+'</span>').join(" + ")}):'<span data-option="'+r[0].key+'">'+r[0].name+'</span>';
    const cells=active.map(v=>{
     const o=next[v.key];
-    const note=s[v.matchPeriod]?"":"Month "+o.months;
+    const note=s[v.matchPeriod]?"":t("results.month2",{months:o.months});
     return '<td data-option="'+v.kind+'">'+comparisonAmount(o.adjusted,o,note,"resale")+'</td>';
    }).join("");
-   return '<tr class="'+(current?"selected ":"")+(matching.length?"breakpoint":"")+'"><th scope="row">'+(s.matchPeriods?money(resale):(resale-s.resale>0?"+":"")+money(resale-s.resale))+(current?"<small>Current resale</small>":"")+(note?'<small class="breakpoint-note">Break-even: '+note+'</small>':"")+'</th>'+cells+'<td>'+winner+'</td></tr>';
+   return '<tr class="'+(current?"selected ":"")+(matching.length?"breakpoint":"")+'"><th scope="row">'+(s.matchPeriods?money(resale):(resale-s.resale>0?"+":"")+money(resale-s.resale))+(current?("<small>"+t("results.currentResale")+"</small>"):"")+(note?("<small class=\"breakpoint-note\">"+t("results.breakEven"))+note+'</small>':"")+'</th>'+cells+'<td>'+winner+'</td></tr>';
   }).join("");
 
-  const endNote=o=>"Month "+o.months;
-  const refundNote=amount=>amount?"Month "+s.purchaseVatDelay:"No eligible deduction";
-  const saleCell=(sold,amount,description)=>sold?detail(amount,description):"No sale";
+  const endNote=o=>t("results.month2",{months:o.months});
+  const refundNote=amount=>amount?t("results.month3",{purchaseVatDelay:s.purchaseVatDelay}):t("results.noEligibleDeduction");
+  const saleCell=(sold,amount,description)=>sold?detail(amount,description):t("results.noSale");
   const vat=vatTableValues(s,c,inflationViews.vat);
   const tyreSaleVat=s.vatEnabled?s.tyreResale*s.vatPct/(100+s.vatPct):0;
   const tyreVatValues=variants.map(v=>v.kind==='lease'&&s.kintoTyres?0:tyreSaleVat);
   $("vatPanel").hidden=!s.vatEnabled;
   $("vatTimeline").innerHTML=[
-  (s.balloonEnabled||s.normalEnabled||s.cashEnabled||(s.leaseEnabled&&c.leaseInitialVat))?phase("01 · Purchase and lease start"):"",
-  (s.balloonEnabled||s.normalEnabled||s.cashEnabled)?row("Purchase VAT refund",detail(vat.balloonLoan.purchase,refundNote(c.purchaseRefund)),detail(vat.standardLoan.purchase,refundNote(c.purchaseRefund)),"Not a purchase",detail(vat.cashPurchase.purchase,refundNote(c.purchaseRefund))):"",
-  s.leaseEnabled&&c.leaseInitialVat?row("Initial lease payment VAT","—","—",detail(vat.lease.initial,"Month 0"),"—"):"",
-  phase("02 · During the agreement"),
-  s.leaseEnabled?row("VAT on regular lease invoices","No VAT on loan repayments","No VAT on loan repayments",detail(vat.lease.regular,(inflationViews.vat?"Average per invoice":"Per invoice")+" · months 0–"+(l.months-1)),"No regular purchase payments"):"",
-  row(runningVatLabel,detail(vat.balloonLoan.maintenance,"Netted against the expense"),detail(vat.standardLoan.maintenance,"Netted against the expense"),detail(vat.lease.maintenance,"Netted against the expense"),detail(vat.cashPurchase.maintenance,"Netted against the expense")),
-  phase("03 · At each option’s end date"),
-  row("Gross car sale proceeds",purchaseSold?detail(vat.balloonLoan.grossSale,endNote(b)):"Car kept",purchaseSold?detail(vat.standardLoan.grossSale,endNote(n)):"Car kept",leaseSold?detail(vat.lease.grossSale,endNote(l)):leaseBought?"Car kept":"Car returned",purchaseSold?detail(vat.cashPurchase.grossSale,endNote(cash)):"Car kept"),
-  anySale?row("VAT paid on car sale",saleCell(purchaseSold,vat.balloonLoan.saleVat,endNote(b)),saleCell(purchaseSold,vat.standardLoan.saleVat,endNote(n)),saleCell(leaseSold,vat.lease.saleVat,endNote(l)),saleCell(purchaseSold,vat.cashPurchase.saleVat,endNote(cash))):"",
-  anySale?row("Car sale proceeds after VAT",saleCell(purchaseSold,vat.balloonLoan.netSale,b.remainingPrincipal||b.loanMonths===b.months?"Before loan settlement":"Loan already repaid"),saleCell(purchaseSold,vat.standardLoan.netSale,n.remainingPrincipal?"Before loan settlement":"Loan fully repaid"),saleCell(leaseSold,vat.lease.netSale,"Before deducting buyout"),saleCell(purchaseSold,vat.cashPurchase.netSale,"No loan to settle")):"",
-  anyValue(variants.map(v=>c[v.key].retainedValue))?row("Estimated VAT within retained car value",...variants.map(v=>(v.kind==='lease'?s.leaseEnd==='buyKeep':!purchaseSold)?detail(vat[v.key].saleVat,"Valuation only; no tax paid now"):"No retained car")):"",
-  anyValue(tyreVatValues)?row("VAT within tyre resale / retained value",...variants.map((v,index)=>v.kind==='lease'&&s.kintoTyres?"Lease-owned tyres":detail(vat[v.key].tyreVat,(v.kind==='lease'?s.leaseEnd==='buyKeep':!purchaseSold)?"Valuation only; no tax paid now":"Paid within tyre sale proceeds"))):"",
-  s.leaseEnabled&&leaseBought?row("Lease buyout VAT refund","No new VAT on balloon repayment","—",detail(vat.lease.buyout,c.buyoutRefund?"Month "+(l.months+s.purchaseVatDelay):"No eligible deduction"),"—"):"",
-  anyValue(variants.map(v=>c[v.key].futureRefund))?phase("04 · Refunds outstanding at end of term"):"",
-  anyValue(variants.map(v=>c[v.key].futureRefund))?row("Total VAT still to be received",detail(vat.balloonLoan.outstanding,"Already included in total cost"),detail(vat.standardLoan.outstanding,"Already included in total cost"),detail(vat.lease.outstanding,"Already included in total cost"),detail(vat.cashPurchase.outstanding,"Already included in total cost")):""
+  (s.balloonEnabled||s.normalEnabled||s.cashEnabled||(s.leaseEnabled&&c.leaseInitialVat))?phase(t("results.01PurchaseAndLeaseStart")):"",
+  (s.balloonEnabled||s.normalEnabled||s.cashEnabled)?row(t("results.purchaseVatRefund"),detail(vat.balloonLoan.purchase,refundNote(c.purchaseRefund)),detail(vat.standardLoan.purchase,refundNote(c.purchaseRefund)),t("results.notAPurchase"),detail(vat.cashPurchase.purchase,refundNote(c.purchaseRefund))):"",
+  s.leaseEnabled&&c.leaseInitialVat?row(t("results.initialLeasePaymentVat"),"—","—",detail(vat.lease.initial,t("results.month0")),"—"):"",
+  phase(t("results.02DuringTheAgreement")),
+  s.leaseEnabled?row(t("results.vatOnRegularLeaseInvoices"),t("results.noVatOnLoanRepayments"),t("results.noVatOnLoanRepayments"),detail(vat.lease.regular,t("results.months0",{description1:inflationViews.vat?t("results.averagePerInvoice"):t("results.perInvoice"),value2:l.months-1})),t("results.noRegularPurchasePayments")):"",
+  row(runningVatLabel,detail(vat.balloonLoan.maintenance,t("results.nettedAgainstTheExpense")),detail(vat.standardLoan.maintenance,t("results.nettedAgainstTheExpense")),detail(vat.lease.maintenance,t("results.nettedAgainstTheExpense")),detail(vat.cashPurchase.maintenance,t("results.nettedAgainstTheExpense"))),
+  phase(t("results.03AtEachOptionSEndDate")),
+  row(t("results.grossCarSaleProceeds"),purchaseSold?detail(vat.balloonLoan.grossSale,endNote(b)):t("results.carKept"),purchaseSold?detail(vat.standardLoan.grossSale,endNote(n)):t("results.carKept"),leaseSold?detail(vat.lease.grossSale,endNote(l)):leaseBought?t("results.carKept"):t("results.carReturned"),purchaseSold?detail(vat.cashPurchase.grossSale,endNote(cash)):t("results.carKept")),
+  anySale?row(t("results.vatPaidOnCarSale"),saleCell(purchaseSold,vat.balloonLoan.saleVat,endNote(b)),saleCell(purchaseSold,vat.standardLoan.saleVat,endNote(n)),saleCell(leaseSold,vat.lease.saleVat,endNote(l)),saleCell(purchaseSold,vat.cashPurchase.saleVat,endNote(cash))):"",
+  anySale?row(t("results.carSaleProceedsAfterVat"),saleCell(purchaseSold,vat.balloonLoan.netSale,b.remainingPrincipal||b.loanMonths===b.months?t("results.beforeLoanSettlement"):t("results.loanAlreadyRepaid")),saleCell(purchaseSold,vat.standardLoan.netSale,n.remainingPrincipal?t("results.beforeLoanSettlement"):t("results.loanFullyRepaid")),saleCell(leaseSold,vat.lease.netSale,t("results.beforeDeductingBuyout")),saleCell(purchaseSold,vat.cashPurchase.netSale,t("results.noLoanToSettle"))):"",
+  anyValue(variants.map(v=>c[v.key].retainedValue))?row(t("results.estimatedVatWithinRetainedCarValue"),...variants.map(v=>(v.kind==='lease'?s.leaseEnd==='buyKeep':!purchaseSold)?detail(vat[v.key].saleVat,t("results.valuationOnlyNoTaxPaidNow")):t("results.noRetainedCar"))):"",
+  anyValue(tyreVatValues)?row(t("results.vatWithinTyreResaleRetainedValue"),...variants.map((v,index)=>v.kind==='lease'&&s.kintoTyres?t("results.leaseOwnedTyres"):detail(vat[v.key].tyreVat,(v.kind==='lease'?s.leaseEnd==='buyKeep':!purchaseSold)?t("results.valuationOnlyNoTaxPaidNow"):t("results.paidWithinTyreSaleProceeds")))):"",
+  s.leaseEnabled&&leaseBought?row(t("results.leaseBuyoutVatRefund"),t("results.noNewVatOnBalloonRepayment"),"—",detail(vat.lease.buyout,c.buyoutRefund?t("results.month4",{value1:l.months+s.purchaseVatDelay}):t("results.noEligibleDeduction")),"—"):"",
+  anyValue(variants.map(v=>c[v.key].futureRefund))?phase(t("results.04RefundsOutstandingAtEndOfTerm")):"",
+  anyValue(variants.map(v=>c[v.key].futureRefund))?row(t("results.totalVatStillToBeReceived"),detail(vat.balloonLoan.outstanding,t("results.alreadyIncludedInTotalCost")),detail(vat.standardLoan.outstanding,t("results.alreadyIncludedInTotalCost")),detail(vat.lease.outstanding,t("results.alreadyIncludedInTotalCost")),detail(vat.cashPurchase.outstanding,t("results.alreadyIncludedInTotalCost"))):""
   ].join("");
   const hasCashAdjustments=anyValue(variants.map(v=>c[v.key].retainedValue))||anyValue(variants.map(v=>c[v.key].futureRefund));
   $("cashflow").innerHTML=[
-  s.incomeTaxEnabled?row("Taxable car-sale amount",...variants.map(v=>(v.kind==="lease"?leaseSold:purchaseSold)?(s.saleTaxRate?money(c[v.key].taxableSale):"0% sale rate"):"No sale")):"",
-  s.incomeTaxEnabled?row("Estimated net car-sale proceeds",...variants.map(v=>(v.kind==="lease"?leaseSold:purchaseSold)?money(c[v.key].resale-c[v.key].carSaleVat-c[v.key].saleTax):"No sale")):"",
-  row("Deposit / initial payment / outright purchase",money(c.down),money(c.normalDown),money(s.kintoInitial),money(s.price)),
-  anyValue([b.balloonPaid,0,leaseBought?s.leaseBuyout:0,0])?row("Balloon paid / lease buyout",b.balloonPaid?detail(b.balloonPaid,"Month "+b.loanMonths):"No balloon paid","No balloon",leaseBought?detail(s.leaseBuyout,"Month "+l.months):"No buyout","No loan"):"",
-  anyValue([b.remainingPrincipal,n.remainingPrincipal,0,0])?row("Remaining loan at comparison end",detail(b.remainingPrincipal,purchaseSold?"Paid off on sale":"Deducted from retained value"),detail(n.remainingPrincipal,purchaseSold?"Paid off on sale":"Deducted from retained value"),"No loan","No loan"):"",
-  row("Net cash paid at start",...variants.map(v=>money(c[v.key].events.filter(e=>e.type==='cash'&&e.month===0).reduce((sum,e)=>sum+e.amount,0)))),
-  row("Car resale / retained value at end",...variants.map(v=>v.kind==="lease"&&!leaseBought?"Car returned":detail(c[v.key].resale,(v.kind==="lease"?leaseSold:purchaseSold)?"Gross sale proceeds":"Retained asset; no sale receipt"))),
-  row("Net cash flow at end",...variants.map(v=>{
+  s.incomeTaxEnabled?row(t("results.taxableCarSaleAmount"),...variants.map(v=>(v.kind==="lease"?leaseSold:purchaseSold)?(s.saleTaxRate?money(c[v.key].taxableSale):t("results.0SaleRate")):t("results.noSale"))):"",
+  s.incomeTaxEnabled?row(t("results.estimatedNetCarSaleProceeds"),...variants.map(v=>(v.kind==="lease"?leaseSold:purchaseSold)?money(c[v.key].resale-c[v.key].carSaleVat-c[v.key].saleTax):t("results.noSale"))):"",
+  row(t("results.depositInitialPaymentOutrightPurchase"),money(c.down),money(c.normalDown),money(s.kintoInitial),money(s.price)),
+  anyValue([b.balloonPaid,0,leaseBought?s.leaseBuyout:0,0])?row(t("results.balloonPaidLeaseBuyout"),b.balloonPaid?detail(b.balloonPaid,t("results.month5",{loanMonths:b.loanMonths})):t("results.noBalloonPaid"),t("results.noBalloon"),leaseBought?detail(s.leaseBuyout,t("results.month2",{months:l.months})):t("results.noBuyout"),t("results.noLoan")):"",
+  anyValue([b.remainingPrincipal,n.remainingPrincipal,0,0])?row(t("results.remainingLoanAtComparisonEnd"),detail(b.remainingPrincipal,purchaseSold?t("results.paidOffOnSale"):t("results.deductedFromRetainedValue")),detail(n.remainingPrincipal,purchaseSold?t("results.paidOffOnSale"):t("results.deductedFromRetainedValue")),t("results.noLoan"),t("results.noLoan")):"",
+  row(t("results.netCashPaidAtStart"),...variants.map(v=>money(c[v.key].events.filter(e=>e.type==='cash'&&e.month===0).reduce((sum,e)=>sum+e.amount,0)))),
+  row(t("results.carResaleRetainedValueAtEnd"),...variants.map(v=>v.kind==="lease"&&!leaseBought?t("results.carReturned"):detail(c[v.key].resale,(v.kind==="lease"?leaseSold:purchaseSold)?t("results.grossSaleProceeds"):t("results.retainedAssetNoSaleReceipt")))),
+  row(t("results.netCashFlowAtEnd"),...variants.map(v=>{
    const amount=c[v.key].events.filter(e=>e.type==='cash'&&Math.abs(e.month-c[v.key].months)<1e-8).reduce((sum,e)=>sum+e.amount,0);
-   return detail(amount,"Month "+c[v.key].months+" · "+(amount<-.005?"net received":amount>.005?"net paid":"no net payment"));
+   return detail(amount,t("results.month6",{months:c[v.key].months,description2:amount<-.005?t("results.netReceived"):amount>.005?t("results.netPaid"):t("results.noNetPayment")}));
   })),
-  hasCashAdjustments?row("Net cash spent through each term",money(b.cashToEnd),money(n.cashToEnd),money(l.cashToEnd),money(cash.cashToEnd)):"",
-  anyValue(variants.map(v=>c[v.key].retainedValue))?row("Less retained car and tyre value",money(-b.retainedValue),money(-n.retainedValue),money(-l.retainedValue),money(-cash.retainedValue)):"",
-  anyValue(variants.map(v=>c[v.key].futureRefund))?row("Less VAT refunds due after each term",money(-b.futureRefund),money(-n.futureRefund),money(-l.futureRefund),money(-cash.futureRefund)):"",
-  row("Economic cost before opportunity",money(b.nominal),money(n.nominal),money(l.nominal),money(cash.nominal),"sum")
+  hasCashAdjustments?row(t("results.netCashSpentThroughEachTerm"),money(b.cashToEnd),money(n.cashToEnd),money(l.cashToEnd),money(cash.cashToEnd)):"",
+  anyValue(variants.map(v=>c[v.key].retainedValue))?row(t("results.lessRetainedCarAndTyreValue"),money(-b.retainedValue),money(-n.retainedValue),money(-l.retainedValue),money(-cash.retainedValue)):"",
+  anyValue(variants.map(v=>c[v.key].futureRefund))?row(t("results.lessVatRefundsDueAfterEachTerm"),money(-b.futureRefund),money(-n.futureRefund),money(-l.futureRefund),money(-cash.futureRefund)):"",
+  row(t("results.economicCostBeforeOpportunity"),money(b.nominal),money(n.nominal),money(l.nominal),money(cash.nominal),"sum")
   ].join("");
   decorateResultTables(s,c,matchRows,resalePoints,opportunityDetail);
   annotateInflationValues(s,resalePoints,opportunityDetail);
   if(annualViews.summary){
    const selected=active.find(v=>v.kind===sorted[0].key),result=summary[selected.key];
-   explainResult($("saving"),($("saving").dataset.explanation||"")+" Full-term cost: "+money(result.adjusted)+" over "+result.months+" months. Annual average = full-term cost × 12 ÷ months. No renewals are assumed.");
+   explainResult($("saving"),t("results.fullTermCostOverMonthsAnnualAverageFull",{value1:$("saving").dataset.explanation||"",adjusted:money(result.adjusted),months:result.months}));
   }
   return c;
  }
 
  function decorateResultTables(s,c,matches,resales,opportunityDetail){
   const active=variants.filter(v=>s[v.enabled]);
-  const additionalLabel=s.pastOwnership?'Actual additional costs':'Estimated additional costs';
+  const additionalLabel=s.pastOwnership?t("setup.actualAdditionalCosts"):t("ui.estimatedAdditionalCosts");
   const additionalActive=active.some(v=>Math.abs(c[v.key].additionalCosts)>1e-8);
-  const runningVatLabel=additionalActive?'Maintenance / tyre / additional-cost VAT refunds':'Maintenance / tyre VAT refunds';
+  const runningVatLabel=additionalActive?t("results.maintenanceTyreAdditionalCostVatRefunds"):t("results.maintenanceTyreVatRefunds");
   const descriptions={
-   'Period / mileage':'Each option has its own term. Mileage is annual kilometres × months ÷ 12. Cost comparisons use each section’s annual or full-term choice, without assuming renewals.',
-   'Loan payment / lease invoice':'Regular finance payment only. Loan payments include principal and interest but exclude the deposit and final balloon. Lease invoices include VAT and whichever services you marked as included.',
-   'Insurance paid separately':'Only separately entered insurance is added here. Coverage, including GAP, is whatever your quote actually provides; this calculator does not verify it. Insurance bundled into a lease is already in the lease invoice.',
-   'Monthly bill incl. insurance':'The recurring amount paid before any separate VAT refund. Adds the loan payment or lease invoice and separately paid insurance. Maintenance, tyres, deposits and final payments are separate.',
-   'VAT refund per lease invoice':'Eligible refund from one lease invoice, after the taxable-share and recovery-percentage settings. This is a tax refund, not a discount on the invoice or on a loan repayment.',
-   'Monthly bill after VAT deduction':'Recurring bill minus eligible VAT deducted against VAT payable in the same month. The gross invoice remains payable to the lessor.',
-   'Effective monthly ownership cost':'Total ownership cost on this table’s selected opportunity-cost and inflation basis ÷ the option’s months. Includes upfront and final payments, running costs, resale or retained value, and VAT settlement. This is not a monthly invoice.',
-   'Vehicle purchase / buyout':'The invoice price for a car purchased now stays unchanged when inflation is toggled. Loans show the inflation benefit from paying principal later as a separate credit in the next row. A lease buyout occurs in the future, so its amount is converted to today’s money when selected. VAT deductions are separate.',
-   'Inflation benefit on deferred principal':'Negative credit for repaying borrowed principal later, when it has less purchasing power. Equals the value of the deposit and principal payments in today’s money minus today’s invoice price. Includes the balloon or debt outstanding at the comparison end. Interest is separate. Zero when inflation is off or no principal is deferred. This credit is included once in the subtotal; the later inflation-effect row is only a summary.',
-   'Car resale / retained value credit':'Negative amount reduces cost by the gross car resale or retained value. If the car is kept, this is an asset valuation rather than cash received. Disposal VAT is accounted for separately in Net VAT adjustment. Tyres have their own value credit. With today’s money enabled, this credit is discounted to its purchasing power today. Hover or focus an amount for both values.',
-   'Financing interest':'Interest accrued through the ownership period or loan maturity, whichever comes first. With today’s money on, each payment’s interest portion is discounted on its payment date. Excludes future interest after an early sale. The deposit is not borrowed. Lease financing is not separately known and stays inside lease invoices.',
-   'Lease invoices + initial payment':'Gross monthly lease invoice × lease months, plus the initial lease payment; with today’s money on, each is discounted from its payment date. Includes services and insurance marked as bundled. A buyout is counted in Vehicle purchase / buyout.',
-   'Maintenance':'Number of services due × gross service price. A service is due at the earlier distance or time interval, including one due exactly at the end. Eligible VAT is deducted in Net VAT adjustment.',
-   'Tyres & service, less resale':'Gross tyre purchase plus seasonal swaps and storage, minus the tyre resale or retained-value estimate. Eligible VAT and disposal VAT appear in Net VAT adjustment. Lease-owned tyres have no separate value credit.',
-   [additionalLabel]:'Separate gross repair and similar costs outside scheduled maintenance. Annual mode charges the budget at each completed year and prorates a final partial year; year-specific mode uses each entered annual amount on the same schedule. Costs stop at the optional additional-cost cutoff or ownership end, whichever comes first. Eligible VAT is deducted in Net VAT adjustment. The lease includes these costs only when selected in Setup.',
-   'Other costs':'Extra costs entered for each option, paid at that option’s end date. The model does not apply another VAT deduction to them.',
-   'Net VAT adjustment':'All eligible VAT refunds reduce cost; VAT on disposal increases it. Includes refunds arriving after the term. For kept assets, estimated disposal VAT reduces retained value without creating a tax payment now.',
-   'Cost before income-tax effects':'Subtotal of ownership costs after VAT, before the optional income-tax savings and sale charges. This is a subtotal, not an additional cost.',
-   'Estimated tax savings during ownership':'Manual full-term deductible expenses × effective tax and contribution rate. Shown as a negative credit. Savings are spread evenly and received every 12 months, with a final partial-year receipt at the end.',
-   'Estimated tax and contributions on sale':'Positive car sale proceeds after VAT minus the entered remaining deductible tax value, multiplied by the effective sale rate. No tax benefit from a loss, no tyre-sale tax, and no sale tax on kept cars or returned leases is assumed.',
-   'Taxable car-sale amount':'Calculation base, not a cash flow or extra cost: max(0, car sale proceeds after VAT − remaining deductible tax value). Used only when income-tax estimates are enabled and the car is sold.',
-   'Estimated net car-sale proceeds':'Gross car sale proceeds minus output VAT and the estimated sale tax and contributions. Still before settling any remaining loan or deducting a lease buyout. Tyres are separate.',
-   "Inflation adjustment (excluded)":"This table’s today’s-money toggle is off. Zero inflation adjustment is added; the Setup inflation estimate and other views are unchanged.",
-   "Inflation effect (already included)":'Informational only: the difference between the components in today’s money and their nominal total. Every component above is already adjusted using its own payment or receipt date. Do not add this row to the subtotal again. Opportunity cost below is a separate addition.',
-   'Cost before opportunity':'Sum of the cost components above after VAT treatment and any selected inflation adjustment, before any foregone investment return. Includes retained asset value and outstanding VAT refunds, so it is not just cash paid to date.',
-   'Opportunity cost':'Foregone after-tax return from the timing of payments and refunds, measured at each option’s end date and converted to today’s money when selected. Added to cost before opportunity, using the return assumption in Setup.',
-   'Opportunity cost (excluded)':'This table’s toggle excludes foregone return. Zero is added to the total here; the Setup return assumption and other views are unchanged.',
-   'Total economic cost':'Cost before opportunity plus the opportunity cost selected for this table, on the same nominal or today’s-money basis. Each column uses its selected ownership period; the per-year switch divides each total by its own ownership years.',
-   'Total opportunity cost':'Sum of the timing effects shown above, using the Setup return assumption regardless of other tables’ toggles. Refunds before the end usually reduce foregone return; refunds after the end have a delay effect. With today’s money on, timing effects use the difference between inflation-adjusted values with and without investment return.',
-   'Purchase VAT refund':'Eligible VAT from the original vehicle purchase, subject to invoice eligibility, recovery percentage and capital cap. Arrives after the purchase refund delay, even when a loan funds the invoice. It does not reduce loan principal.',
-   'Initial lease payment VAT':'Eligible VAT refund on the initial lease payment, using the lease taxable share and recovery percentage. Deducted against VAT payable in month zero, with the initial payment. It is separate from refunds on monthly lease invoices.',
-   'VAT on regular lease invoices':'Refund for each monthly invoice, not the total for the lease. Lease invoices are modelled at months 0 through term minus one; eligible VAT is deducted against VAT payable in the same invoice month. With today’s money on, the displayed refund is the average of the discounted monthly deductions.',
-   [runningVatLabel]:'Eligible VAT on separately paid maintenance, tyre purchase, swaps, storage'+(additionalActive?' and additional repair costs':'')+'. Netted against those expenses immediately under the calculator’s next-month deduction convention.',
-   'Gross car sale proceeds':'Car sale price including VAT at the option’s end date. A kept car creates no sale receipt; its estimated net value is an asset credit instead. Tyre proceeds are separate.',
-   'VAT paid on car sale':'The VAT portion already inside the gross car sale proceeds, paid to the tax authority at the sale date. It is not additional income or an extra tax on top of the entered selling price.',
-   'Car sale proceeds after VAT':'Gross car proceeds minus car sale VAT. Still before loan settlement or lease buyout; excludes income tax and contributions, tyre proceeds and delayed buyout VAT refunds.',
-   'Estimated VAT within retained car value':'Valuation adjustment only. A kept car is credited at estimated resale value net of disposal VAT. This is not a sale and no tax cash payment occurs now.',
-   'VAT within tyre resale / retained value':'VAT within the separately entered tyre value. It is paid when the tyres are sold, or deducted only from the retained-value estimate if they are kept. No separate credit applies to lease-owned tyres.',
-   'Lease buyout VAT refund':'Eligible VAT from the end-of-lease purchase, using its own invoice eligibility and capital cap. Arrives after the purchase refund delay, which can be after the comparison end.',
-   'Total VAT still to be received':'VAT refunds dated after this option’s end. Already credited in ownership cost, but not yet received in cash. Opportunity cost includes the effect of waiting for them.',
-   'Deposit / initial payment / outright purchase':'The purchase deposit, initial lease fee, or full outright price. This is one component of the start payment; the net start-cash row also includes any first lease invoice, tyres, insurance and immediate refunds.',
-   'Balloon paid / lease buyout':'Balloon actually paid at loan maturity, or purchase at lease end. The displayed month can precede the ownership end. Early sales settle the outstanding balance in the next row instead.',
-   'Remaining loan at comparison end':'Principal still outstanding after the last modelled regular payment, including the unpaid balloon. A sale settles it in cash. If the car is kept, it reduces net retained value. Future interest is excluded; enter any early-settlement fee in Other loan costs.',
-   'Loan repayment period':'Contractual repayment length, independent of ownership. Payments stop at maturity; an earlier sale pays off the remaining principal.',
-   'Monthly bill after loan ends':'Separately paid insurance for the rest of ownership. Loan repayments have stopped. Maintenance and tyres continue separately and are included in effective ownership cost.',
-   'Net cash paid at start':'All actual cash events at month zero, including the initial payment, any first lease invoice, insurance, tyres, seasonal service and immediate VAT refunds. This snapshot is already part of net cash spent.',
-   'Car resale / retained value at end':'Full nominal car value at the option’s end, including VAT and before loan settlement or sale taxes. A sale creates a cash receipt; a kept car creates only an asset credit. Tyres are separate.',
-   'Net cash flow at end':'All actual cash events at the exact end date: final repayments or buyout, due insurance, maintenance or additional costs, sales and sale tax, and refunds arriving then. Negative means cash received. Retained assets and later refunds are excluded. Already part of net cash spent.',
-   'Net cash spent through each term':'Sum of cash paid minus receipts through the end date, including upfront payments, repayments and sale settlement. Start and end snapshots above must not be added again.',
-   'Less retained car and tyre value':'Subtracts the estimated net value of assets you still own. This reduces economic cost but is not cash received. Both car and separately owned tyres are included after estimated disposal VAT and any outstanding loan principal. A negative retained value means the debt exceeds the assets.',
-   'Less VAT refunds due after each term':'Subtracts refunds still due after the end. These are already included in economic cost but not yet in net cash spent. The timing effect is separate opportunity cost.',
-   'Economic cost before opportunity':'Net cash spent through the term minus retained asset value and VAT refunds still due. This reconciliation uses nominal full-term amounts and excludes opportunity cost and inflation adjustments. When no retained assets or outstanding refunds remain, it equals net cash spent and that duplicate row is omitted.'
+   [t("results.periodMileage")]:t("results.eachOptionHasItsOwnTermMileageIs"),
+   [t("results.loanPaymentLeaseInvoice")]:t("results.regularFinancePaymentOnlyLoanPaymentsIncludePrincipal"),
+   [t("results.insurancePaidSeparately")]:t("results.onlySeparatelyEnteredInsuranceIsAddedHereCoverage"),
+   [t("results.monthlyBillInclInsurance")]:t("results.theRecurringAmountPaidBeforeAnySeparateVat"),
+   [t("results.vatRefundPerLeaseInvoice")]:t("results.eligibleRefundFromOneLeaseInvoiceAfterThe"),
+   [t("results.monthlyBillAfterVatDeduction")]:t("results.recurringBillMinusEligibleVatDeductedAgainstVat"),
+   [t("results.effectiveMonthlyOwnershipCost")]:t("results.totalOwnershipCostOnThisTableSSelected"),
+   [t("results.vehiclePurchaseBuyout")]:t("results.theInvoicePriceForACarPurchasedNow"),
+   [t("results.inflationBenefitOnDeferredPrincipal")]:t("results.negativeCreditForRepayingBorrowedPrincipalLaterWhen"),
+   [t("results.carResaleRetainedValueCredit")]:t("results.negativeAmountReducesCostByTheGrossCar"),
+   [t("results.financingInterest")]:t("results.interestAccruedThroughTheOwnershipPeriodOrLoan"),
+   [t("results.leaseInvoicesInitialPayment")]:t("results.grossMonthlyLeaseInvoiceLeaseMonthsPlusThe"),
+   [t("results.maintenance")]:t("results.numberOfServicesDueGrossServicePriceA"),
+   [t("results.tyresServiceLessResale")]:t("results.grossTyrePurchasePlusSeasonalSwapsAndStorage"),
+   [additionalLabel]:t("results.separateGrossRepairAndSimilarCostsOutsideScheduled"),
+   [t("results.otherCosts")]:t("results.extraCostsEnteredForEachOptionPaidAt"),
+   [t("results.netVatAdjustment")]:t("results.allEligibleVatRefundsReduceCostVatOn"),
+   [t("results.costBeforeIncomeTaxEffects")]:t("results.subtotalOfOwnershipCostsAfterVatBeforeThe"),
+   [t("results.estimatedTaxSavingsDuringOwnership")]:t("results.manualFullTermDeductibleExpensesEffectiveTaxAnd"),
+   [t("results.estimatedTaxAndContributionsOnSale")]:t("results.positiveCarSaleProceedsAfterVatMinusThe"),
+   [t("results.taxableCarSaleAmount")]:t("results.calculationBaseNotACashFlowOrExtra"),
+   [t("results.estimatedNetCarSaleProceeds")]:t("results.grossCarSaleProceedsMinusOutputVatAnd"),
+   [t("results.inflationAdjustmentExcluded")]:t("results.thisTableSTodaySMoneyToggleIs"),
+   [t("results.inflationEffectAlreadyIncluded")]:t("results.informationalOnlyTheDifferenceBetweenTheComponentsIn"),
+   [t("results.costBeforeOpportunity")]:t("results.sumOfTheCostComponentsAboveAfterVat"),
+   [t("ui.opportunityCost")]:t("results.foregoneAfterTaxReturnFromTheTimingOf"),
+   [t("results.opportunityCostExcluded2")]:t("results.thisTableSToggleExcludesForegoneReturnZero"),
+   [t("results.totalEconomicCost")]:t("results.costBeforeOpportunityPlusTheOpportunityCostSelected"),
+   [t("results.totalOpportunityCost")]:t("results.sumOfTheTimingEffectsShownAboveUsing"),
+   [t("results.purchaseVatRefund")]:t("results.eligibleVatFromTheOriginalVehiclePurchaseSubject"),
+   [t("results.initialLeasePaymentVat")]:t("results.eligibleVatRefundOnTheInitialLeasePayment"),
+   [t("results.vatOnRegularLeaseInvoices")]:t("results.refundForEachMonthlyInvoiceNotTheTotal"),
+   [runningVatLabel]:t("results.eligibleVatOnSeparatelyPaidMaintenanceTyrePurchase",{description1:additionalActive?t("results.andAdditionalRepairCosts"):''}),
+   [t("results.grossCarSaleProceeds")]:t("results.carSalePriceIncludingVatAtTheOption"),
+   [t("results.vatPaidOnCarSale")]:t("results.theVatPortionAlreadyInsideTheGrossCar"),
+   [t("results.carSaleProceedsAfterVat")]:t("results.grossCarProceedsMinusCarSaleVatStill"),
+   [t("results.estimatedVatWithinRetainedCarValue")]:t("results.valuationAdjustmentOnlyAKeptCarIsCredited"),
+   [t("results.vatWithinTyreResaleRetainedValue")]:t("results.vatWithinTheSeparatelyEnteredTyreValueIt"),
+   [t("results.leaseBuyoutVatRefund")]:t("results.eligibleVatFromTheEndOfLeasePurchase"),
+   [t("results.totalVatStillToBeReceived")]:t("results.vatRefundsDatedAfterThisOptionSEnd"),
+   [t("results.depositInitialPaymentOutrightPurchase")]:t("results.thePurchaseDepositInitialLeaseFeeOrFull"),
+   [t("results.balloonPaidLeaseBuyout")]:t("results.balloonActuallyPaidAtLoanMaturityOrPurchase"),
+   [t("results.remainingLoanAtComparisonEnd")]:t("results.principalStillOutstandingAfterTheLastModelledRegular"),
+   [t("results.loanRepaymentPeriod")]:t("results.contractualRepaymentLengthIndependentOfOwnershipPaymentsStop"),
+   [t("results.monthlyBillAfterLoanEnds")]:t("results.separatelyPaidInsuranceForTheRestOfOwnership"),
+   [t("results.netCashPaidAtStart")]:t("results.allActualCashEventsAtMonthZeroIncluding"),
+   [t("results.carResaleRetainedValueAtEnd")]:t("results.fullNominalCarValueAtTheOptionS"),
+   [t("results.netCashFlowAtEnd")]:t("results.allActualCashEventsAtTheExactEnd"),
+   [t("results.netCashSpentThroughEachTerm")]:t("results.sumOfCashPaidMinusReceiptsThroughThe"),
+   [t("results.lessRetainedCarAndTyreValue")]:t("results.subtractsTheEstimatedNetValueOfAssetsYou"),
+   [t("results.lessVatRefundsDueAfterEachTerm")]:t("results.subtractsRefundsStillDueAfterTheEndThese"),
+   [t("results.economicCostBeforeOpportunity")]:t("results.netCashSpentThroughTheTermMinusRetained")
   };
-  const timing={upfront:'Return forgone on the initial purchase, loan deposit or lease fee.',payments:'Return forgone on regular loan repayments or lease invoices.',insurance:'Return forgone on separately paid insurance.',maintenance:'Return forgone between each service payment and the end date.',tyres:'Return forgone on tyre purchase and seasonal services.',additional:'Return forgone between each additional-cost payment and the end date. A payment at the option end contributes zero.',vatDuring:'Return available on refunded VAT received before the end. Usually a negative offset to opportunity cost.',vatAfter:'Cost of waiting for a VAT refund beyond the end date; the future receipt is discounted back.',taxSavings:'Return earned on estimated income-tax and contribution savings after their assumed annual receipt dates.',settlement:'Timing effect of the final finance payment, car settlement and disposal VAT. Payments exactly at the end contribute zero.',other:'Timing effect of other payments. End-dated extras contribute zero.'};
+  const timing={upfront:t("results.returnForgoneOnTheInitialPurchaseLoanDeposit"),payments:t("results.returnForgoneOnRegularLoanRepaymentsOrLease"),insurance:t("results.returnForgoneOnSeparatelyPaidInsurance"),maintenance:t("results.returnForgoneBetweenEachServicePaymentAndThe"),tyres:t("results.returnForgoneOnTyrePurchaseAndSeasonalServices"),additional:t("results.returnForgoneBetweenEachAdditionalCostPaymentAnd"),vatDuring:t("results.returnAvailableOnRefundedVatReceivedBeforeThe"),vatAfter:t("results.costOfWaitingForAVatRefundBeyond"),taxSavings:t("results.returnEarnedOnEstimatedIncomeTaxAndContribution"),settlement:t("results.timingEffectOfTheFinalFinancePaymentCar"),other:t("results.timingEffectOfOtherPaymentsEndDatedExtras")};
   const timingKeys=['upfront','payments','insurance','maintenance','tyres','additional','vatDuring','vatAfter','taxSavings','settlement','other'].filter(key=>active.some(v=>Math.abs(opportunityDetail[v.key].opportunityBreakdown[key])>1e-8));
   const columnHelp={
-   'Compare row with →':'Each cell compares the row option with the column option. Less means the row costs less. Uses average annual costs when Compare per year is on, or each option’s full-term cost when it is off.',
-   'Monthly amount':'Separates recurring payments from average ownership cost. Upfront payments, final settlement and running costs are included only in the ownership average.',
-   'Loan':'The loan whose nominal annual interest rate is varied to find a matching ownership cost.',
-   'Match':'Benchmark option held at its existing quote, end choice and term. No replacement purchases or lease renewals are assumed.',
-   'Current rate':'The nominal annual loan rate, entered directly or inferred from the monthly quote. This is not an all-in APR; insurance and other entered costs are counted separately.',
-   'Matching rate':'Calculated nominal annual rate at which the loan and benchmark have equal cost on this table’s basis. Hover a result for the exact search outcome.',
-   'Current cost difference':'How much more or less the loan costs than its benchmark at the entered rate. Uses this section’s annual or full-term comparison choice.',
-   'Average cost per year':'Every component is its full-term value divided by that option’s ownership years. This is an annual allocation, not a yearly payment schedule. Negative credits reduce cost; the inflation-effect row is already included.',
-   'Foregone return per year':'Each cash-flow timing effect divided by the option’s ownership years. These are annual allocations of foregone return, not payments made each year.',
-   'Full-term cost':'Components of ownership cost over each column’s own term. Negative credits reduce the total. Components follow the today’s-money toggle. VAT is separate; the inflation-effect row is informational and already included.',
-   'Foregone return by cash flow':'Timing effects of payments and receipts at the Setup investment return. These are not the underlying cash amounts.',
-   'Cash-flow stage':'Amounts and receipt or payment dates for VAT. Kept assets use valuation adjustments rather than actual sale VAT payments.',
-   'Full resale price':'Shared gross end-of-term car selling price, or retained-value estimate when keeping the car. Tyres have their own value.',
-   'Change in full resale price':'Amount added to every option’s own end resale estimate. The original estimates and terms can differ.',
-   'Lowest cost':'Cheapest selected option at the row’s resale estimates. Ranked on this section’s annual or full-term comparison choice. A pairwise break-even does not necessarily identify the cheapest option.',
-   'Payment / asset':'Cash requirements and end-of-term reconciliation. Start and end snapshots are already included in net cash spent; retained values and outstanding refunds are subtracted only once.'
+   [t("ui.compareRowWith")]:t("results.eachCellComparesTheRowOptionWithThe"),
+   [t("ui.monthlyAmount")]:t("results.separatesRecurringPaymentsFromAverageOwnershipCostUpfront"),
+   [t("ui.loan")]:t("results.theLoanWhoseNominalAnnualInterestRateIs"),
+   [t("ui.match")]:t("results.benchmarkOptionHeldAtItsExistingQuoteEnd"),
+   [t("ui.currentRate")]:t("results.theNominalAnnualLoanRateEnteredDirectlyOr"),
+   [t("ui.matchingRate")]:t("results.calculatedNominalAnnualRateAtWhichTheLoan"),
+   [t("ui.currentCostDifference")]:t("results.howMuchMoreOrLessTheLoanCosts"),
+   [t("ui.averageCostPerYear")]:t("results.everyComponentIsItsFullTermValueDivided"),
+   [t("results.foregoneReturnPerYear")]:t("results.eachCashFlowTimingEffectDividedByThe"),
+   [t("results.fullTermCost")]:t("results.componentsOfOwnershipCostOverEachColumnS"),
+   [t("ui.foregoneReturnByCashFlow")]:t("results.timingEffectsOfPaymentsAndReceiptsAtThe"),
+   [t("ui.cashFlowStage")]:t("results.amountsAndReceiptOrPaymentDatesForVat"),
+   [t("ui.fullResalePrice")]:t("results.sharedGrossEndOfTermCarSellingPrice"),
+   [t("results.changeInFullResalePrice")]:t("results.amountAddedToEveryOptionSOwnEnd"),
+   [t("ui.lowestCost")]:t("results.cheapestSelectedOptionAtTheRowSResale"),
+   [t("ui.paymentAsset")]:t("results.cashRequirementsAndEndOfTermReconciliationStart")
   };
   const viewFor={monthlyRows:'monthly',costRows:'cost',versusRows:'versus',interestRows:'interest',sensitivity:'resale',opportunityRows:'opportunityBreakdown',vatTimeline:'vat'};
   for(const id of ['monthlyRows','costRows','opportunityRows','vatTimeline','cashflow','versusRows','interestRows','sensitivity']){
@@ -322,62 +323,62 @@ export function createResults({document,window,views,onShowTooltip}){
     const label=heading.textContent.trim(),cells=[...tr.querySelectorAll('td')];
     if(id==='versusRows'){
      const left=active[index];
-     explainResult(heading,'Compare '+left.name+' with each column. '+(annualViews.versus?'Average annual costs, ':'Full-term costs, ')+basis);
+     explainResult(heading,t("results.compareWithEachColumn",{name:left.name,description2:annualViews.versus?t("results.averageAnnualCosts"):t("results.fullTermCosts2"),basis:basis}));
      cells.forEach((cell,i)=>{
       const right=active[i],comparison=calculate(viewInputs(s,'versus'),viewOptions('versus')),amount=v=>resultValue(comparison[v.key],"versus");
-      explainResult(cell,left.name+': '+money(amount(left))+'; '+right.name+': '+money(amount(right))+'. '+(annualViews.versus?'Per year, ':'Over each full term, ')+basis+' Full-term totals: '+left.name+' '+money(comparison[left.key].adjusted)+' over '+comparison[left.key].months+' months; '+right.name+' '+money(comparison[right.key].adjusted)+' over '+comparison[right.key].months+' months. Less or more refers to the row option relative to the column.');
+      explainResult(cell,t("results.fullTermTotalsOverMonthsOverMonthsLess",{name:left.name,left:money(amount(left)),name2:right.name,right:money(amount(right)),description5:annualViews.versus?t("results.perYear2"):t("results.overEachFullTerm"),basis:basis,name3:left.name,adjusted:money(comparison[left.key].adjusted),months:comparison[left.key].months,name4:right.name,adjusted2:money(comparison[right.key].adjusted),months2:comparison[right.key].months}));
      });continue;
     }
     if(id==='interestRows'){
      const item=matches[index],loan=variants.find(v=>v.key===item.loan),target=variants.find(v=>v.key===item.target);
-     const messages={'below-zero':'Even a 0% loan costs more than this benchmark, so no non-negative rate matches.','above-range':'The loan is cheaper throughout the tested 0–100% range; no match was found in that range.','unaffected':'Changing interest has no effect on the cost difference, and the costs do not match.','equal':'Costs match at every tested rate because interest has no effect on the difference.','match':'At this rate the loan matches the benchmark. Lower rates cost less; higher rates cost more.'};
+     const messages={'below-zero':t("results.evenA0LoanCostsMoreThanThis"),'above-range':t("results.theLoanIsCheaperThroughoutTheTested0"),'unaffected':t("results.changingInterestHasNoEffectOnTheCost"),'equal':t("results.costsMatchAtEveryTestedRateBecauseInterest"),'match':t("results.atThisRateTheLoanMatchesTheBenchmark")};
      const benchmark=calculate(viewInputs(s,'interest'),viewOptions('interest'));
-     const totals=' Full-term costs at the current rates: '+loan.name+' '+money(benchmark[item.loan].adjusted)+' over '+benchmark[item.loan].months+' months; '+target.name+' '+money(benchmark[item.target].adjusted)+' over '+benchmark[item.target].months+' months.';
-     const matchHelp=messages[item.status]+' Benchmark cost: '+money(item.targetCost*(annualViews.interest?12:1))+(annualViews.interest?' per year':' over its term')+', '+basis+' Only this loan’s rate changes; this is a calculated threshold, not a lender quote or APR.'+totals;
-     explainResult(heading,loan.name+' over '+c[item.loan].months+' months, compared with '+target.name+' over '+c[item.target].months+' months.');
-     [target.name+' is held at its current quote and assumptions.','Current nominal annual loan rate from Setup, entered directly or inferred from the monthly quote; fees and insurance are separate.',matchHelp,'How much more or less the loan costs at its current rate than this benchmark. '+(annualViews.interest?'Per year, ':'Over the full term, ')+basis+totals].forEach((text,i)=>explainResult(cells[i],text));continue;
+     const totals=t("results.fullTermCostsAtTheCurrentRatesOver",{name:loan.name,adjusted:money(benchmark[item.loan].adjusted),months:benchmark[item.loan].months,name2:target.name,adjusted2:money(benchmark[item.target].adjusted),months2:benchmark[item.target].months});
+     const matchHelp=t("results.benchmarkCostOnlyThisLoanSRateChanges",{value1:messages[item.status],value2:money(item.targetCost*(annualViews.interest?12:1)),description3:annualViews.interest?t("results.perYear3"):t("results.overItsTerm"),basis:basis,totals:totals});
+     explainResult(heading,t("results.overMonthsComparedWithOverMonths",{name:loan.name,months:c[item.loan].months,name2:target.name,months2:c[item.target].months}));
+     [t("results.isHeldAtItsCurrentQuoteAndAssumptions",{name:target.name}),t("results.currentNominalAnnualLoanRateFromSetupEntered"),matchHelp,t("results.howMuchMoreOrLessTheLoanCosts2",{description1:annualViews.interest?t("results.perYear2"):t("results.overTheFullTerm"),basis:basis,totals:totals})].forEach((text,i)=>explainResult(cells[i],text));continue;
     }
     if(id==='sensitivity'){
      const scenario=withResale(s,resales[index]);
      const prices=active.filter(v=>v.kind!=='lease'||s.leaseEnd!=='return').map(v=>v.name+': '+money(s.matchPeriods?scenario.resale:scenario[v.resale])).join('; ');
-     const help=(s.matchPeriods?'Gross selling price, or retained car value if kept.':'The same amount is added to each option’s own end resale estimate.')+' End car values: '+prices+'. Tyres are separate.';
-     explainResult(heading,help+' A break-even row marks equal costs for the named pair; that pair need not be the cheapest overall.');
-     cells.forEach((cell,i)=>explainResult(cell,i<active.length?active[i].name+' cost '+(annualViews.resale?'per year':'over '+c[active[i].key].months+' months')+', '+basis+' '+help:'Lowest among selected options at these resale estimates. '+(annualViews.resale?'Ranked per year, ':'Ranked over the full term, ')+basis));continue;
+     const help=t("results.endCarValuesTyresAreSeparate",{description1:s.matchPeriods?t("results.grossSellingPriceOrRetainedCarValueIf"):t("results.theSameAmountIsAddedToEachOption"),prices:prices});
+     explainResult(heading,t("results.aBreakEvenRowMarksEqualCostsFor",{help:help}));
+     cells.forEach((cell,i)=>explainResult(cell,i<active.length?t("results.optionCost",{name:active[i].name,period:annualViews.resale?t("results.perYear4"):t("results.overMonths",{months:c[active[i].key].months}),basis,help}):t("results.lowestAmongSelectedOptionsAtTheseResaleEstimates",{description1:annualViews.resale?t("results.rankedPerYear"):t("results.rankedOverTheFullTerm"),basis:basis})));continue;
     }
-    const help=id==='opportunityRows'&&index<timingKeys.length?timing[timingKeys[index]]+' This is only the timing effect, not the underlying payment.':descriptions[label];
+    const help=id==='opportunityRows'&&index<timingKeys.length?t("results.thisIsOnlyTheTimingEffectNotThe",{value1:timing[timingKeys[index]]}):descriptions[label];
     if(!help)continue;
-    explainResult(heading,help+((id==='costRows'&&annualViews.cost||id==='opportunityRows'&&annualViews.opportunityBreakdown)?' Displayed amounts are annual averages: full-term amounts × 12 ÷ this option’s months.':''));
+    explainResult(heading,help+((id==='costRows'&&annualViews.cost||id==='opportunityRows'&&annualViews.opportunityBreakdown)?t("results.displayedAmountsAreAnnualAveragesFullTermAmounts"):''));
     for(const cell of cells){
      const v=variants.find(v=>v.kind===cell.dataset.option);if(!v)continue;
-     let extra=v.name+' · '+c[v.key].months+' months. '+(id==='costRows'||id==='opportunityRows'||id==='vatTimeline'||label==='Effective monthly ownership cost'?basis:'');
-     if(label==='Car resale / retained value credit'){
-      if(v.kind==='lease'&&s.leaseEnd==='return'){explainResult(cell,'The car is returned to the lessor, so there is no car resale receipt or retained value.');continue;}
+     let extra=t("results.months3",{name:v.name,months:c[v.key].months,description3:id==='costRows'||id==='opportunityRows'||id==='vatTimeline'||label===t("results.effectiveMonthlyOwnershipCost")?basis:''});
+     if(label===t("results.carResaleRetainedValueCredit")){
+      if(v.kind==='lease'&&s.leaseEnd==='return'){explainResult(cell,t("results.theCarIsReturnedToTheLessorSo"));continue;}
       const result=c[v.key],kept=v.kind==='lease'?s.leaseEnd==='buyKeep':s.loanEnd==='keep';
       // Explain the gross resale component without applying its discount a second time to the total.
       const today=cashFlowValue({amount:result.resale,month:result.months},result.months,0,s.inflationRate,{opportunity:false,todayMoney:true});
-      extra=v.name+'. '+(s.pastOwnership?'End-of-ownership ':'Estimated ')+(kept?'retained car value':'sale proceeds')+(s.pastOwnership?' after ':' in ')+result.months+' months: '+money(result.resale)+'. At '+ratePercent(s.inflationRate)+' annual inflation, that is worth '+money(today)+' in today’s money';
-      extra+=s.inflationRate>0&&result.resale>0?', or '+money(result.resale-today)+' less purchasing power.':'. There is no purchasing-power reduction at these assumptions.';
-      extra+=' These are gross amounts before VAT, sale tax or remaining loan settlement. ';
-      extra+=inflationViews.cost?'The row already includes this purchasing-power adjustment. The inflation-effect row only summarises changes already included; do not add it again.':'This is an illustration only while today’s money is off; the total uses the nominal resale value.';
-      explainResult(cell,extra+(annualViews.cost?' The displayed credit is allocated per ownership year.':''));continue;
+      extra=t("results.monthsAtAnnualInflationThatIsWorthIn",{name:v.name,description2:s.pastOwnership?t("results.endOfOwnership"):t("results.estimated"),description3:kept?t("results.retainedCarValue"):t("results.saleProceeds"),description4:s.pastOwnership?t("results.after"):t("results.in"),months:result.months,resale:money(result.resale),inflationRate:ratePercent(s.inflationRate),today:money(today)});
+      extra+=s.inflationRate>0&&result.resale>0?t("results.orLessPurchasingPower",{value1:money(result.resale-today)}):'. There is no purchasing-power reduction at these assumptions.';
+      extra+=t("results.theseAreGrossAmountsBeforeVatSaleTax");
+      extra+=inflationViews.cost?t("results.theRowAlreadyIncludesThisPurchasingPowerAdjustment"):t("results.thisIsAnIllustrationOnlyWhileTodayS");
+      explainResult(cell,extra+(annualViews.cost?t("results.theDisplayedCreditIsAllocatedPerOwnershipYear"):''));continue;
      }
-     if(label==='Inflation benefit on deferred principal'){
-      if(!v.loanMonths)extra+=' No loan principal is deferred in this option; any future lease buyout is valued in its own row.';
+     if(label===t("results.inflationBenefitOnDeferredPrincipal")){
+      if(!v.loanMonths)extra+=t("results.noLoanPrincipalIsDeferredInThisOption");
       else if(inflationViews.cost){
        const valued=calculate(viewInputs(s,'cost'),viewOptions('cost'))[v.key].costComponents.purchase;
-       extra+=' Invoice price '+money(s.price)+' plus this credit equals '+money(valued)+' for principal in today’s money. The deposit is paid now and has no inflation reduction.';
-      }else extra+=' Today’s money is off, so no principal inflation credit is included.';
+       extra+=t("results.invoicePricePlusThisCreditEqualsForPrincipal",{price:money(s.price),valued:money(valued)});
+      }else extra+=t("results.todaySMoneyIsOffSoNoPrincipal");
      }
-     if(label==='Net cash flow at end'){
-      const names={repayment:'Regular loan repayment',capital:'Balloon / remaining loan settlement',buyout:'Lease buyout',resale:'Car sale proceeds',vat:'VAT paid minus refunds',insurance:'Insurance',maintenance:'Maintenance',tyres:'Tyre costs minus sale proceeds',additional:'Additional costs',other:'Other charges',taxSavings:'Income-tax savings',saleTax:'Tax and contributions on sale',lease:'Lease invoice',initial:'Initial lease payment'};
+     if(label===t("results.netCashFlowAtEnd")){
+      const names={repayment:t("results.regularLoanRepayment"),capital:t("results.balloonRemainingLoanSettlement"),buyout:t("results.leaseBuyout"),resale:t("results.carSaleProceeds"),vat:t("results.vatPaidMinusRefunds"),insurance:t("ui.insurance"),maintenance:t("results.maintenance"),tyres:t("results.tyreCostsMinusSaleProceeds"),additional:t("results.additionalCosts"),other:t("results.otherCharges"),taxSavings:t("results.incomeTaxSavings"),saleTax:t("results.taxAndContributionsOnSale"),lease:t("results.leaseInvoice"),initial:t("results.initialLeasePayment")};
       // Reconcile only cash on this exact date; kept assets and later VAT receipts are separate.
       const groups=new Map();
       for(const event of c[v.key].events.filter(e=>e.type==='cash'&&Math.abs(e.month-c[v.key].months)<1e-8))groups.set(event.category,(groups.get(event.category)||0)+event.amount);
       const parts=[...groups].filter(([,amount])=>Math.abs(amount)>.005).map(([category,amount])=>names[category]+': '+(amount>0?'+':'')+money(amount));
-      extra+=' Nominal cash at month '+c[v.key].months+'; positive = paid, negative = received. '+(parts.length?parts.join('; ')+'.':'No cash payments or receipts on this date.');
+      extra+=t("results.nominalCashAtMonthPositivePaidNegativeReceived",{months:c[v.key].months,description2:parts.length?parts.join('; ')+'.':t("results.noCashPaymentsOrReceiptsOnThisDate")});
      }
-     if(label==='Maintenance')extra+=' '+(v.kind==='lease'&&s.kintoMaintenance?'Included in lease invoices.':'Nominal budget: '+c[v.key].serviceCount+' services × '+money(s.serviceCost)+'.');
-     if(label==='Monthly bill after VAT deduction'&&v.kind==='lease')extra+=' Pay '+money(c.kRent+c.kInsurance)+' per invoice month; the '+money(c.leaseVatPerPayment)+' VAT deduction offsets VAT payable in that same month.';
+     if(label===t("results.maintenance"))extra+=' '+(v.kind==='lease'&&s.kintoMaintenance?t("results.includedInLeaseInvoices"):t("results.nominalBudgetServices",{services:t("common.services",{count:c[v.key].serviceCount}),serviceCost:money(s.serviceCost)}));
+     if(label===t("results.monthlyBillAfterVatDeduction")&&v.kind==='lease')extra+=t("results.payPerInvoiceMonthTheVatDeductionOffsets",{value1:money(c.kRent+c.kInsurance),leaseVatPerPayment:money(c.leaseVatPerPayment)});
      explainResult(cell,help+'\n\n'+extra);
     }
    }
@@ -387,15 +388,15 @@ export function createResults({document,window,views,onShowTooltip}){
     // The resale axis stays nominal and full-sized, regardless of cost valuation switches.
     const resaleHeader=th.querySelector?.('#resaleColumnLabel');
     if(resaleHeader){
-     explainResult(th,columnHelp[resaleHeader.textContent.trim()]+' Full nominal Kč including VAT at the end date shown. The per-year and today’s-money switches affect ownership costs, not these resale prices.');
-    }else explainResult(th,v?v.name+' · '+c[v.key].months+' months / '+num(c[v.key].km)+' km. '+(annualViews[viewFor[id]]?'Annual averages over this ownership period. ':'')+basis:(columnHelp[th.textContent.trim()]||'Costs for the selected option on this table’s basis.')+' '+basis);
+     explainResult(th,t("results.fullNominalKIncludingVatAtTheEnd",{value1:columnHelp[resaleHeader.textContent.trim()]}));
+    }else explainResult(th,v?t("results.monthsKm3",{name:v.name,months:c[v.key].months,km:num(c[v.key].km),description4:annualViews[viewFor[id]]?t("results.annualAveragesOverThisOwnershipPeriod"):'',basis:basis}):(columnHelp[th.textContent.trim()]||t("results.costsForTheSelectedOptionOnThisTable"))+' '+basis);
    }
   }
  }
 
  function annotateInflationValues(s,resales,opportunityDetail){
   const active=variants.filter(v=>s[v.enabled]);
-  const explanation=(nominal,unit="")=>"Estimated today’s money using "+ratePercent(s.inflationRate)+" annual inflation. Nominal equivalent: "+money(nominal)+unit+". Future inflation is an assumption, not a guaranteed outcome.";
+  const explanation=(nominal,unit="")=>t("results.estimatedTodaySMoneyUsingAnnualInflationNominal",{inflationRate:ratePercent(s.inflationRate),nominal:money(nominal),unit:unit});
   const mark=(element,enabled,text="")=>{
    if(!element)return;
    element.dataset.inflationEstimate=String(enabled);
@@ -405,19 +406,19 @@ export function createResults({document,window,views,onShowTooltip}){
   const nominal=calculate(viewInputs(s,'summary'));
   for(const [prefix,key] of [['easy','balloonLoan'],['normal','standardLoan'],['kinto','lease'],['cash','cashPurchase']]){
    const value=nominal[key];
-   for(const [suffix,amount,unit] of [['Total',resultValue(value),annualViews.summary?' / year':' total'],['Annual',annualViews.summary?value.adjusted:value.adjusted*12/value.months,annualViews.summary?' total':' / year'],[prefix==='kinto'?'Effective':'Monthly',value.adjusted/value.months,' / month']]){
+   for(const [suffix,amount,unit] of [["Total",resultValue(value),annualViews.summary?t("results.year"):t("results.total2")],["Annual",annualViews.summary?value.adjusted:value.adjusted*12/value.months,annualViews.summary?t("results.total2"):t("results.year")],[prefix==='kinto'?'Effective':'Monthly',value.adjusted/value.months,t("results.month")]]){
     const element=$(prefix+suffix);delete element.dataset.explanation;
     mark(element,inflationViews.summary,explanation(amount,unit));
    }
    const gross=value.events.filter(e=>e.category!=='vat').reduce((sum,e)=>sum+cashFlowValue(e,value.months,nominal.nominalReturn,s.inflationRate,{opportunity:opportunityViews.summary}),0);
    const element=$(prefix+'Gross');delete element.dataset.explanation;
-   mark(element,inflationViews.summary,explanation(gross,' total'));
+   mark(element,inflationViews.summary,explanation(gross,t("results.total2")));
   }
   const winner=resultRanking(nominal)[0];
   // The nominal winner can differ, so explain the displayed option using its own nominal cost.
   const shown=variants.find(v=>v.kind===$('verdict').dataset.winner);
   delete $('saving').dataset.explanation;
-  mark($('saving'),inflationViews.summary,explanation(shown?resultValue(nominal[shown.key]):winner.value,annualViews.summary?' / year':' total'));
+  mark($('saving'),inflationViews.summary,explanation(shown?resultValue(nominal[shown.key]):winner.value,annualViews.summary?t("results.year"):t("results.total2")));
   const detailNominal=calculate(s),vatNominal=vatTableValues(s,detailNominal,false);
   const opportunityKeys=['upfront','payments','insurance','maintenance','tyres','additional','vatDuring','vatAfter','taxSavings','settlement','other'].filter(key=>active.some(v=>Math.abs(opportunityDetail[v.key].opportunityBreakdown[key])>1e-8));
   for(const [view,id] of [['opportunityBreakdown','opportunityRows'],['vat','vatTimeline']]){
@@ -425,14 +426,14 @@ export function createResults({document,window,views,onShowTooltip}){
    [...$(id).querySelectorAll('tr')].forEach((row,index)=>{
     const label=row.querySelector('th')?.textContent||'';
     for(const cell of row.querySelectorAll('td')){
-     const variant=variants.find(v=>v.kind===cell.dataset.option);if(!variant||!cell.textContent.includes('Kč'))continue;
+     const variant=variants.find(v=>v.kind===cell.dataset.option);if(!variant||!cell.textContent.includes(i18n.symbol))continue;
      let value;
-     if(view==='opportunityBreakdown')value=label==='Total opportunity cost'?detailNominal[variant.key].opportunity:detailNominal[variant.key].opportunityBreakdown[opportunityKeys[index]];
+     if(view==='opportunityBreakdown')value=label===t("results.totalOpportunityCost")?detailNominal[variant.key].opportunity:detailNominal[variant.key].opportunityBreakdown[opportunityKeys[index]];
      else{
-      const key={'Purchase VAT refund':'purchase','Initial lease payment VAT':'initial','VAT on regular lease invoices':'regular','Maintenance / tyre VAT refunds':'maintenance','Maintenance / tyre / additional-cost VAT refunds':'maintenance','Gross car sale proceeds':'grossSale','VAT paid on car sale':'saleVat','Car sale proceeds after VAT':'netSale','Estimated VAT within retained car value':'saleVat','VAT within tyre resale / retained value':'tyreVat','Lease buyout VAT refund':'buyout','Total VAT still to be received':'outstanding'}[label];
+      const key={[t("results.purchaseVatRefund")]:'purchase',[t("results.initialLeasePaymentVat")]:'initial',[t("results.vatOnRegularLeaseInvoices")]:'regular',[t("results.maintenanceTyreVatRefunds")]:'maintenance',[t("results.maintenanceTyreAdditionalCostVatRefunds")]:'maintenance',[t("results.grossCarSaleProceeds")]:'grossSale',[t("results.vatPaidOnCarSale")]:'saleVat',[t("results.carSaleProceedsAfterVat")]:'netSale',[t("results.estimatedVatWithinRetainedCarValue")]:'saleVat',[t("results.vatWithinTyreResaleRetainedValue")]:'tyreVat',[t("results.leaseBuyoutVatRefund")]:'buyout',[t("results.totalVatStillToBeReceived")]:'outstanding'}[label];
       if(key)value=vatNominal[variant.key][key];
      }
-     if(Number.isFinite(value))mark(cell,true,explanation(view==='opportunityBreakdown'?resultAmount(value,detailNominal[variant.key],view):value,view==='opportunityBreakdown'&&annualViews[view]?" / year":""));
+     if(Number.isFinite(value))mark(cell,true,explanation(view==='opportunityBreakdown'?resultAmount(value,detailNominal[variant.key],view):value,view==='opportunityBreakdown'&&annualViews[view]?t("results.year"):""));
     }
    });
   }
@@ -444,15 +445,15 @@ export function createResults({document,window,views,onShowTooltip}){
     const scenario=view==='resale'?calculate(withResale(viewInputs(s,view),resales[index])):raw;
     cells.forEach((cell,i)=>{
      const v=active[i];let value;
-     if(view==='monthly'&&label==='Effective monthly ownership cost')value=raw[v.key].adjusted/raw[v.key].months;
+     if(view==='monthly'&&label===t("results.effectiveMonthlyOwnershipCost"))value=raw[v.key].adjusted/raw[v.key].months;
      if(view==='cost'){
       const variant=variants.find(v=>v.kind===cell.dataset.option);if(!variant)return;
-      const field={'Cost before opportunity':'nominal','Opportunity cost':'opportunity','Opportunity cost (excluded)':'opportunity','Total economic cost':'adjusted'}[label];
+      const field={[t("results.costBeforeOpportunity")]:'nominal',[t("ui.opportunityCost")]:'opportunity',[t("results.opportunityCostExcluded2")]:'opportunity',[t("results.totalEconomicCost")]:'adjusted'}[label];
       if(field)value=raw[variant.key][field];
-      const componentKey={"Vehicle purchase / buyout":"purchase","Car resale / retained value credit":"resale","Financing interest":"interest","Lease invoices + initial payment":"lease","Insurance paid separately":"insurance","Maintenance":"maintenance","Tyres & service, less resale":"tyres","Estimated additional costs":"additional","Actual additional costs":"additional","Other costs":"other","Net VAT adjustment":"vat","Estimated tax savings during ownership":"taxSavings","Estimated tax and contributions on sale":"saleTax"}[label];
-      if(componentKey&&cell.textContent.includes('Kč'))value=label==='Vehicle purchase / buyout'&&variant.kind!=='lease'?s.price:raw[variant.key].costComponents[componentKey];
-      if(label==='Inflation benefit on deferred principal')value=0;
-      if(label==='Cost before income-tax effects')value=raw[variant.key].nominal+raw[variant.key].taxSavings-raw[variant.key].saleTax;
+      const componentKey={[t("results.vehiclePurchaseBuyout")]:"purchase",[t("results.carResaleRetainedValueCredit")]:"resale",[t("results.financingInterest")]:"interest",[t("results.leaseInvoicesInitialPayment")]:"lease",[t("results.insurancePaidSeparately")]:"insurance",[t("results.maintenance")]:"maintenance",[t("results.tyresServiceLessResale")]:"tyres",[t("ui.estimatedAdditionalCosts")]:"additional",[t("setup.actualAdditionalCosts")]:"additional",[t("results.otherCosts")]:"other",[t("results.netVatAdjustment")]:"vat",[t("results.estimatedTaxSavingsDuringOwnership")]:"taxSavings",[t("results.estimatedTaxAndContributionsOnSale")]:"saleTax"}[label];
+      if(componentKey&&cell.textContent.includes(i18n.symbol))value=label===t("results.vehiclePurchaseBuyout")&&variant.kind!=='lease'?s.price:raw[variant.key].costComponents[componentKey];
+      if(label===t("results.inflationBenefitOnDeferredPrincipal"))value=0;
+      if(label===t("results.costBeforeIncomeTaxEffects"))value=raw[variant.key].nominal+raw[variant.key].taxSavings-raw[variant.key].saleTax;
      }
      if(view==='resale'&&v)value=resultValue(scenario[v.key],view);
      if(view==='versus'&&v&&i!==index)value=Math.abs(resultValue(raw[active[index].key],view)-resultValue(raw[v.key],view));
@@ -460,7 +461,7 @@ export function createResults({document,window,views,onShowTooltip}){
       const item=interestComparisons(viewInputs(s,'interest'),viewOptions('interest'),annualViews.interest)[index];
       value=Math.abs(resultValue(raw[item.loan],view)-resultValue(raw[item.target],view));
      }
-     if(Number.isFinite(value))mark(cell,true,explanation(view==='cost'?resultAmount(value,raw[v.key],view):value,annualViews[view]?' / year':view==='monthly'?' / month':''));
+     if(Number.isFinite(value))mark(cell,true,explanation(view==='cost'?resultAmount(value,raw[v.key],view):value,annualViews[view]?t("results.year"):view==='monthly'?t("results.month"):''));
     });
    });
   }
@@ -469,7 +470,7 @@ export function createResults({document,window,views,onShowTooltip}){
  function explainResult(element,text){
   if(!element)return;
   const amount=element.querySelector?.('[data-full-term]');
-  if(amount&&!text.includes('Full-term amount:'))text+='\n\nFull-term amount: '+money(Number(amount.dataset.fullTerm))+' over '+amount.dataset.months+' months. Annual average: '+money(Number(amount.dataset.fullTerm)*12/Number(amount.dataset.months))+' / year.';
+  if(amount&&!text.includes(t('results.fullTermAmountMarker')))text+=t("results.fullTermAmountOverMonthsAnnualAverageYear",{fullTerm:money(Number(amount.dataset.fullTerm)),months:amount.dataset.months,value3:money(Number(amount.dataset.fullTerm)*12/Number(amount.dataset.months))});
   element.dataset.explanation=text;element.classList.add('explained');element.tabIndex=0;
  }
 
@@ -480,7 +481,7 @@ export function createResults({document,window,views,onShowTooltip}){
 
  function showResultExplanation(target,x,y){
   onShowTooltip();hideResultExplanation();
-  const tooltip=$('resultTooltip');tooltip.textContent=timeWording(target.dataset.explanation);tooltip.hidden=false;
+  const tooltip=$('resultTooltip');tooltip.textContent=target.dataset.explanation;tooltip.hidden=false;
   target.setAttribute('aria-describedby','resultTooltip');activeResultExplanation=target;
   const anchor=target.getBoundingClientRect(),box=tooltip.getBoundingClientRect();
   x??=anchor.left+Math.min(anchor.width/2,100);y??=anchor.bottom;

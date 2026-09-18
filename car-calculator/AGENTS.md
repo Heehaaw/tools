@@ -7,9 +7,14 @@ A browser-based comparison of car financing and ownership costs. The application
 | File | Responsibility |
 | --- | --- |
 | `src/model.mjs` | Financial calculations, defaults, validation and pure comparison helpers |
+| `src/i18n.mjs` | Isolated i18next instance, named messages and locale/currency formatting |
+| `src/localization.mjs` | Explicit template bindings and browser language preference |
+| `src/locales/en.mjs`, `src/locales/cs.mjs` | English/Czech messages keyed by stable semantic IDs |
+| `src/message-errors.mjs` | Structured validation errors with English API messages |
+| `src/vendor/` | Pinned offline i18next runtime, MIT licence and update instructions |
 | `src/format.mjs` | Number parsing and display formatting |
 | `src/year-editor.mjs` | Reusable annual-value dialog controls for static and generated year fields |
-| `src/views.mjs` | Per-view valuation preferences and historical money wording |
+| `src/views.mjs` | Per-view valuation preferences and translated money-basis labels |
 | `src/form.mjs` | Raw form values, derived control state, suggestions and input events |
 | `src/scenarios.mjs` | Scenario validation, browser storage, JSON import/export and recovery |
 | `src/results.mjs` | Result tables, reconciliations and result explanations |
@@ -55,6 +60,7 @@ Focused checks are available when iterating:
 ```sh
 node tests/build.test.mjs
 node tests/components.test.mjs
+node tests/localization.test.mjs
 node tests/additional-costs.test.mjs
 node tests/historical-inflation.test.mjs
 node tests/ownership-inflation.test.mjs
@@ -104,3 +110,13 @@ There is no package install, framework build or required development server. `bu
 ## Licensing and standalone distribution
 
 The root `LICENSE`, `NOTICE`, `COMMERCIAL-LICENSE.md` and `LICENSING.md` define the licensing policy. The builder reads LICENSE and NOTICE and embeds their complete text in the standalone HTML. Preserve that section and rebuild when either file changes. The source template contains placeholders, so edit the root documents rather than a second copy. Keep licensing checks in `tests/build.test.mjs` passing.
+
+## Language and currency
+
+Use the shared i18next instance from `src/i18n.mjs`. Keep stable semantic keys in `src/locales/en.mjs` and `src/locales/cs.mjs`; changing wording must not require changing its key. Use complete messages with named interpolation values, count-based plural forms and `_past` context variants where historical ownership changes the meaning. Never locate translations by matching English display text.
+
+Static template text uses `data-i18n`; accessible attributes use bindings such as `data-i18n-aria-label`. Keep English fallback markup for first paint. Dynamic controllers call `t(key, values)` during rendering. Use `i18n.setMessage(element, render)` for persistent status notices so they also follow language changes. Apply static bindings before dynamic form labels, and refresh generated dialogs and collapse labels when language changes. Add translations for errors and tooltips as well as visible labels. Model errors carry a stable `messageKey` and values while preserving English `Error.message` for existing callers.
+
+Never translate IDs, enum values, storage keys, input/option values or chart identifiers. User scenario names and exported numeric data remain unchanged. Currency selection changes display symbols only; it must not convert amounts or assume exchange rates. Currency belongs to saved scenarios and JSON exports; language is a browser preference. The immutable example and legacy scenarios without currency use CZK. English remains the first-use language.
+
+The pinned i18next runtime is vendored locally; no package install, CDN or runtime fetch is needed. Preserve its separate MIT licence in source and in the standalone HTML. Follow `src/vendor/README.md` when updating it. The informational Czech calculator licence lives in `docs/license.cs.md`; retain the authoritative English LICENSE and NOTICE alongside it.

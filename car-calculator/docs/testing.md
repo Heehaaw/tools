@@ -16,6 +16,7 @@ Use the focused entry points while iterating:
 | Command | Covers |
 | --- | --- |
 | `node tests/build.test.mjs` | Deterministic artifact parity, self-contained CSS/JS, isolated module closures, aliases, dependency order, cycles, missing exports, external imports and raw closing-tag escaping |
+| `node tests/localization.test.mjs` | Czech static-text coverage, financial terminology, dynamic currency/percentage display, browser language, scenario currency, legacy migration, invalid-code rejection, duplication/switching/reload/import/export, reversible text/accessible attributes, historical wording and unchanged monetary values/results |
 | `node tests/components.test.mjs` | Browserless module imports, independent view/scenario factory state, storage-failure recovery and idempotent app initialisation |
 | `node tests/additional-costs.test.mjs` | Additional-cost persistence validation, draft round trips, array isolation, form modes, yearly seeding, enable/disable budget preservation, separate cost-period cutoffs, dated VAT/opportunity effects and partial-year presentation |
 | `node tests/historical-inflation.test.mjs` | Historical-inflation migration, linked annual/total fields, partial-year equivalence, draft validation and yearly schedule persistence |
@@ -53,6 +54,7 @@ Open the rebuilt standalone HTML directly from disk. Use a disposable profile or
 | Area | Check |
 | --- | --- |
 | Layout | Wide desktop and 320–390 px mobile; light and dark; no page-wide overflow. Chart/table containers may scroll internally. |
+| Language/currency | Fresh browser defaults to English/Kč. Switch to Czech and another symbol, edit a scenario, open annual dialogs, result help and graph tooltips, toggle historical ownership, then return to English. Reload preserves the language and selected scenario currency; switching to the example restores CZK. Currency edits on the example create a saved copy. Currency travels with JSON while numeric amounts and scenario names stay unchanged. Verify Czech wrapping on mobile and the English legal text stays readable. |
 | Navigation | Setup, Results and Graphs; collapsible cards; mode changes remain possible with incomplete inputs. |
 | Input | Grouped thousands, decimal comma, blanks and explicit zero; read-only derived fields look distinct. |
 | Additional costs | Switch between one annual amount and year-specific amounts; verify entries seed from the annual value, a blank stays an incomplete draft, zero remains zero, partial years prorate, and lease inclusion is independent of maintenance. |
@@ -100,3 +102,5 @@ For annual comparison controls, check that the per-year checkbox is first, the o
 ## Release metadata
 
 Build tests verify that the header uses the newest release version/date, links to the Markdown ledger, and remains deterministic without modifying notes. Invalid latest headings fail instead of selecting an older release. Before a requested commit or push, follow the release workflow in AGENTS.md and verify the staged ledger, header and changes agree. Rebuilding or pushing an already recorded release must not add another entry.
+
+Localization tests exercise stable keys, named values, Czech plural forms, isolated translator instances, explicit template/attribute bindings and historical message contexts. The bundled-app harness checks locale changes, stable chart identifiers and unchanged financial inputs/results. Scenario migration and currency persistence cover legacy data, duplication, switching, import/export and drafts. Catalogue checks catch missing keys and mismatched interpolation values. These fixtures do not verify native selectors, SVG captions or tooltip layout; use the browser checklist when browser access is available.

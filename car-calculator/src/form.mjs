@@ -1,19 +1,21 @@
-import {defaults,variants,migrateInputs,monthlyPayment,historicalInflationEntryMode,ownershipInflationRate,ownershipInflationTotal,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate} from "./model.mjs";
-import {money,num,ratePercent,ungroupNumber,parseNumber,formatNumberInput} from "./format.mjs";
+import {createTranslator} from "./i18n.mjs";
+import {defaults,variants as modelVariants,migrateInputs,monthlyPayment,historicalInflationEntryMode,ownershipInflationRate,ownershipInflationTotal,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate} from "./model.mjs";
+import {ungroupNumber,parseNumber,formatNumberInput} from "./format.mjs";
 import {createYearEditor} from "./year-editor.mjs";
 
 /** Own raw form values, derived controls and forward-only suggestions. */
-export function createForm({document,views,onChange}){
+export function createForm({i18n=createTranslator(),document,views,onChange}){
+ const variants=i18n.variants(modelVariants);
+ const {t,money,num,ratePercent}=i18n;
  const $=id=>document.getElementById(id);
- const {applyTimeLabels}=views;
  // A calculated display must not overwrite an inactive saved input during ordinary renders.
  const loanQuotes=[{kind:"balloon",rate:"rate",down:"downPct"},{kind:"normal",rate:"normalRate",down:"normalDownPct"}];
  const calculatedLoanFields=new Map();
  const calculatedInflationFields=new Map();
- const additionalEditor=createYearEditor({document,prefix:"additionalYear",dialogId:"additionalCostsDialog",openerId:"editAdditionalYears",closeIds:["closeAdditionalYears","doneAdditionalYears"],datasetKey:"additionalYear",unit:"Kč / year incl. VAT",staticFields:true,describe:(value,duration)=>money(value*duration/12)+(duration<12?" · "+duration+"/12 year":" in this year")});
- const historicalEditor=createYearEditor({document,prefix:"historicalInflationYear",dialogId:"historicalInflationDialog",openerId:"editHistoricalInflation",closeIds:["closeHistoricalInflation","doneHistoricalInflation"],gridId:"historicalInflationYearGrid",datasetKey:"historicalInflationYear",unit:"% p.a.",maxYears:100,baseMax:20,step:.1,limit:100,describe:(value,duration)=>ratePercent(((1+value/100)**(duration/12)-1)*100)+(duration<12?" · "+duration+"/12 year":" in this year")});
+ const additionalEditor=createYearEditor({document,i18n,prefix:"additionalYear",dialogId:"additionalCostsDialog",openerId:"editAdditionalYears",closeIds:["closeAdditionalYears","doneAdditionalYears"],datasetKey:"additionalYear",unit:()=>t("ui.kYearInclVat"),staticFields:true,describe:(value,duration)=>money(value*duration/12)+(duration<12?t("setup.12Year",{duration:duration}):t("setup.inThisYear"))});
+ const historicalEditor=createYearEditor({document,i18n,prefix:"historicalInflationYear",dialogId:"historicalInflationDialog",openerId:"editHistoricalInflation",closeIds:["closeHistoricalInflation","doneHistoricalInflation"],gridId:"historicalInflationYearGrid",datasetKey:"historicalInflationYear",unit:()=>t("ui.pA"),maxYears:100,baseMax:20,step:.1,limit:100,describe:(value,duration)=>ratePercent(((1+value/100)**(duration/12)-1)*100)+(duration<12?t("setup.12Year",{duration:duration}):t("setup.inThisYear"))});
 
- const ownershipEditor=createYearEditor({document,prefix:"ownershipInflationYear",dialogId:"ownershipInflationDialog",openerId:"editOwnershipInflation",closeIds:["closeOwnershipInflation","doneOwnershipInflation"],gridId:"ownershipInflationYearGrid",datasetKey:"ownershipInflationYear",unit:"% p.a.",baseMax:20,step:.1,limit:100,describe:(value,duration)=>ratePercent(((1+value/100)**(duration/12)-1)*100)+(duration<12?" · "+duration+"/12 year":" in this year")});
+ const ownershipEditor=createYearEditor({document,i18n,prefix:"ownershipInflationYear",dialogId:"ownershipInflationDialog",openerId:"editOwnershipInflation",closeIds:["closeOwnershipInflation","doneOwnershipInflation"],gridId:"ownershipInflationYearGrid",datasetKey:"ownershipInflationYear",unit:()=>t("ui.pA"),baseMax:20,step:.1,limit:100,describe:(value,duration)=>ratePercent(((1+value/100)**(duration/12)-1)*100)+(duration<12?t("setup.12Year",{duration:duration}):t("setup.inThisYear"))});
 
  function read(){
   const state=Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,Array.isArray(v)?JSON.parse($(k).value||"[]"):typeof v==="boolean"?$(k).checked:typeof v==="number"?($(k).value.trim()===""?NaN:parseNumber($(k).value)):$(k).value]));
@@ -63,20 +65,20 @@ export function createForm({document,views,onChange}){
   $("additionalPeriodSettings").hidden=!s.additionalSeparatePeriod;
   $("additionalCostMonths").disabled=!s.additionalSeparatePeriod;
   $("additionalSeparatePeriod").setAttribute("aria-expanded",String(s.additionalSeparatePeriod));
-  $("additionalDialogTitle").textContent=s.pastOwnership?"Actual yearly additional costs":"Estimated yearly additional costs";
+  $("additionalDialogTitle").textContent=s.pastOwnership?t("setup.actualYearlyAdditionalCosts"):t("ui.estimatedYearlyAdditionalCosts");
   if(!yearly&&$("additionalCostsDialog").open)$("additionalCostsDialog").close();
-  $("additionalCostTitle").textContent=s.pastOwnership?"Actual additional costs":"Estimated additional costs";
-  $("additionalAnnualTitle").textContent=s.pastOwnership?"Average annual costs":"Annual allowance";
-  $("additionalCostIntro").textContent=s.pastOwnership?"Repairs and other expenses paid during ownership, outside scheduled maintenance. Use the year-by-year view to approximate their timing; payments are placed at each year end or the earlier cutoff.":"Repairs and other expenses outside scheduled maintenance. Enter amounts not already included elsewhere.";
+  $("additionalCostTitle").textContent=s.pastOwnership?t("setup.actualAdditionalCosts"):t("ui.estimatedAdditionalCosts");
+  $("additionalAnnualTitle").textContent=s.pastOwnership?t("setup.averageAnnualCosts"):t("ui.annualAllowance");
+  $("additionalCostIntro").textContent=s.pastOwnership?t("setup.repairsAndOtherExpensesPaidDuringOwnershipOutside"):t("ui.repairsAndOtherExpensesOutsideScheduledMaintenanceEnter");
   $("additionalModeAnnual").checked=!yearly;$("additionalModeYearly").checked=yearly;
   $("additionalAnnualField").hidden=yearly;$("additionalYearlyFields").hidden=!yearly;$("additionalCostAnnual").disabled=yearly;
   const values=Array.from({length:count},(_,i)=>yearly&&i<raw.additionalCostYears.length?raw.additionalCostYears[i]:raw.additionalCostAnnual);
   additionalEditor.render({months,values,active:yearly&&s.additionalCostsEnabled});
   const total=values.reduce((sum,value,i)=>sum+(Number.isFinite(value)?value*Math.min(12,months-i*12)/12:NaN),0);
-  $("additionalCostSummary").textContent=Number.isFinite(total)?money(total)+" over "+months+" months before VAT recovery. "+(s.additionalSeparatePeriod?"Costs stop after this period or at ownership end, whichever comes first. ":s.matchPeriods?"":"Shorter options use only their own period. ")+(s.leaseAdditionalCosts?"Also applied to operating lease.":"Operating lease excluded."):"Complete the additional cost amounts to compare results.";
+  $("additionalCostSummary").textContent=Number.isFinite(total)?t("setup.overMonthsBeforeVatRecovery",{total:money(total),months:months,description3:s.additionalSeparatePeriod?t("setup.costsStopAfterThisPeriodOrAtOwnership"):s.matchPeriods?"":t("setup.shorterOptionsUseOnlyTheirOwnPeriod"),description4:s.leaseAdditionalCosts?t("setup.alsoAppliedToOperatingLease"):t("setup.operatingLeaseExcluded")}):t("setup.completeTheAdditionalCostAmountsToCompareResults");
   $("additionalDialogSummary").textContent=$("additionalCostSummary").textContent;
-  $("additionalYearlyTotal").textContent=Number.isFinite(total)?"Total: "+money(total)+" · "+num(months)+" months, incl. VAT":"Complete the yearly costs";
-  $("additionalYearlyTotal").title="Before VAT recovery, inflation and opportunity cost. Shorter options use only their own ownership period.";
+  $("additionalYearlyTotal").textContent=Number.isFinite(total)?t("setup.totalMonthsInclVat",{total:money(total),months:num(months)}):t("setup.completeTheYearlyCosts");
+  $("additionalYearlyTotal").title=t("setup.beforeVatRecoveryInflationAndOpportunityCostShorter");
   $("additionalCostSummary").hidden=yearly;
  }
  function historicalPeriod(s){return (s.pastOwnership?s.pastHistoricalMatchPeriod:s.historicalMatchPeriod)?s.months:s.historicalMonths;}
@@ -84,7 +86,7 @@ export function createForm({document,views,onChange}){
   const raw=readSettings(),mode=historicalInflationEntryMode(raw),annual=mode==="annual",yearly=mode==="yearly",main=mode==="main",relative=raw.resaleMode==="relative"&&!(raw.pastOwnership&&raw.pastHistoricalMatchPeriod),months=historicalPeriod(raw);
   $("historicalInflationAnnualMode").checked=annual;$("historicalInflationTotalMode").checked=mode==="total";$("historicalInflationMainMode").checked=main;$("historicalInflationYearlyMode").checked=yearly;
   $("historicalInflationAnnual").disabled=!relative||!annual;$("historicalInflationPct").disabled=!relative||mode!=="total";
-  $("historicalInflationTotalUnit").textContent="% over "+num(months)+" months";$("editHistoricalInflation").hidden=!yearly;
+  $("historicalInflationTotalUnit").textContent=t("setup.overMonths",{months:num(months)});$("editHistoricalInflation").hidden=!yearly;
   const count=Number.isFinite(months)&&months>0?Math.min(100,Math.ceil(months/12)):0;
   const values=Array.from({length:count},(_,i)=>i<raw.historicalInflationYears.length?raw.historicalInflationYears[i]:2.5);
   historicalEditor.render({months,values,active:relative&&yearly});
@@ -99,7 +101,7 @@ export function createForm({document,views,onChange}){
     calculatedInflationFields.delete(key);
    }
   }
-  const note=months>1200?"Use a direct total for periods over 100 years.":Number.isFinite(total)?"Compounded total: "+ratePercent(total)+" over "+num(months)+" months.":"Complete the year rates and comparable age to calculate cumulative inflation.";
+  const note=months>1200?t("setup.useADirectTotalForPeriodsOver100"):Number.isFinite(total)?t("setup.compoundedTotalOverMonths",{total:ratePercent(total),months:num(months)}):t("setup.completeTheYearRatesAndComparableAgeTo");
   $("historicalInflationDialogSummary").textContent=note;
  }
  function updateSelection(s){
@@ -125,8 +127,8 @@ export function createForm({document,views,onChange}){
    $(v.kind+"SeparateRepayment").setAttribute("aria-expanded",String(!s[v.matchLoanTerm]));
    $(v.loanMonths).disabled=!s[v.enabled]||s[v.matchLoanTerm];
    const keep=s[v.months],repay=s[v.loanMonths];
-   const timing=repay<keep?"Repayments stop at month "+repay+"; insurance and running costs continue.":repay>keep?(s.loanEnd==="sell"?"Selling at month "+keep+" pays off the remaining principal. Add any settlement fee to Other loan costs.":"At month "+keep+", remaining debt reduces the retained car value. Later payments and interest are outside this comparison."):"Repayments end when ownership ends.";
-   $(v.kind+"LoanTermNote").textContent=Number.isFinite(keep)&&Number.isFinite(repay)?"Keep for "+keep+" months · repay over "+repay+" months. "+timing+(v.kind==="balloon"&&s.balloonPct>0?" The balloon is due at month "+repay+" if the loan reaches maturity.":""):"Enter ownership and repayment periods in whole months.";
+   const timing=repay<keep?t("setup.repaymentsStopAtMonthInsuranceAndRunningCosts",{repay:repay}):repay>keep?(s.loanEnd==="sell"?t("setup.sellingAtMonthPaysOffTheRemainingPrincipal",{keep:keep}):t("setup.atMonthRemainingDebtReducesTheRetainedCar",{keep:keep})):t("setup.repaymentsEndWhenOwnershipEnds");
+   $(v.kind+"LoanTermNote").textContent=Number.isFinite(keep)&&Number.isFinite(repay)?t("setup.keepForMonthsRepayOverMonths",{keep:keep,repay:repay,timing:timing,description4:v.kind==="balloon"&&s.balloonPct>0?t("setup.theBalloonIsDueAtMonthIfThe",{repay:repay}):""}):t("setup.enterOwnershipAndRepaymentPeriodsInWholeMonths");
   }
   for(const {kind,rate,down} of loanQuotes){
    const paymentMode=$(kind+"InputMode").value==="payment",payment=kind+"MonthlyPayment",enabled=s[kind+"Enabled"];
@@ -138,33 +140,33 @@ export function createForm({document,views,onChange}){
    const balloon=kind==="balloon"?s.price*s.balloonPct/100:0;
    const derived=paymentMode?s[rate]:monthlyPayment(s.price*(1-s[down]/100),balloon,s[rate],s[kind+"LoanMonths"]);
    $(derivedKey).value=Number.isFinite(derived)?formatNumberInput(Number(derived.toFixed(paymentMode?4:2))):"";
-   $(kind+"QuoteNote").textContent=paymentMode?"Interest is calculated from the monthly payment, excluding insurance and fees.":"Monthly payment is calculated from the interest rate."+(kind==="balloon"?" The balloon is additional to the last instalment.":" Excludes insurance and fees.");
+   $(kind+"QuoteNote").textContent=paymentMode?t("setup.interestIsCalculatedFromTheMonthlyPaymentExcluding"):t("setup.monthlyPaymentIsCalculatedFromTheInterestRate",{description1:kind==="balloon"?t("setup.theBalloonIsAdditionalToTheLastInstalment"):t("setup.excludesInsuranceAndFees")});
   }
   $("globalVatFields").hidden=!s.vatEnabled;$("vatSettingsHint").hidden=!s.vatEnabled;
   $("purchaseVatField").hidden=!s.vatEnabled;$("buyoutVatField").hidden=!s.vatEnabled||s.leaseEnd==="return";
   for(const key of ["vatPct","recoveryPct","purchaseVatDelay","purchaseVatCap","purchaseVatEligible","buyoutVatEligible"])$(key).disabled=!s.vatEnabled;
   const pendingNet=$("kintoVatMode").value==="net";
   $("legacyLeaseQuoteNote").hidden=!pendingNet;
-  $("legacyLeaseQuoteNote").textContent=pendingNet?"This saved quote excludes VAT. Enable VAT and enter its rate in the global settings to convert the quote to an inclusive amount.":"";
+  $("legacyLeaseQuoteNote").textContent=pendingNet?t("setup.thisSavedQuoteExcludesVatEnableVatAnd"):"";
   for(const key of ["leaseTaxablePct"]){
    $(key+"Field").hidden=!s.vatEnabled;
    $(key).disabled=!s.vatEnabled||!s.leaseEnabled;
   }
   const relative=s.resaleMode==="relative",past=s.pastOwnership;
-  $("ownershipModeNote").textContent=past?"Replay ownership from its purchase date. Enter costs and finance terms from that period. Inflation-adjusted results use purchase-date money.":"Plan ownership starting today, using current purchase prices and future resale estimates.";
-  $("ownershipPeriodTitle").textContent=past?"Ownership period":"Comparison period";
-  $("purchasePriceTitle").textContent=past?"Price paid at purchase":"Purchase price";
-  $("directResaleTitle").textContent=past?"Sale / retained value at end":"Expected car resale";
-  $("derivedResaleTitle").textContent=past?"Modelled end value":"Estimated future resale";
-  $("annualInflationTitle").textContent="Annual average";
+  $("ownershipModeNote").textContent=past?t("setup.replayOwnershipFromItsPurchaseDateEnterCosts"):t("setup.planOwnershipStartingTodayUsingCurrentPurchasePrices");
+  $("ownershipPeriodTitle").textContent=past?t("setup.ownershipPeriod"):t("ui.comparisonPeriod");
+  $("purchasePriceTitle").textContent=past?t("setup.pricePaidAtPurchase"):t("ui.purchasePrice");
+  $("directResaleTitle").textContent=past?t("setup.saleRetainedValueAtEnd"):t("ui.expectedCarResale");
+  $("derivedResaleTitle").textContent=past?t("setup.modelledEndValue"):t("ui.estimatedFutureResale");
+  $("annualInflationTitle").textContent=t("ui.annualAverage");
   const rawInflation=readSettings(),inflationMode=rawInflation.inflationMode,annual=inflationMode==="annual",total=inflationMode==="total",yearly=inflationMode==="yearly";
   $("ownershipInflationOptions").hidden=false;
   $("inflationModeAnnual").checked=annual;$("inflationModeTotal").checked=total;$("inflationModeYearly").checked=yearly;
   $("inflationRate").hidden=false;$("inflationRate").disabled=!annual;
   $("inflationTotalPct").hidden=false;$("inflationTotalPct").disabled=!total;
   $("editOwnershipInflation").hidden=!yearly;
-  $("inflationEntryUnit").textContent="% p.a.";
-  $("inflationTotalUnit").textContent="% over "+num(s.months)+" months";
+  $("inflationEntryUnit").textContent=t("ui.pA");
+  $("inflationTotalUnit").textContent=t("setup.overMonths",{months:num(s.months)});
   const inflationMonths=rawInflation.months,count=Number.isFinite(inflationMonths)&&inflationMonths>0?Math.min(10,Math.ceil(inflationMonths/12)):0;
   const inflationValues=Array.from({length:count},(_,i)=>i<rawInflation.inflationYears.length?rawInflation.inflationYears[i]:2.5);
   ownershipEditor.render({months:inflationMonths,values:inflationValues,active:yearly});
@@ -179,16 +181,16 @@ export function createForm({document,views,onChange}){
     calculatedInflationFields.delete(key);
    }
   }
-  const inflationSummary=Number.isFinite(cumulative)&&Number.isFinite(annualRate)?"Cumulative: "+ratePercent(cumulative)+" over "+num(inflationMonths)+" months · equivalent average: "+ratePercent(annualRate)+" p.a.":"Complete the inflation inputs and ownership period.";
+  const inflationSummary=Number.isFinite(cumulative)&&Number.isFinite(annualRate)?t("setup.cumulativeOverMonthsEquivalentAveragePA",{cumulative:ratePercent(cumulative),inflationMonths:num(inflationMonths),annualRate:ratePercent(annualRate)}):t("setup.completeTheInflationInputsAndOwnershipPeriod");
   $("ownershipInflationDialogSummary").textContent=inflationSummary;
-  $("help-inflationRate").textContent="Enter an annual compounded average, a cumulative total over the comparison period, or annual rates in the yearly dialog. Annual rates compound rather than add; partial years are prorated using a fractional power. All modes resolve to one equivalent annual rate for money values and different option lengths, not a varying year-by-year purchasing-power path. The selected field is editable and the other is calculated; yearly mode calculates both. Selecting a calculated field promotes its displayed value to the new input. The yearly schedule is preserved. Past ownership uses this same inflation for relative depreciation: matched ages share its total, while a separate comparable age can use this annual equivalent or its own inflation inputs. Direct resale remains unchanged.";
-  $("help-relativeResaleValue").textContent=past?"Modelled value at the ownership end, including VAT. Matching the original price, historical age and inflation reproduces the known used value. The smaller value uses purchasing power at purchase. Different prices or periods are scaled estimates.":"Calculated VAT-inclusive value at the end of the comparison period. The model applies the comparable car’s real depreciation to today’s purchase price, then adds estimated annual inflation. Separate periods get their own projected resale.";
-  $("help-resale").textContent=past?"Actual sale proceeds including VAT, after selling fees, or the retained market value at the ownership end. This reduces ownership cost. Winter tyres are counted separately.":"Your expected selling price including VAT, after selling fees. This reduces ownership cost. If kept, it is estimated retained value. Winter tyres are counted separately.";
-  $("historicalPricesHint").textContent=past?"Use the original price and end value of the historical car. Set Price paid at purchase above to the same original price, with matching age and inflation, to replay that car exactly. By default, its age and inflation come from Period and assumptions. Enable Use a separate period below to enter another comparable age and choose its inflation source. Other purchase prices or individual option periods model a scaled comparison.":"The two prices are initially copied from your purchase and direct resale estimates as starting suggestions. Replace them with a comparable car’s actual original new price and its used resale value today. The purchase price above is the new car’s price today. Enter actual prices on the same VAT basis and use comparable trim, condition and mileage.";
-  $("relativeMethodHint").textContent=past?"A linked comparable period shares the main inflation setting. A separate comparable period can use independent inflation or the main average. Matching the original purchase price, comparable age and inflation reproduces the entered end value. Other periods use a constant compounded depreciation rate; they are estimates, not observed sale prices.":"Different ownership periods use the same compounded annual real depreciation rate. This is a simple extrapolation, not a forecast of market prices. Choose comparable mileage yourself; mileage does not adjust resale automatically. Future nominal resale uses the annual inflation estimate above, even when the results’ today’s-money switches are off.";
-  $("timelineHint").textContent=!relative?"Loan balances follow the repayment schedule. Value dots show the purchase price and entered end value, with no assumed path between them. Choose Relative depreciation for an estimated value curve.":past?"Replay the ownership period from purchase to the end value. Solid and dashed lines show nominal value and purchasing power at purchase. The curve assumes constant compounded depreciation, not measured price history. Values include VAT, before settlement of VAT, sale taxes or remaining debt.":"Historical points belong to the comparable car; the shaded future belongs to the new car bought today. The dashed historical line only connects your two inputs, it is not a measured price history. Future solid and dashed lines show nominal resale and purchasing power today. Coloured vertical lines mark each selected option’s end month. Values include VAT, before VAT settlement, sale taxes or remaining debt. Both money bases are always shown; investment returns do not change the car’s market value.";
-  $("help-resaleMode").textContent=past?"Direct resale uses the known sale or retained value unchanged. Relative depreciation replays the historical value change; matching the original price, age and inflation reproduces the known end value. Other prices or periods remain modelled comparisons. Inactive inputs are preserved.":"Direct mode uses your expected future selling price as entered. Relative depreciation estimates future resale from a comparable car’s historical prices, age and inflation. Switching methods preserves inactive inputs.";
-  $("heatmapHint").textContent=past?"What if inflation or the alternative investment return had differed? Known or modelled end values, quotes and running costs stay fixed. This is sensitivity analysis, not a reconstruction of actual inflation. Compare per year divides each option’s cost by its own ownership years; switch it off to compare full-term costs. With opportunity cost off, investment return has no effect. Cells are sampled scenarios, not exact break-even boundaries. Hover, tap or use arrow keys to compare all selected options.":"Explore future inflation against alternative investment returns. Historical prices, finance quotes and running costs stay fixed. Relative mode recalculates future nominal resale. Independently entered historical inflation stays fixed; Use main annual average follows the tested inflation rate. Direct resale values stay fixed. Compare per year divides each option’s cost by its own ownership years; switch it off to compare full-term costs. With opportunity cost off, investment return has no effect. Cells are sampled scenarios, not exact break-even boundaries. Hover, tap or use arrow keys to compare all selected options.";
+  $("help-inflationRate").textContent=t("setup.enterAnAnnualCompoundedAverageACumulativeTotal");
+  $("help-relativeResaleValue").textContent=past?t("setup.modelledValueAtTheOwnershipEndIncludingVat"):t("setup.calculatedVatInclusiveValueAtTheEndOf");
+  $("help-resale").textContent=past?t("setup.actualSaleProceedsIncludingVatAfterSellingFees"):t("setup.yourExpectedSellingPriceIncludingVatAfterSelling");
+  $("historicalPricesHint").textContent=past?t("setup.useTheOriginalPriceAndEndValueOf"):t("ui.theTwoPricesAreInitiallyCopiedFromYour");
+  $("relativeMethodHint").textContent=past?t("setup.aLinkedComparablePeriodSharesTheMainInflation"):t("ui.differentOwnershipPeriodsUseTheSameCompoundedAnnual");
+  $("timelineHint").textContent=!relative?t("setup.loanBalancesFollowTheRepaymentScheduleValueDots"):past?t("setup.replayTheOwnershipPeriodFromPurchaseToThe"):t("ui.historicalPointsBelongToTheComparableCarThe");
+  $("help-resaleMode").textContent=past?t("setup.directResaleUsesTheKnownSaleOrRetained"):t("setup.directModeUsesYourExpectedFutureSellingPrice");
+  $("heatmapHint").textContent=past?t("setup.whatIfInflationOrTheAlternativeInvestmentReturn"):t("ui.exploreFutureInflationAgainstAlternativeInvestmentReturnsHistorical");
   $("resaleMode-direct").checked=!relative;$("resaleMode-relative").checked=relative;
   $("directResaleField").hidden=relative;$("resale").disabled=relative;
   $("relativeResaleSettings").hidden=!relative;$("relativeResaleOutput").hidden=!relative;$("relativeResaleExplanation").hidden=!relative;
@@ -201,45 +203,44 @@ export function createForm({document,views,onChange}){
   $("historicalMonths").disabled=!relative||historicalMatched;
   $("historicalInflationSection").hidden=past&&historicalMatched;
   $("historicalInflationLinkedNote").hidden=past&&historicalMatched||historicalInflationEntryMode(readSettings())!=="main";
-  $("historicalInflationLinkedNote").textContent="Assumes the same average inflation across both periods. Cumulative inflation is calculated over the comparable car’s age; it is an estimate, not separate historical data.";
+  $("historicalInflationLinkedNote").textContent=t("setup.assumesTheSameAverageInflationAcrossBothPeriods");
   for(const v of variants)$(v.resale).disabled=!s[v.enabled]||s[v.matchPeriod]||relative;
   if(relative){
    // Historical purchasing-power conversions use cumulative inflation, independently of future projections.
    const factor=Number.isFinite(s.historicalInflationPct)&&s.historicalInflationPct>=0?1+s.historicalInflationPct/100:NaN;
    const newPriceToday=s.historicalNewPrice*factor,usedPriceThen=s.historicalUsedPrice/factor;
-   $("historicalNewPriceToday").textContent=Number.isFinite(newPriceToday)?"In today’s money: "+money(newPriceToday)+".":"";
-   $("historicalUsedPriceThen").textContent=Number.isFinite(usedPriceThen)?"In purchase-time money: "+money(usedPriceThen)+".":"";
+   $("historicalNewPriceToday").textContent=Number.isFinite(newPriceToday)?t("setup.inTodaySMoney",{newPriceToday:money(newPriceToday)}):"";
+   $("historicalUsedPriceThen").textContent=Number.isFinite(usedPriceThen)?t("setup.inPurchaseTimeMoney",{usedPriceThen:money(usedPriceThen)}):"";
    const estimate=relativeResaleEstimate(s);
    const valid=estimate&&Number.isFinite(estimate.nominalValue);
-   $("relativeResaleValue").textContent=valid?money(estimate.nominalValue):"Complete the historical inputs";
-   $("relativeResaleToday").textContent=valid?money(estimate.todayValue)+(past?" in purchase-date money · ":" in today’s money · ")+s.months+" months":"";
-   const previews=variants.filter(v=>s[v.enabled]&&(v.kind!=="lease"||s.leaseEnd!=="return")).map(v=>v.name+": "+money(s[v.resale])+" at "+s[v.months]+" months");
-   $("relativeResaleExplanation").textContent=valid?"Original price in today’s money: "+money(estimate.historicalPriceToday)+". Real value retained after "+s.historicalMonths+" months: "+ratePercent(estimate.retainedShare*100)+". Annual real value retained: "+ratePercent(estimate.annualRetention*100)+(past?". Annualised historical inflation: ":". Future inflation: ")+ratePercent(past?historicalInflationRate(s):s.inflationRate)+" p.a. "+(s.matchPeriods?"":previews.join(" · ")):"Enter the historical new price, today’s used value, age and cumulative inflation to calculate resale. No historical market prices are supplied.";
+   $("relativeResaleValue").textContent=valid?money(estimate.nominalValue):t("setup.completeTheHistoricalInputs");
+   $("relativeResaleToday").textContent=valid?t("setup.months",{value1:money(estimate.todayValue)+(past?t("setup.inPurchaseDateMoney"):t("setup.inTodaySMoney2"))+s.months}):"";
+   const previews=variants.filter(v=>s[v.enabled]&&(v.kind!=="lease"||s.leaseEnd!=="return")).map(v=>t("setup.atMonths",{name:v.name,value2:money(s[v.resale]),value3:s[v.months]}));
+   $("relativeResaleExplanation").textContent=valid?t("setup.originalPriceInTodaySMoneyRealValue",{historicalPriceToday:money(estimate.historicalPriceToday),historicalMonths:s.historicalMonths,value3:ratePercent(estimate.retainedShare*100),value4:ratePercent(estimate.annualRetention*100),description5:past?t("setup.historicalInflationSuffix"):t("setup.futureInflationSuffix"),description6:ratePercent(past?historicalInflationRate(s):s.inflationRate),description7:s.matchPeriods?"":previews.join(" · ")}):t("setup.enterTheHistoricalNewPriceTodaySUsed");
   }
   updateHistoricalInflation(s);
-  applyTimeLabels($("inputs"));
   $("months").disabled=false;
   const pendingReturn=s.opportunityRateBasis==="real";
   $("opportunityRate").disabled=pendingReturn;
-  $("opportunityRateUnit").textContent=pendingReturn?"Saved after-tax, after-inflation rate":"% p.a. after tax, before inflation";
+  $("opportunityRateUnit").textContent=pendingReturn?t("setup.savedAfterTaxAfterInflationRate"):t("ui.pAAfterTaxBeforeInflation");
   const realReturn=Number.isFinite(s.opportunityRate)&&Number.isFinite(s.inflationRate)&&s.opportunityRate>=0&&s.inflationRate>=0?(pendingReturn?s.opportunityRate:((1+s.opportunityRate/100)/(1+s.inflationRate/100)-1)*100):NaN;
-  $("realReturnDescription").textContent=Number.isFinite(realReturn)?"Effective return after inflation: "+ratePercent(realReturn)+" p.a. after tax.":"Enter return and inflation to see the effective return after inflation.";
+  $("realReturnDescription").textContent=Number.isFinite(realReturn)?t("setup.effectiveReturnAfterInflationPAAfterTax",{realReturn:ratePercent(realReturn)}):t("setup.enterReturnAndInflationToSeeTheEffective");
   $("returnMigration").hidden=!pendingReturn;
-  $("returnMigration").textContent=pendingReturn?"This saved return is after inflation. Finish entering the inflation estimate to convert it to a before-inflation return without changing its meaning.":"";
+  $("returnMigration").textContent=pendingReturn?t("setup.thisSavedReturnIsAfterInflationFinishEntering"):"";
   $("incomeTaxSettings").hidden=!s.incomeTaxEnabled;
   $("incomeTaxEnabled").setAttribute("aria-expanded",String(s.incomeTaxEnabled));
   $("incomeTaxRate").disabled=!s.incomeTaxEnabled;
   $("matchSaleTaxRate").disabled=!s.incomeTaxEnabled;
   $("saleTaxRateField").hidden=s.matchSaleTaxRate;
   $("saleTaxRate").disabled=!s.incomeTaxEnabled||s.matchSaleTaxRate;
-  $("saleTaxRateNote").textContent="Rate on taxable car-sale income: "+ratePercent(s.saleTaxRate)+". VAT is calculated separately.";
+  $("saleTaxRateNote").textContent=t("setup.rateOnTaxableCarSaleIncomeVatIs",{saleTaxRate:ratePercent(s.saleTaxRate)});
   for(const v of variants){
    const sold=v.kind==="lease"?s.leaseEnd==="buySell":s.loanEnd==="sell";
    $("tax-"+v.kind).hidden=!s.incomeTaxEnabled||!s[v.enabled];
    $(v.deductions).disabled=!s.incomeTaxEnabled||!s[v.enabled];
    $(v.taxValue).disabled=!s.incomeTaxEnabled||!s[v.enabled]||!sold;
    $(v.kind+"TaxValueField").hidden=!sold;
-   $(v.kind+"TaxTerm").textContent=s[v.months]+" months"+(sold?" · car sold at the end":" · no car-sale tax in this term");
+   $(v.kind+"TaxTerm").textContent=t("setup.months2",{period:t("common.months",{count:s[v.months]}),description2:sold?t("setup.carSoldAtTheEnd"):t("setup.noCarSaleTaxInThisTerm")});
   }
  }
 
@@ -263,7 +264,7 @@ export function createForm({document,views,onChange}){
    const label=document.querySelector('label[for="'+target+'"] .field-title');
    filled.push((label?.textContent||target)+": "+value);
   }
-  if(filled.length)$("prefillStatus").textContent="Suggested "+filled.join("; ")+". You can edit these values.";
+  if(filled.length)$("prefillStatus").textContent=t("setup.suggestedYouCanEditTheseValues",{value1:filled.join("; ")});
  }
 
  function handleInput(event){

@@ -48,9 +48,9 @@ export async function bundleModules(entryFile){
 }
 
 /** Build the shareable file from source; returned HTML also allows deterministic artifact checks. */
-export async function buildStandalone({src=sourceDirectory,output=resolve(projectDirectory,"car-financing-calculator.html"),releaseNotes=resolve(projectDirectory,"RELEASE_NOTES.md"),licenseFile=resolve(projectDirectory,"../LICENSE"),noticeFile=resolve(projectDirectory,"../NOTICE")}={}){
- const [template,css,bundle,notes,license,notice]=await Promise.all([
-  readFile(resolve(src,"index.html"),"utf8"),readFile(resolve(src,"style.css"),"utf8"),bundleModules(resolve(src,"app.mjs")),readFile(releaseNotes,"utf8"),readFile(licenseFile,"utf8"),readFile(noticeFile,"utf8")
+export async function buildStandalone({src=sourceDirectory,output=resolve(projectDirectory,"car-financing-calculator.html"),releaseNotes=resolve(projectDirectory,"RELEASE_NOTES.md"),licenseFile=resolve(projectDirectory,"../LICENSE"),noticeFile=resolve(projectDirectory,"../NOTICE"),czechLicenseFile=resolve(projectDirectory,"docs/license.cs.md")}={}){
+ const [template,css,bundle,notes,license,notice,czechLicense,thirdParty]=await Promise.all([
+  readFile(resolve(src,"index.html"),"utf8"),readFile(resolve(src,"style.css"),"utf8"),bundleModules(resolve(src,"app.mjs")),readFile(releaseNotes,"utf8"),readFile(licenseFile,"utf8"),readFile(noticeFile,"utf8"),readFile(czechLicenseFile,"utf8"),readFile(resolve(projectDirectory,"src/vendor/i18next.LICENSE"),"utf8")
  ]);
  // The ledger is the single source of release metadata; rebuilding never invents a new date.
  const heading=notes.match(/^## (.+)$/m)?.[1];
@@ -58,7 +58,7 @@ export async function buildStandalone({src=sourceDirectory,output=resolve(projec
  if(!release||release[1].slice(0,10).replaceAll(".","-")!==release[2]||!Number.isFinite(Date.parse(release[2]))||new Date(release[2]).toISOString().slice(0,10)!==release[2])throw new Error("Newest release heading must be YYYY.MM.DD.N (YYYY-MM-DD) with a matching valid date.");
  // License text travels with the single-file distribution; escape it as text, never executable markup.
  const escapeText=value=>value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
- const licensedTemplate=template.replaceAll("{{LICENSE_TEXT}}",()=>escapeText(license)).replaceAll("{{LICENSE_NOTICE}}",()=>escapeText(notice));
+ const licensedTemplate=template.replaceAll("{{LICENSE_TEXT}}",()=>escapeText(license)).replaceAll("{{LICENSE_NOTICE}}",()=>escapeText(notice)).replaceAll("{{LICENSE_CS}}",()=>escapeText(czechLicense)).replaceAll("{{THIRD_PARTY_NOTICES}}",()=>escapeText("i18next 26.4.2\n\n"+thirdParty));
  const releasedTemplate=licensedTemplate.replaceAll("{{RELEASE_VERSION}}",release[1]);
  const stylesheet='<link rel="stylesheet" href="./style.css">',entry='<script type="module" src="./app.mjs"></script>';
  if(!template.includes(stylesheet)||!template.includes(entry))throw new Error("The source template is missing a stylesheet or script entry point.");

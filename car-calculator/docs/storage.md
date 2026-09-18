@@ -132,3 +132,11 @@ For older scenarios without this marker, an active past-relative scenario promot
 ### Additional-cost enable switch
 
 `additionalCostsEnabled` defaults to `true`, including in migrated scenarios without the field, so existing budgets keep their effect. Turning it off retains annual amounts, yearly entries, entry mode, the custom period and lease inclusion in browser storage and JSON. Effective calculations use a zero budget and ignore inactive blank drafts. Storage still validates the types and ranges of saved fields.
+
+## Language and scenario currency
+
+`createLocalization` owns the browser-only `car-financing-calculator.language.v1` preference (`en` or `cs`), defaulting to English. Language is excluded from scenario JSON.
+
+`inputs.currency` belongs to each saved scenario and both v1/v2 JSON exports. Supported codes are `CZK`, `EUR`, `USD`, `GBP`, `CHF` and `PLN`. Missing currency migrates to CZK; unsupported explicit values are rejected before saving, even in incomplete drafts. The immutable example always uses CZK. Changing its currency forks a saved copy; duplicate copies the currency, and switching/importing/restoring scenarios updates the selector beside the scenario name and all displayed symbols. Reset and Clear all keep the current scenario’s currency. Numeric amounts remain unchanged.
+
+The former global `car-financing-calculator.currency.v1` preference is ignored and left untouched; it cannot relabel the example or currency-less legacy scenarios. Language storage failures permit session-only language changes. Currency uses the existing scenario autosave/export/recovery behavior. No envelope-version change is needed for this additive field; older calculator releases may reject newer exports with the currency field.

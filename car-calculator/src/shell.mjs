@@ -1,12 +1,16 @@
-import {variants} from "./model.mjs";
+import {createTranslator} from "./i18n.mjs";
+import {variants as modelVariants} from "./model.mjs";
 
 /** Own theme, collapsible cards and tab navigation. */
-export function createShell({document,storage,onNavigate}){
+export function createShell({i18n=createTranslator(),document,storage,onNavigate}){
+ const variants=i18n.variants(modelVariants);
+ const {t}=i18n;
+ const refreshers=[];
  const $=id=>document.getElementById(id);
  function updateThemeButton(){
   const dark=document.documentElement.dataset.theme==="dark";
   $("themeToggle").setAttribute("aria-pressed",String(dark));
-  $("themeToggle").textContent=dark?"Dark mode: on":"Dark mode: off";
+  $("themeToggle").textContent=dark?t("shell.darkModeOn"):t("ui.darkModeOff");
  }
 
  const CARD_STATE_KEY="car-financing-calculator.cards.v1";
@@ -17,18 +21,18 @@ export function createShell({document,storage,onNavigate}){
   function remember(key,expanded){
    states[key]=expanded;
    try{storage.setItem(CARD_STATE_KEY,JSON.stringify(states));}
-   catch{$("storageStatus").textContent="Card state applies for this session. Browser storage is unavailable.";}
+   catch{i18n.setMessage($("storageStatus"),()=>t("shell.cardStateAppliesForThisSessionBrowserStorage"));}
   }
   for(const card of document.querySelectorAll("section.panel,section.total,section.verdict,section.scenario-toolbar")){
    const original=card.querySelector(":scope > .section-title")||card.querySelector(":scope > h2")||card.querySelector(":scope > .eyebrow");
-   const title=card.id==="verdict"?"Overall result":card.classList.contains("scenario-toolbar")?"Saved scenarios":
-    original?.querySelector("h2")?.firstChild.textContent.trim()||original?.firstChild.textContent.trim()||"Card";
+   const title=card.id==="verdict"?t("shell.overallResult"):card.classList.contains("scenario-toolbar")?t("help.savedScenarios"):
+    original?.querySelector("h2")?.firstChild.textContent.trim()||original?.firstChild.textContent.trim()||t("shell.card");
    const originalOptionKey=card.classList.contains("option-panel")?variants.find(v=>v.kind===card.dataset.option)?.fields[0]:null;
    const key=card.dataset.cardKey||card.id||originalOptionKey||card.querySelector("input[id]:not([data-opportunity-view]),select[id],tbody[id]")?.id||(card.dataset.option?"total-"+card.dataset.option:title.toLowerCase().replace(/[^a-z0-9]+/g,"-"));
    const header=document.createElement("div");header.className="card-heading";
    const heading=card.id==="verdict"||card.classList.contains("scenario-toolbar")?null:original;
    if(heading)header.appendChild(heading);
-   else{const label=document.createElement("h2");label.textContent=title;header.appendChild(label);}
+   else{const label=document.createElement("h2");label.setAttribute("data-i18n",card.id==="verdict"?"shell.overallResult":"help.savedScenarios");label.textContent=title;header.appendChild(label);}
    const body=document.createElement("div");body.className="card-body";body.id="card-body-"+key;
    while(card.firstChild)body.appendChild(card.firstChild);
    const button=document.createElement("button");button.type="button";button.className="card-toggle";
@@ -36,9 +40,10 @@ export function createShell({document,storage,onNavigate}){
    card.append(header,body);card.classList.add("collapsible-card");card.dataset.card=key;
    function expand(open){
     body.hidden=!open;card.dataset.collapsed=String(!open);button.setAttribute("aria-expanded",String(open));
-    button.textContent=open?"−":"+";button.setAttribute("aria-label",(open?"Collapse ":"Expand ")+title);
+    button.textContent=open?"−":"+";button.setAttribute("aria-label",t(open?"shell.collapse":"shell.expand",{title:header.querySelector("h2")?.textContent||heading?.textContent||title}));
     states[key]=open;
    }
+   refreshers.push(()=>expand(!body.hidden));
    expand(typeof saved[key]==="boolean"?saved[key]:true);
    button.addEventListener("click",()=>{expand(body.hidden);remember(key,!body.hidden);});
   }
@@ -84,8 +89,8 @@ export function createShell({document,storage,onNavigate}){
   $("themeToggle").addEventListener("click",()=>{
    const theme=document.documentElement.dataset.theme==="dark"?"light":"dark";
    document.documentElement.dataset.theme=theme;updateThemeButton();
-   try{storage.setItem("car-financing-calculator.theme",theme);$("themeToggle").title="Theme choice saved in this browser.";}
-   catch{$("themeToggle").title="Theme applies for this session. Browser storage is unavailable.";}
+   try{storage.setItem("car-financing-calculator.theme",theme);$("themeToggle").title=t("shell.themeChoiceSavedInThisBrowser");}
+   catch{$("themeToggle").title=t("shell.themeAppliesForThisSessionBrowserStorageIs");}
   });
   // Escape dismisses a keyboard-focused explanation without changing any inputs.
   document.addEventListener("keydown",event=>{
@@ -97,5 +102,6 @@ export function createShell({document,storage,onNavigate}){
    license.querySelector("summary").focus({preventScroll:true});
   });
  }
- return {initialize,selectTab};
+ function refresh(){updateThemeButton();for(const render of refreshers)render();}
+ return {initialize,selectTab,refresh};
 }
