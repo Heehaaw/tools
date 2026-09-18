@@ -419,7 +419,7 @@ input.numeric-input{font-weight:600;font-size:17px;font-variant-numeric:tabular-
 
 /* A shared yearly cost schedule stays compact, with internal scrolling on narrow screens. */
 .additional-cost-settings{border-top:1px solid var(--line);margin-top:20px;padding-top:18px;min-width:0}
-.additional-cost-settings>h3{font-size:17px;line-height:1.35;margin:0 0 10px}
+.additional-cost-settings>h3{position:relative;display:flex;align-items:center;gap:8px;font-size:17px;line-height:1.35;margin:0 0 10px;padding-right:32px}.section-toggle,.checks .section-toggle{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;line-height:1.35;cursor:pointer}.section-toggle>span,.checks .section-toggle>span{font:inherit;color:var(--ink);margin:0}.additional-cost-fields{min-width:0;margin:0;padding:0;border:0}
 .additional-cost-controls{max-width:980px;margin-bottom:20px}
 .additional-cost-entry{min-width:0}
 .additional-mode{grid-template-rows:auto auto;grid-row:auto;row-gap:6px}

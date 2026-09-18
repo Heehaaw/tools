@@ -19,7 +19,7 @@ export const defaults = {
  cashInsurance:3700, cashExtra:0, vatEnabled:true, recoveryPct:100, purchaseVatEligible:true, purchaseVatDelay:3, leaseVatDelay:0, purchaseVatCap:420000, opportunityRate:8.5, loanEnd:"sell", leaseEnd:"return", leaseBuyout:0, buyoutVatEligible:true, leaseTaxablePct:100, carName:"Toyota RAV4 Executive PHEV AWD", normalDownPct:20, normalRate:5.99, normalInsurance:3700, normalExtra:0, months:36, annualKm:20000, price:1334000, downPct:20, balloonPct:46, rate:5.99, easyInsurance:3700,
  resale:1000000, easyExtra:0, kintoMonthly:16788, kintoVatMode:"gross", vatPct:21, kintoInitial:0,
  kintoInsuranceIncluded:true, kintoInsurance:3700, kintoMaintenance:false, kintoTyres:true, kintoExtra:0,
- additionalSeparatePeriod:false, additionalCostMonths:36, additionalCostMode:"annual", additionalCostAnnual:0, additionalCostYears:[], leaseAdditionalCosts:false,
+ additionalCostsEnabled:true, additionalSeparatePeriod:false, additionalCostMonths:36, additionalCostMode:"annual", additionalCostAnnual:0, additionalCostYears:[], leaseAdditionalCosts:false,
  serviceCost:12000, serviceKm:15000, serviceMonths:12, tyrePurchase:22000, tyreResale:3000,
  tyreVisits:6, tyreVisitCost:1880, tyreStorage:1100
 };
@@ -186,6 +186,8 @@ export function effectiveInputs(inputs){
  else s.balloonMonthlyPayment=defaults.balloonMonthlyPayment;
  if(s.normalEnabled&&s.normalInputMode==="payment")s.normalRate=annualRateFromPayment(s.price*(1-s.normalDownPct/100),0,s.normalMonthlyPayment,s.normalLoanMonths);
  else s.normalMonthlyPayment=defaults.normalMonthlyPayment;
+ // Disabled budgets affect no cash flows; raw inputs remain available in saved scenarios.
+ if(!s.additionalCostsEnabled){s.additionalCostMode="annual";s.additionalCostAnnual=0;s.additionalCostYears=[];s.additionalSeparatePeriod=false;}
  if(!s.additionalSeparatePeriod)s.additionalCostMonths=defaults.additionalCostMonths;
  if(s.additionalCostMode==="yearly"){
   const years=Array.isArray(s.additionalCostYears)?s.additionalCostYears:[];
@@ -266,7 +268,11 @@ function validateAdditionalCostState(s,{allowDrafts=false}={}){
 }
 
 /** Validate additional-cost storage or the complete active calculation horizon. */
-export function validateAdditionalCosts(inputs,options={}){validateAdditionalCostState(effectiveInputs(inputs),options);}
+export function validateAdditionalCosts(inputs,options={}){
+ // Storage still checks the shape of disabled budgets, including their preserved blank drafts.
+ const state=options.allowDrafts&&inputs.additionalCostsEnabled===false?migrateInputs(inputs):effectiveInputs(inputs);
+ validateAdditionalCostState(state,options);
+}
 
 export function validate(s){
  s=effectiveInputs(s);
@@ -409,7 +415,7 @@ export function calculate(s,valuation={}){
   let additionalCosts=0;
   // A separate cost window caps expense dates without shortening ownership or later opportunity cost.
   const additionalMonths=s.additionalSeparatePeriod?Math.min(n,s.additionalCostMonths):n;
-  if(!isLease||s.leaseAdditionalCosts)for(let start=0;start<additionalMonths;start+=12){
+  if(s.additionalCostsEnabled&&(!isLease||s.leaseAdditionalCosts))for(let start=0;start<additionalMonths;start+=12){
    const period=Math.min(12,additionalMonths-start),index=start/12;
    const annual=s.additionalCostMode==="annual"?s.additionalCostAnnual:Object.hasOwn(s.additionalCostYears,index)?s.additionalCostYears[index]:s.additionalCostAnnual;
    const amount=annual*period/12;additionalCosts+=amount;

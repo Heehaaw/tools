@@ -49,6 +49,8 @@ Income tax and contribution effects are optional manual estimates, not a Czech t
 
 The additional-cost controls are in **Maintenance and tyres**. They cover repairs and similar expenses outside scheduled maintenance, tyres and the existing per-option **Other costs**. They default to zero, so older and untouched scenarios produce the same results. The cost-breakdown row stays visible at zero, labelled Estimated additional costs or Actual additional costs in Past ownership. The budget applies to balloon and standard loans and outright purchase. Enable **Apply these costs to operating lease too** when they are not included in its invoices; this choice is independent of the lease maintenance setting.
 
+The checkbox beside **Estimated additional costs** or **Actual additional costs** enables the entire budget and hides its settings when off. Disabled budgets create no additional-cost expenses, VAT deductions or opportunity-cost effects. Their result row remains visible at zero. Stored amounts and periods are restored when enabled again. Manually entered income-tax deduction budgets remain unchanged.
+
 **Use a separate period** limits additional costs to the first `additionalCostMonths` months (1–120). Off preserves the existing schedule through each option’s ownership period. On uses the earlier of that cutoff and the option’s end, prorating and charging the final partial year at that date. VAT follows the expense date; opportunity cost still runs to ownership end. Hidden custom months and unused yearly entries remain saved.
 
 Choose one of two schedules:

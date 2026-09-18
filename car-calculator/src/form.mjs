@@ -57,6 +57,8 @@ export function createForm({document,views,onChange}){
   return Number.isFinite(months)?Math.max(1,Math.min(120,months)):s.months||12;
  }
  function updateAdditionalCosts(s){
+  $("additionalCostFields").hidden=!s.additionalCostsEnabled;$("additionalCostFields").disabled=!s.additionalCostsEnabled;
+  $("additionalCostsEnabled").setAttribute("aria-expanded",String(s.additionalCostsEnabled));
   const yearly=$("additionalCostMode").value==="yearly",raw=readSettings(),months=additionalPeriod(s),count=Math.ceil(months/12);
   $("additionalPeriodSettings").hidden=!s.additionalSeparatePeriod;
   $("additionalCostMonths").disabled=!s.additionalSeparatePeriod;
@@ -69,7 +71,7 @@ export function createForm({document,views,onChange}){
   $("additionalModeAnnual").checked=!yearly;$("additionalModeYearly").checked=yearly;
   $("additionalAnnualField").hidden=yearly;$("additionalYearlyFields").hidden=!yearly;$("additionalCostAnnual").disabled=yearly;
   const values=Array.from({length:count},(_,i)=>yearly&&i<raw.additionalCostYears.length?raw.additionalCostYears[i]:raw.additionalCostAnnual);
-  additionalEditor.render({months,values,active:yearly});
+  additionalEditor.render({months,values,active:yearly&&s.additionalCostsEnabled});
   const total=values.reduce((sum,value,i)=>sum+(Number.isFinite(value)?value*Math.min(12,months-i*12)/12:NaN),0);
   $("additionalCostSummary").textContent=Number.isFinite(total)?money(total)+" over "+months+" months before VAT recovery. "+(s.additionalSeparatePeriod?"Costs stop after this period or at ownership end, whichever comes first. ":s.matchPeriods?"":"Shorter options use only their own period. ")+(s.leaseAdditionalCosts?"Also applied to operating lease.":"Operating lease excluded."):"Complete the additional cost amounts to compare results.";
   $("additionalDialogSummary").textContent=$("additionalCostSummary").textContent;

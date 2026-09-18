@@ -244,3 +244,51 @@ test('additional-cost period controls preserve custom months and inactive yearly
  const draft={...restored,additionalCostMonths:null};
  assert.equal(decodeSettings(encodeSettings(draft)).additionalCostMonths,null);
 });
+
+test('additional-cost switch preserves old budgets and excludes disabled expenses and timing effects',()=>{
+ const budget={...defaults,additionalCostMode:'yearly',additionalCostAnnual:15000,additionalCostYears:[12100,24200,36300],additionalSeparatePeriod:true,additionalCostMonths:30,leaseAdditionalCosts:true};
+ const legacy={...budget};delete legacy.additionalCostsEnabled;
+ const restored=decodeSettings(envelope(legacy));
+ assert.equal(restored.additionalCostsEnabled,true);
+ assert.ok(calculate(restored).balloonLoan.additionalCosts>0);
+ const disabled={...budget,additionalCostsEnabled:false};
+ assert.deepEqual(decodeSettings(encodeSettings(disabled)),disabled);
+ for(const opportunity of [false,true])for(const todayMoney of [false,true]){
+  const actual=calculate(disabled,{opportunity,todayMoney});
+  const zero=calculate({...budget,additionalCostMode:'annual',additionalCostAnnual:0},{opportunity,todayMoney});
+  for(const v of variants){
+   assert.equal(actual[v.key].additionalCosts,0);
+   assert.equal(actual[v.key].opportunityBreakdown.additional,0);
+   assert.equal(actual[v.key].adjusted,zero[v.key].adjusted);
+   assert.ok(!actual[v.key].events.some(event=>event.category==='additional'));
+  }
+ }
+ const draft={...disabled,additionalCostAnnual:null,additionalCostMonths:null,additionalCostYears:[null,0,300]};
+ assert.deepEqual(decodeSettings(encodeSettings(draft)),draft);
+ assert.doesNotThrow(()=>calculate(draft));
+ assert.throws(()=>calculate({...draft,additionalCostsEnabled:true}));
+ assert.throws(()=>validateSettings({...disabled,additionalCostYears:['bad']}));
+});
+
+test('additional-cost controls hide without losing entries and the result row remains at zero',()=>{
+ const app=uiContext.__testApp,toggle=uiElements.additionalCostsEnabled;
+ toggle.id='additionalCostsEnabled';toggle.type='checkbox';
+ const budget={...defaults,pastOwnership:true,additionalCostMode:'yearly',additionalCostAnnual:15000,additionalCostYears:[10000,20000,30000],additionalSeparatePeriod:true,additionalCostMonths:30,leaseAdditionalCosts:true};
+ app.form.write(budget);app.update();
+ uiElements.editAdditionalYears.listeners.click();assert.equal(uiElements.additionalCostsDialog.open,true);
+ toggle.checked=false;app.form.handleInput({target:toggle,type:'change'});
+ assert.equal(uiElements.additionalCostFields.hidden,true);
+ assert.equal(uiElements.additionalCostFields.disabled,true);
+ assert.equal(uiElements.additionalCostsDialog.open,false);
+ assert.equal(uiElements.editAdditionalYears.disabled,true);
+ assert.equal(uiElements.error.hidden,true);
+ const row=uiElements.costRows.innerHTML.match(/<th scope="row">Actual additional costs<\/th>(.*?)<\/tr>/)[1];
+ assert.equal([...row.matchAll(/data-full-term="0"/g)].length,4);
+ assert.deepEqual(app.form.readSettings(),{...budget,additionalCostsEnabled:false});
+ toggle.checked=true;app.form.handleInput({target:toggle,type:'change'});
+ assert.equal(uiElements.additionalCostFields.hidden,false);
+ assert.equal(uiElements.additionalCostFields.disabled,false);
+ assert.equal(uiElements.editAdditionalYears.disabled,false);
+ assert.deepEqual(app.form.readSettings(),budget);
+ assert.ok(calculate(app.form.read()).balloonLoan.additionalCosts>0);
+});

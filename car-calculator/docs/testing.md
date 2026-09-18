@@ -17,7 +17,7 @@ Use the focused entry points while iterating:
 | --- | --- |
 | `node tests/build.test.mjs` | Deterministic artifact parity, self-contained CSS/JS, isolated module closures, aliases, dependency order, cycles, missing exports, external imports and raw closing-tag escaping |
 | `node tests/components.test.mjs` | Browserless module imports, independent view/scenario factory state, storage-failure recovery and idempotent app initialisation |
-| `node tests/additional-costs.test.mjs` | Additional-cost persistence validation, draft round trips, array isolation, form modes, yearly seeding, separate cost-period cutoffs, dated VAT/opportunity effects and partial-year presentation |
+| `node tests/additional-costs.test.mjs` | Additional-cost persistence validation, draft round trips, array isolation, form modes, yearly seeding, enable/disable budget preservation, separate cost-period cutoffs, dated VAT/opportunity effects and partial-year presentation |
 | `node tests/historical-inflation.test.mjs` | Historical-inflation migration, linked annual/total fields, partial-year equivalence, draft validation and yearly schedule persistence |
 | `node tests/annual-views.test.mjs` | Independent default-on annual preferences, storage, unequal-term component reconciliation, full-term tooltips, matching rates/resale and graph scales |
 | `node tests/model.test.mjs` | Pure financial calculations and model invariants without a DOM |
