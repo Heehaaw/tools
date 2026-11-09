@@ -140,3 +140,9 @@ For older scenarios without this marker, an active past-relative scenario promot
 `inputs.currency` belongs to each saved scenario and both v1/v2 JSON exports. Supported codes are `CZK`, `EUR`, `USD`, `GBP`, `CHF` and `PLN`. Missing currency migrates to CZK; unsupported explicit values are rejected before saving, even in incomplete drafts. The immutable example always uses CZK. Changing its currency forks a saved copy; duplicate copies the currency, and switching/importing/restoring scenarios updates the selector beside the scenario name and all displayed symbols. Reset and Clear all keep the current scenario’s currency. Numeric amounts remain unchanged.
 
 The former global `car-financing-calculator.currency.v1` preference is ignored and left untouched; it cannot relabel the example or currency-less legacy scenarios. Language storage failures permit session-only language changes. Currency uses the existing scenario autosave/export/recovery behavior. No envelope-version change is needed for this additive field; older calculator releases may reject newer exports with the currency field.
+
+## Per-option discounts
+
+`balloonDiscountEnabled`, `normalDiscountEnabled`, `leaseDiscountEnabled` and `cashDiscountEnabled` default to false. Their corresponding `DiscountPct` fields default to 0. Missing fields in older scenarios receive those defaults without changing previous calculations. Existing envelope versions remain supported.
+
+Percentages accept 0 through 100, with null retained for blank drafts. Inactive values survive save, export and reimport. Disabled discounts and excluded options calculate with zero discount without overwriting the raw values.

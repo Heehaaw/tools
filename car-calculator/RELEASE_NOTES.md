@@ -4,6 +4,16 @@
 
 Newest first. Versions use `YYYY.MM.DD.N`, with a sequence starting at 1 each day. Dates use Europe/Prague. These identify ledger entries, not Git tags. Entries before 2026.09.18.4 were reconstructed from commit messages and changes; their dates are commit dates, not independently verified deployment dates.
 
+## 2026.11.09.1 (2026-11-09)
+
+- Add an optional percentage discount below each financing option’s separate-period setting. Default to off and 0%, and preserve the entered percentage when switched off.
+- Apply purchase discounts to the option’s invoice, deposit, loan principal, balloon and purchase VAT. Keep quoted-payment interest, repayment schedules and result breakdowns consistent with the discounted price.
+- Apply the operating-lease discount to initial and monthly invoices, including bundled services. Keep separate costs, buyout, manual tax assumptions and resale estimates unchanged.
+- Include English and Czech controls and help text. Preserve old scenarios with zero discount and retain inactive values and incomplete drafts through storage and JSON round trips.
+- Add regression coverage for independent discounts, VAT, loan quotes, schedules, valuation reconciliation, persistence and checkbox behavior; update the model and storage documentation.
+
+Previous recorded commit: [3a82d49](https://github.com/Heehaaw/tools/commit/3a82d49). This entry is committed with the changes it describes.
+
 ## 2026.09.18.6 (2026-09-18)
 
 - Add a Czech interface covering setup, results, graphs, dialogs, tooltips and validation messages. Keep English as the default and remember the selected language in the browser; place the language selector at the right of the header.

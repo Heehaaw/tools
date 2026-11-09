@@ -5,6 +5,7 @@ await import('./tests/additional-costs.test.mjs');
 await import('./tests/historical-inflation.test.mjs');
 await import('./tests/ownership-inflation.test.mjs');
 await import('./tests/local-periods.test.mjs');
+await import('./tests/discounts.test.mjs');
 await import('./tests/annual-views.test.mjs');
 await import('./tests/balloon-quote.test.mjs');
 await import('./tests/standard-quote.test.mjs');

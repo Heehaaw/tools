@@ -1,6 +1,6 @@
 import {createTranslator} from "./i18n.mjs";
 import {messageError} from "./message-errors.mjs";
-import {currencies,defaults,migrateInputs,validate,validateAdditionalCosts,validateHistoricalInflation,validateOwnershipInflation} from "./model.mjs";
+import {currencies,defaults,variants,migrateInputs,validate,validateAdditionalCosts,validateHistoricalInflation,validateOwnershipInflation} from "./model.mjs";
 
 const arraySettingKeys=Object.keys(defaults).filter(key=>Array.isArray(defaults[key]));
 // Scenario boundaries copy mutable inputs so controllers, forms and exports cannot share them.
@@ -34,6 +34,7 @@ export function validateSettings(state){
  if(!["real","nominal"].includes(state.opportunityRateBasis))throw messageError("scenarios.chooseAValidReturnBasis");
  if(state.carName.length>100)throw messageError("scenarios.keepTheScenarioNameUnder100Characters");
  if(!["sell","keep"].includes(state.loanEnd)||!["return","buySell","buyKeep"].includes(state.leaseEnd)||!["gross","net"].includes(state.kintoVatMode))throw messageError("scenarios.chooseAValidOption");
+ for(const v of variants)if(state[v.kind+"DiscountPct"]>100)throw messageError("errors.ratesAndPercentagesMustBeBetween0And");
  const effective={...state};
  if(effective.leaseEnd==="return"&&effective.leaseBuyout===null)effective.leaseBuyout=0;
  if(effective.kintoInsuranceIncluded&&effective.kintoInsurance===null)effective.kintoInsurance=0;

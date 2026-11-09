@@ -1,4 +1,8 @@
 export const messages = {
+ "ui.useASeparateDiscount": "Použít samostatnou slevu",
+ "ui.discount": "Sleva",
+ "ui.purchaseDiscountHelp": "Snižuje kupní cenu této varianty, akontaci, financovanou částku, poslední splátku a DPH z nákupu. Odhad prodejní ceny a samostatné náklady se nemění. Vypnutí zachová zadané procento.",
+ "ui.leaseDiscountHelp": "Snižuje počáteční a měsíční platby leasingu včetně zahrnutých služeb. Samostatné náklady a odkup se nemění. Vypnutí zachová zadané procento.",
  "ui.carFinancingCalculatorBuyOutrightLoanOrLease": "Kalkulačka financování vozu · Koupě za hotové, úvěr, nebo leasing",
  "help.compareBuyingOutrightAStandardCarLoanA": "Porovnejte koupi za hotové, standardní úvěr, balónový úvěr a operativní leasing s upravitelnými náklady a předpoklady prodejní ceny.",
  "ui.auto": "AUTO",
@@ -79,7 +83,7 @@ export const messages = {
  "ui.purchasePrice": "Kupní cena",
  "ui.kInclVat": "{{currency}} vč. DPH",
  "help.explainPrice": "Vysvětlit cenu",
- "ui.theFullInvoicePriceIncludingVatAllThree": "Celková fakturovaná cena včetně DPH. Tuto cenu používají všechny tři varianty koupě, i když se DPH později vrátí.",
+ "ui.theFullInvoicePriceIncludingVatAllThree": "Základní fakturovaná cena včetně DPH. Každá varianta nákupu může níže uplatnit vlastní slevu. Vratka DPH nesnižuje financovanou částku.",
  "ui.expectedCarResale": "Očekávaná prodejní cena vozu",
  "ui.marketValueInclVatAfterSellingCostsAnd": "Tržní hodnota včetně DPH po nákladech na prodej a před splacením zbývajícího úvěru. Při ponechání vozu se z ní stane zůstatková hodnota aktiva. Pneumatiky jsou uvedeny samostatně níže.",
  "help.explainResale": "Vysvětlit prodejní cenu",

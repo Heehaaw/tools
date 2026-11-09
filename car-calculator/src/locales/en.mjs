@@ -1,4 +1,8 @@
 export const messages = {
+ "ui.useASeparateDiscount": "Use a separate discount",
+ "ui.discount": "Discount",
+ "ui.purchaseDiscountHelp": "Reduces this option’s purchase price, deposit, financed amount, balloon and purchase VAT. Resale estimates and separate costs stay unchanged. Switching off preserves the percentage.",
+ "ui.leaseDiscountHelp": "Reduces initial and monthly lease payments, including bundled services. Separate costs and buyout stay unchanged. Switching off preserves the percentage.",
  "ui.carFinancingCalculatorBuyOutrightLoanOrLease": "Car financing calculator · Buy outright, loan or lease",
  "help.compareBuyingOutrightAStandardCarLoanA": "Compare buying outright, a standard car loan, a balloon loan and operating leasing with editable costs and resale assumptions.",
  "ui.auto": "AUTO",
@@ -79,7 +83,7 @@ export const messages = {
  "ui.purchasePrice": "Purchase price",
  "ui.kInclVat": "{{currency}} incl. VAT",
  "help.explainPrice": "Explain price",
- "ui.theFullInvoicePriceIncludingVatAllThree": "The full invoice price including VAT. All three purchase options use this price, even if the VAT is refunded later.",
+ "ui.theFullInvoicePriceIncludingVatAllThree": "The base invoice price including VAT. Each purchase option can apply its own discount below. VAT refunds do not reduce the financed amount.",
  "ui.expectedCarResale": "Expected car resale",
  "ui.marketValueInclVatAfterSellingCostsAnd": "Market value incl. VAT, after selling costs and before settling any remaining loan. If kept, this becomes retained asset value. Tyres are separate below.",
  "help.explainResale": "Explain resale",

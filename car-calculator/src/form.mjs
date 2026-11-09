@@ -1,5 +1,5 @@
 import {createTranslator} from "./i18n.mjs";
-import {defaults,variants as modelVariants,migrateInputs,monthlyPayment,historicalInflationEntryMode,ownershipInflationRate,ownershipInflationTotal,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate} from "./model.mjs";
+import {defaults,variants as modelVariants,migrateInputs,optionPrice,monthlyPayment,historicalInflationEntryMode,ownershipInflationRate,ownershipInflationTotal,historicalInflationRate,historicalInflationTotal,relativeResaleEstimate,nominalOpportunityRate} from "./model.mjs";
 import {ungroupNumber,parseNumber,formatNumberInput} from "./format.mjs";
 import {createYearEditor} from "./year-editor.mjs";
 
@@ -114,6 +114,10 @@ export function createForm({i18n=createTranslator(),document,views,onChange}){
    for(const control of panel?.querySelectorAll("input,select")||[])if(control.id!==v.enabled)control.disabled=!s[v.enabled];
   }
   for(const v of variants){
+   const discount=$(v.kind+"DiscountEnabled").checked;
+   $(v.kind+"DiscountSettings").hidden=!discount;
+   $(v.kind+"DiscountPct").disabled=!s[v.enabled]||!discount;
+   $(v.kind+"DiscountEnabled").setAttribute("aria-expanded",String(discount));
    const separate=!s[v.matchPeriod];
    $(v.kind+"SeparatePeriod").checked=separate;$(v.kind+"SeparatePeriod").disabled=!s[v.enabled];
    $(v.kind+"SeparatePeriod").setAttribute("aria-expanded",String(separate));
@@ -137,8 +141,9 @@ export function createForm({i18n=createTranslator(),document,views,onChange}){
    $(rate).disabled=!enabled||paymentMode;$(payment).disabled=!enabled||!paymentMode;
    const derivedKey=paymentMode?rate:payment;
    if(calculatedLoanFields.get(kind)?.key!==derivedKey)calculatedLoanFields.set(kind,{key:derivedKey,raw:readSettings()[derivedKey]});
-   const balloon=kind==="balloon"?s.price*s.balloonPct/100:0;
-   const derived=paymentMode?s[rate]:monthlyPayment(s.price*(1-s[down]/100),balloon,s[rate],s[kind+"LoanMonths"]);
+   const price=optionPrice(s,kind);
+   const balloon=kind==="balloon"?price*s.balloonPct/100:0;
+   const derived=paymentMode?s[rate]:monthlyPayment(price*(1-s[down]/100),balloon,s[rate],s[kind+"LoanMonths"]);
    $(derivedKey).value=Number.isFinite(derived)?formatNumberInput(Number(derived.toFixed(paymentMode?4:2))):"";
    $(kind+"QuoteNote").textContent=paymentMode?t("setup.interestIsCalculatedFromTheMonthlyPaymentExcluding"):t("setup.monthlyPaymentIsCalculatedFromTheInterestRate",{description1:kind==="balloon"?t("setup.theBalloonIsAdditionalToTheLastInstalment"):t("setup.excludesInsuranceAndFees")});
   }

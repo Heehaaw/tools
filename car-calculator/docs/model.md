@@ -175,3 +175,9 @@ In past ownership with relative depreciation, these main controls remain authori
 ## Cash snapshots and reconciliation
 
 Payments and end-of-term cash shows full-term nominal amounts, independent of valuation switches in other sections. Car resale or retained value is shown separately from the end-date cash flow. That snapshot sums only cash events on the exact end date, including final repayments, settlement, sale proceeds, VAT, tax and any running costs or refunds due then. Its tooltip itemises those contributions; retained assets and later VAT refunds are excluded. Net cash spent is shown separately from economic cost only when a selected option has retained assets or outstanding refunds to reconcile. Otherwise the two totals coincide and only the final cost row is shown.
+
+## Per-option discounts
+
+Each option has an optional discount from 0% to 100%, disabled and zero by default. Purchased options apply it to the shared VAT-inclusive purchase price before calculating deposits, loan principal, percentage balloons, quoted-payment interest and purchase VAT recovery. VAT caps apply to the discounted invoice. Loan schedules and result tables use the same discounted amounts.
+
+The operating lease applies its discount to the initial payment and each monthly invoice, including bundled services, before calculating VAT. Separately entered insurance, running costs, fees, buyout and manual income-tax assumptions stay unchanged. Both direct resale and relative-depreciation market estimates retain their original basis; a negotiated purchase discount does not change the car’s estimated market value. Switching a discount off preserves its raw percentage.

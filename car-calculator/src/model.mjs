@@ -10,6 +10,8 @@ export const variants = [
 export const currencies=Object.freeze({CZK:"Kč",EUR:"€",USD:"$",GBP:"£",CHF:"CHF",PLN:"zł"});
 export const defaults = {
  currency:"CZK",
+ balloonDiscountEnabled:false,normalDiscountEnabled:false,leaseDiscountEnabled:false,cashDiscountEnabled:false,
+ balloonDiscountPct:0,normalDiscountPct:0,leaseDiscountPct:0,cashDiscountPct:0,
  inflationSetup:"shared-v1",legacyInflationInputs:"",pastOwnership:false,resaleMode:"direct",relativeResaleSeeded:false,historicalNewPrice:0,historicalUsedPrice:0,historicalYears:3,historicalMonths:36,historicalMatchPeriod:true,historicalInflationMode:"total",pastHistoricalInflationMode:"main",historicalInflationAnnual:2.5,historicalInflationPct:0,historicalInflationYears:[],
  incomeTaxEnabled:false,incomeTaxRate:0,saleTaxRate:0,matchSaleTaxRate:true,
  balloonDeductions:0,normalDeductions:0,leaseDeductions:0,cashDeductions:0,
@@ -156,6 +158,10 @@ export function relativeResaleEstimate(s,months=s.months){
  const nominalValue=todayValue*(1+inflationRate/100)**(months/12);
  return {historicalPriceToday,retainedShare,annualRetention,todayValue,nominalValue};
 }
+/** Purchase invoice after this option's discount; market resale assumptions stay independent. */
+export function optionPrice(s,kind){return s.price*discountFactor(s,kind);}
+function discountFactor(s,kind){return s[kind+"DiscountEnabled"]?1-s[kind+"DiscountPct"]/100:1;}
+
 export function effectiveInputs(inputs){
  const s=migrateInputs(inputs);
  s.inflationRate=ownershipInflationRate(s);
@@ -178,6 +184,7 @@ export function effectiveInputs(inputs){
   if(!s.saleTaxRate||(v.kind==="lease"?s.leaseEnd!=="buySell":s.loanEnd!=="sell"))s[v.taxValue]=0;
  }
  for(const v of variants){
+  if(!s[v.enabled]||!s[v.kind+"DiscountEnabled"])s[v.kind+"DiscountPct"]=0;
   if(!s[v.enabled])for(const key of v.fields)s[key]=defaults[key];
   if(s[v.matchPeriod]||!s[v.enabled]){s[v.months]=s.months;s[v.resale]=s.resale;}
   if(v.loanMonths&&(s[v.matchLoanTerm]||!s[v.enabled]))s[v.loanMonths]=s[v.months];
@@ -185,9 +192,9 @@ export function effectiveInputs(inputs){
  // Retired global matching is only a derived summary in effective inputs. Raw saved values stay unchanged.
  s.matchPeriods=variants.every(v=>!s[v.enabled]||s[v.matchPeriod]);
  // Resolve quoted payments only after the independent repayment period is known.
- if(s.balloonEnabled&&s.balloonInputMode==="payment")s.rate=annualRateFromPayment(s.price*(1-s.downPct/100),s.price*s.balloonPct/100,s.balloonMonthlyPayment,s.balloonLoanMonths);
+ if(s.balloonEnabled&&s.balloonInputMode==="payment")s.rate=annualRateFromPayment(optionPrice(s,"balloon")*(1-s.downPct/100),optionPrice(s,"balloon")*s.balloonPct/100,s.balloonMonthlyPayment,s.balloonLoanMonths);
  else s.balloonMonthlyPayment=defaults.balloonMonthlyPayment;
- if(s.normalEnabled&&s.normalInputMode==="payment")s.normalRate=annualRateFromPayment(s.price*(1-s.normalDownPct/100),0,s.normalMonthlyPayment,s.normalLoanMonths);
+ if(s.normalEnabled&&s.normalInputMode==="payment")s.normalRate=annualRateFromPayment(optionPrice(s,"normal")*(1-s.normalDownPct/100),0,s.normalMonthlyPayment,s.normalLoanMonths);
  else s.normalMonthlyPayment=defaults.normalMonthlyPayment;
  // Disabled budgets affect no cash flows; raw inputs remain available in saved scenarios.
  if(!s.additionalCostsEnabled){s.additionalCostMode="annual";s.additionalCostAnnual=0;s.additionalCostYears=[];s.additionalSeparatePeriod=false;}
@@ -302,6 +309,7 @@ export function validate(s){
  for(const v of variants.filter(v=>v.loanMonths))if(!Number.isInteger(s[v.loanMonths])||s[v.loanMonths]<1||s[v.loanMonths]>120)throw messageError("errors.useLoanRepaymentPeriodsOf1To120");
  if(s.serviceKm<=0||s.serviceMonths<=0)throw messageError("errors.serviceIntervalsMustBeGreaterThanZero");
  if(s.downPct+s.balloonPct>100||s.normalDownPct>100)throw messageError("errors.depositPlusBalloonCannotExceed100OfThe");
+ for(const v of variants)if(s[v.kind+"DiscountPct"]>100)throw messageError("errors.ratesAndPercentagesMustBeBetween0And");
  for(const k of ["rate","normalRate","vatPct","recoveryPct","leaseTaxablePct","inflationRate","incomeTaxRate","saleTaxRate"])if(s[k]>100)throw messageError("errors.ratesAndPercentagesMustBeBetween0And");
  // Legacy real returns up to 100% with 100% inflation can convert to 300% nominal.
  if(s.opportunityRate>(s.opportunityRateBasis==="nominal"?300:100))throw messageError("errors.theInvestmentReturnExceedsTheSupportedRange");
@@ -341,8 +349,8 @@ function loanPlan(principal,balloon,rate,loanMonths,ownershipMonths){
 export function loanSchedule(inputs,kind){
  const s=effectiveInputs(inputs);validate(s);
  if(!["balloon","normal"].includes(kind))throw messageError("errors.chooseABalloonOrStandardLoanSchedule");
- const normal=kind==="normal",principal=s.price*(1-s[normal?"normalDownPct":"downPct"]/100);
- const balloon=normal?0:s.price*s.balloonPct/100,rate=s[normal?"normalRate":"rate"],months=s[kind+"LoanMonths"],ownership=s[kind+"Months"];
+ const normal=kind==="normal",price=optionPrice(s,kind),principal=price*(1-s[normal?"normalDownPct":"downPct"]/100);
+ const balloon=normal?0:price*s.balloonPct/100,rate=s[normal?"normalRate":"rate"],months=s[kind+"LoanMonths"],ownership=s[kind+"Months"];
  const payment=monthlyPayment(principal,balloon,rate,months),rows=[];
  let balance=principal,totalInterest=0;
  for(let month=1;month<=Math.min(months,ownership);month++){
@@ -366,15 +374,17 @@ export function cashFlowValue(event,months,nominalReturn,inflationRate,{opportun
 export function calculate(s,valuation={}){
  s=effectiveInputs(s);validate(s);
  const nominalReturn=nominalOpportunityRate(s);
- const n=s.months,km=s.annualKm*n/12,down=s.price*s.downPct/100,balloon=s.price*s.balloonPct/100;
- const balloonPlan=loanPlan(s.price-down,balloon,s.rate,s.balloonLoanMonths,s.balloonMonths);
- const {payment,interest}=balloonPlan,normalDown=s.price*s.normalDownPct/100;
- const normalPlan=loanPlan(s.price-normalDown,0,s.normalRate,s.normalLoanMonths,s.normalMonths);
+ const balloonPrice=optionPrice(s,"balloon"),normalPrice=optionPrice(s,"normal");
+ const n=s.months,km=s.annualKm*n/12,down=balloonPrice*s.downPct/100,balloon=balloonPrice*s.balloonPct/100;
+ const balloonPlan=loanPlan(balloonPrice-down,balloon,s.rate,s.balloonLoanMonths,s.balloonMonths);
+ const {payment,interest}=balloonPlan,normalDown=normalPrice*s.normalDownPct/100;
+ const normalPlan=loanPlan(normalPrice-normalDown,0,s.normalRate,s.normalLoanMonths,s.normalMonths);
  const normalPayment=normalPlan.payment,normalInterest=normalPlan.interest;
  const servicePeriod=Math.min(s.serviceMonths,s.annualKm===0?Infinity:s.serviceKm*12/s.annualKm);
  const serviceCount=Math.floor(n/servicePeriod+1e-10),maintenance=serviceCount*s.serviceCost;
  const tyres=s.tyrePurchase+s.tyreVisits*(s.tyreVisitCost+s.tyreStorage)-s.tyreResale;
- const kRent=s.kintoMonthly*(s.kintoVatMode==="net"?1+s.vatPct/100:1),kInsurance=s.kintoInsuranceIncluded?0:s.kintoInsurance;
+ const kInitial=s.kintoInitial*discountFactor(s,"lease");
+ const kRent=s.kintoMonthly*discountFactor(s,"lease")*(s.kintoVatMode==="net"?1+s.vatPct/100:1),kInsurance=s.kintoInsuranceIncluded?0:s.kintoInsurance;
  const vf=s.vatPct/(100+s.vatPct),recovery=s.vatEnabled?s.recoveryPct/100:0;
  const inputVat=(gross,capital=false)=>Math.min(gross*vf,capital&&s.purchaseVatCap>0?s.purchaseVatCap:Infinity)*recovery;
  const saleVat=gross=>s.vatEnabled?gross*vf:0;
@@ -382,6 +392,7 @@ export function calculate(s,valuation={}){
  function option(kind){
   // loanEnd retains its saved JSON key and now governs every non-lease purchase.
   const variant=variants.find(v=>v.kind===kind),n=s[variant.months],resale=s[variant.resale];
+  const purchasePrice=optionPrice(s,kind),purchaseRefund=s.purchaseVatEligible?inputVat(purchasePrice,true):0;
   const serviceCount=Math.floor(n/servicePeriod+1e-10),maintenance=serviceCount*s.serviceCost;
   // Each ownership period gets a visit at purchase and every six months before its end.
   const tyreVisits=Math.ceil(n/6),tyres=s.tyrePurchase+tyreVisits*(s.tyreVisitCost+s.tyreStorage)-s.tyreResale;
@@ -391,8 +402,8 @@ export function calculate(s,valuation={}){
   // Treat next-month maintenance and tyre deductions as settled with the expense for this comparison.
   const refund=(month,amount,capital=false,delay=capital?s.purchaseVatDelay:0)=>{if(amount)add(month+delay,-amount,"vat");};
   const insured=isLease?kInsurance:isCash?s.cashInsurance:isNormal?s.normalInsurance:s.easyInsurance;
-  if(isLease){add(0,s.kintoInitial,"initial");refund(0,inputVat(s.kintoInitial*s.leaseTaxablePct/100),false,0);}
-  else{add(0,isCash?s.price:isNormal?normalDown:down,"capital");refund(0,purchaseRefund,true);}
+  if(isLease){add(0,kInitial,"initial");refund(0,inputVat(kInitial*s.leaseTaxablePct/100),false,0);}
+  else{add(0,isCash?purchasePrice:isNormal?normalDown:down,"capital");refund(0,purchaseRefund,true);}
   for(let m=1;m<=n;m++){
    if(isLease){add(m-1,kRent,"lease");refund(m-1,inputVat(kRent*s.leaseTaxablePct/100),false,0);}
    else if(plan&&m<=plan.paidMonths)add(m,plan.payment,"repayment");
@@ -482,13 +493,13 @@ export function calculate(s,valuation={}){
   const futureRefund=-events.filter(e=>e.month>n&&e.category==="vat").reduce((t,e)=>t+e.amount,0);
   const cashToEnd=events.filter(e=>e.month<=n&&e.type==="cash").reduce((t,e)=>t+e.amount,0);
   const retainedValue=-events.filter(e=>e.type==="asset").reduce((t,e)=>t+e.amount,0);
-  return {costComponents,loanMonths:plan?.loanMonths??0,paidMonths:plan?.paidMonths??0,remainingPrincipal:plan?.remainingPrincipal??0,balloonPaid:plan?.balloonPaid??0,loanInterest:plan?.interest??0,beforeOpportunity,inflationAdjustment,taxSavings,taxableSale,saleTax,months:n,km:s.annualKm*n/12,resale,carSaleVat:saleVat(resale),depreciation:s.price-resale,serviceCount,maintenance,tyreVisits,tyres,additionalCosts,enabled:s[variant.enabled],nominal,adjusted,opportunity,opportunityBreakdown,vat,futureRefund,cashToEnd,retainedValue,events};
+  return {purchasePrice,purchaseRefund:kind==="lease"?0:purchaseRefund,costComponents,loanMonths:plan?.loanMonths??0,paidMonths:plan?.paidMonths??0,remainingPrincipal:plan?.remainingPrincipal??0,balloonPaid:plan?.balloonPaid??0,loanInterest:plan?.interest??0,beforeOpportunity,inflationAdjustment,taxSavings,taxableSale,saleTax,months:n,km:s.annualKm*n/12,resale,carSaleVat:saleVat(resale),depreciation:purchasePrice-resale,serviceCount,maintenance,tyreVisits,tyres,additionalCosts,enabled:s[variant.enabled],nominal,adjusted,opportunity,opportunityBreakdown,vat,futureRefund,cashToEnd,retainedValue,events};
  }
  const balloonLoan=option("balloon"),standardLoan=option("normal"),lease=option("lease"),cashPurchase=option("cash");
  const buyoutRefund=s.leaseEnd!=="return"&&s.buyoutVatEligible?inputVat(s.leaseBuyout,true):0;
- return {nominalReturn,km,down,balloon,payment,interest,normalDown,normalPayment,normalInterest,serviceCount,maintenance,tyres,kRent,kInsurance,
+ return {nominalReturn,km,down,balloon,payment,interest,normalDown,normalPayment,normalInterest,serviceCount,maintenance,tyres,kRent,kInitial,kInsurance,
  depreciation:s.price-s.resale,insuredPayment:payment+s.easyInsurance,equity:s.balloonResale-saleVat(s.balloonResale)-balloonPlan.remainingPrincipal-(s.balloonLoanMonths===s.balloonMonths?balloon:0),purchaseRefund,buyoutRefund,
- leaseVatPerPayment:inputVat(kRent*s.leaseTaxablePct/100),leaseInitialVat:inputVat(s.kintoInitial*s.leaseTaxablePct/100),carSaleVat:saleVat(s.resale),
+ leaseVatPerPayment:inputVat(kRent*s.leaseTaxablePct/100),leaseInitialVat:inputVat(kInitial*s.leaseTaxablePct/100),carSaleVat:saleVat(s.resale),
  balloonLoan,standardLoan,lease,cashPurchase};
 }
 // --- Sensitivity and break-even comparisons ---

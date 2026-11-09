@@ -32,7 +32,7 @@ export function createResults({i18n=createTranslator(),document,window,views,onS
    const o=c[v.key],lease=v.kind==='lease';
    const regular=lease?Array.from({length:o.months},(_,month)=>value(c.leaseVatPerPayment,month)).reduce((a,b)=>a+b,0)/o.months:0;
    const maintenance=o.events.filter(e=>['maintenance','tyres','additional'].includes(e.category)&&e.amount>0).reduce((sum,e)=>sum+value(e.amount*vatFraction,e.month),0);
-   return [v.key,{purchase:lease?0:value(c.purchaseRefund,s.purchaseVatDelay),initial:lease?value(c.leaseInitialVat,0):0,regular,maintenance,
+   return [v.key,{purchase:lease?0:value(c[v.key].purchaseRefund,s.purchaseVatDelay),initial:lease?value(c.leaseInitialVat,0):0,regular,maintenance,
     grossSale:value(o.resale,o.months),saleVat:value(o.carSaleVat,o.months),netSale:value(o.resale-o.carSaleVat,o.months),
     tyreVat:value(s.vatEnabled?s.tyreResale*s.vatPct/(100+s.vatPct):0,o.months),buyout:lease?value(c.buyoutRefund,o.months+s.purchaseVatDelay):0,
     outstanding:-o.events.filter(e=>e.category==='vat'&&e.amount<0&&e.month>o.months).reduce((sum,e)=>sum+value(e.amount,e.month),0)}];
@@ -132,8 +132,8 @@ export function createResults({i18n=createTranslator(),document,window,views,onS
   const components=field=>variants.map(v=>component(v.key,field));
   const costRow=(label,values,cls="")=>comparisonRow(label,values,cost,cls);
   $("costRows").innerHTML=[
-  costRow(t("results.vehiclePurchaseBuyout"),[s.price,s.price,leaseBought?component("lease","purchase"):t("results.noPurchase"),s.price]),
-  (s.balloonEnabled||s.normalEnabled)?costRow(t("results.inflationBenefitOnDeferredPrincipal"),variants.map(v=>v.loanMonths&&inflationViews.cost&&s.inflationRate>0?component(v.key,"purchase")-s.price:0)):"",
+  costRow(t("results.vehiclePurchaseBuyout"),[c.balloonLoan.purchasePrice,c.standardLoan.purchasePrice,leaseBought?component("lease","purchase"):t("results.noPurchase"),c.cashPurchase.purchasePrice]),
+  (s.balloonEnabled||s.normalEnabled)?costRow(t("results.inflationBenefitOnDeferredPrincipal"),variants.map(v=>v.loanMonths&&inflationViews.cost&&s.inflationRate>0?component(v.key,"purchase")-c[v.key].purchasePrice:0)):"",
   costRow(t("results.carResaleRetainedValueCredit"),components("resale").map((amount,i)=>i===2&&!leaseBought?t("results.carReturned"):amount)),
   (s.balloonEnabled||s.normalEnabled)?costRow(t("results.financingInterest"),[component("balloonLoan","interest"),component("standardLoan","interest"),t("results.inLease"),t("results.noLoan")]):"",
   s.leaseEnabled?costRow(t("results.leaseInvoicesInitialPayment"),["—","—",component("lease","lease"),"—"]):"",
@@ -193,7 +193,7 @@ export function createResults({i18n=createTranslator(),document,window,views,onS
   $("vatPanel").hidden=!s.vatEnabled;
   $("vatTimeline").innerHTML=[
   (s.balloonEnabled||s.normalEnabled||s.cashEnabled||(s.leaseEnabled&&c.leaseInitialVat))?phase(t("results.01PurchaseAndLeaseStart")):"",
-  (s.balloonEnabled||s.normalEnabled||s.cashEnabled)?row(t("results.purchaseVatRefund"),detail(vat.balloonLoan.purchase,refundNote(c.purchaseRefund)),detail(vat.standardLoan.purchase,refundNote(c.purchaseRefund)),t("results.notAPurchase"),detail(vat.cashPurchase.purchase,refundNote(c.purchaseRefund))):"",
+  (s.balloonEnabled||s.normalEnabled||s.cashEnabled)?row(t("results.purchaseVatRefund"),detail(vat.balloonLoan.purchase,refundNote(c.balloonLoan.purchaseRefund)),detail(vat.standardLoan.purchase,refundNote(c.standardLoan.purchaseRefund)),t("results.notAPurchase"),detail(vat.cashPurchase.purchase,refundNote(c.cashPurchase.purchaseRefund))):"",
   s.leaseEnabled&&c.leaseInitialVat?row(t("results.initialLeasePaymentVat"),"—","—",detail(vat.lease.initial,t("results.month0")),"—"):"",
   phase(t("results.02DuringTheAgreement")),
   s.leaseEnabled?row(t("results.vatOnRegularLeaseInvoices"),t("results.noVatOnLoanRepayments"),t("results.noVatOnLoanRepayments"),detail(vat.lease.regular,t("results.months0",{description1:inflationViews.vat?t("results.averagePerInvoice"):t("results.perInvoice"),value2:l.months-1})),t("results.noRegularPurchasePayments")):"",
@@ -212,7 +212,7 @@ export function createResults({i18n=createTranslator(),document,window,views,onS
   $("cashflow").innerHTML=[
   s.incomeTaxEnabled?row(t("results.taxableCarSaleAmount"),...variants.map(v=>(v.kind==="lease"?leaseSold:purchaseSold)?(s.saleTaxRate?money(c[v.key].taxableSale):t("results.0SaleRate")):t("results.noSale"))):"",
   s.incomeTaxEnabled?row(t("results.estimatedNetCarSaleProceeds"),...variants.map(v=>(v.kind==="lease"?leaseSold:purchaseSold)?money(c[v.key].resale-c[v.key].carSaleVat-c[v.key].saleTax):t("results.noSale"))):"",
-  row(t("results.depositInitialPaymentOutrightPurchase"),money(c.down),money(c.normalDown),money(s.kintoInitial),money(s.price)),
+  row(t("results.depositInitialPaymentOutrightPurchase"),money(c.down),money(c.normalDown),money(c.kInitial),money(c.cashPurchase.purchasePrice)),
   anyValue([b.balloonPaid,0,leaseBought?s.leaseBuyout:0,0])?row(t("results.balloonPaidLeaseBuyout"),b.balloonPaid?detail(b.balloonPaid,t("results.month5",{loanMonths:b.loanMonths})):t("results.noBalloonPaid"),t("results.noBalloon"),leaseBought?detail(s.leaseBuyout,t("results.month2",{months:l.months})):t("results.noBuyout"),t("results.noLoan")):"",
   anyValue([b.remainingPrincipal,n.remainingPrincipal,0,0])?row(t("results.remainingLoanAtComparisonEnd"),detail(b.remainingPrincipal,purchaseSold?t("results.paidOffOnSale"):t("results.deductedFromRetainedValue")),detail(n.remainingPrincipal,purchaseSold?t("results.paidOffOnSale"):t("results.deductedFromRetainedValue")),t("results.noLoan"),t("results.noLoan")):"",
   row(t("results.netCashPaidAtStart"),...variants.map(v=>money(c[v.key].events.filter(e=>e.type==='cash'&&e.month===0).reduce((sum,e)=>sum+e.amount,0)))),
@@ -366,7 +366,7 @@ export function createResults({i18n=createTranslator(),document,window,views,onS
       if(!v.loanMonths)extra+=t("results.noLoanPrincipalIsDeferredInThisOption");
       else if(inflationViews.cost){
        const valued=calculate(viewInputs(s,'cost'),viewOptions('cost'))[v.key].costComponents.purchase;
-       extra+=t("results.invoicePricePlusThisCreditEqualsForPrincipal",{price:money(s.price),valued:money(valued)});
+       extra+=t("results.invoicePricePlusThisCreditEqualsForPrincipal",{price:money(c[v.key].purchasePrice),valued:money(valued)});
       }else extra+=t("results.todaySMoneyIsOffSoNoPrincipal");
      }
      if(label===t("results.netCashFlowAtEnd")){
@@ -451,7 +451,7 @@ export function createResults({i18n=createTranslator(),document,window,views,onS
       const field={[t("results.costBeforeOpportunity")]:'nominal',[t("ui.opportunityCost")]:'opportunity',[t("results.opportunityCostExcluded2")]:'opportunity',[t("results.totalEconomicCost")]:'adjusted'}[label];
       if(field)value=raw[variant.key][field];
       const componentKey={[t("results.vehiclePurchaseBuyout")]:"purchase",[t("results.carResaleRetainedValueCredit")]:"resale",[t("results.financingInterest")]:"interest",[t("results.leaseInvoicesInitialPayment")]:"lease",[t("results.insurancePaidSeparately")]:"insurance",[t("results.maintenance")]:"maintenance",[t("results.tyresServiceLessResale")]:"tyres",[t("ui.estimatedAdditionalCosts")]:"additional",[t("setup.actualAdditionalCosts")]:"additional",[t("results.otherCosts")]:"other",[t("results.netVatAdjustment")]:"vat",[t("results.estimatedTaxSavingsDuringOwnership")]:"taxSavings",[t("results.estimatedTaxAndContributionsOnSale")]:"saleTax"}[label];
-      if(componentKey&&cell.textContent.includes(i18n.symbol))value=label===t("results.vehiclePurchaseBuyout")&&variant.kind!=='lease'?s.price:raw[variant.key].costComponents[componentKey];
+      if(componentKey&&cell.textContent.includes(i18n.symbol))value=label===t("results.vehiclePurchaseBuyout")&&variant.kind!=='lease'?raw[variant.key].purchasePrice:raw[variant.key].costComponents[componentKey];
       if(label===t("results.inflationBenefitOnDeferredPrincipal"))value=0;
       if(label===t("results.costBeforeIncomeTaxEffects"))value=raw[variant.key].nominal+raw[variant.key].taxSavings-raw[variant.key].saleTax;
      }
